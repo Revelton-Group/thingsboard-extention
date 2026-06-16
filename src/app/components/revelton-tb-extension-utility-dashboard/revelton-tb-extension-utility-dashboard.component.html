@@ -1,0 +1,29 @@
+<div class="utility-dashboard-container">
+
+  <!-- Header -->
+  <revelton-utility-header
+    [propertyName]="vm.propertyName">
+  </revelton-utility-header>
+
+  <!-- Loading Overlay -->
+  <div class="loading-overlay" *ngIf="vm.isLoading">
+    <div class="modern-loader">
+      <mat-icon>autorenew</mat-icon>
+    </div>
+    <span class="loading-text">Scanning utility devices...</span>
+  </div>
+
+  <!-- Main Content -->
+  <div class="dashboard-content" [class.is-loading]="vm.isLoading">
+    <revelton-ev-charger-panel
+      [chargers]="vm.chargers"
+      [activeCount]="vm.activeChargers"
+      [totalCount]="vm.totalChargers"
+      [totalPower]="vm.totalPowerKw"
+      [totalEnergy]="vm.totalEnergyKwh"
+      [totalRevenue]="vm.totalRevenueEuro"
+      [activeFaults]="vm.activeFaults">
+    </revelton-ev-charger-panel>
+  </div>
+
+</div>

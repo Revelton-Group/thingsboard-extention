@@ -1,0 +1,181 @@
+
+:host {
+  display: block;
+  height: 100%;
+}
+
+/* ══════════════════════════════════════════════════
+   TILE — Main container
+   ══════════════════════════════════════════════════ */
+.ce-tile {
+  height: 100%;
+  box-sizing: border-box;
+  background: var(--card, #ffffff);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 16px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 8px;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+  color: var(--text, #0f172a);
+
+  &:hover {
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.07);
+    transform: translateY(-2px);
+    border-color: var(--accent, #818cf8);
+  }
+}
+
+/* ══════════════════════════════════════════════════
+   TOP ROW — dot · name/model · signal bars
+   ══════════════════════════════════════════════════ */
+.ce-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ce-name-block {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ce-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--success, #10b981);
+}
+
+.ce-device-name {
+  font-size: 13px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text, #0f172a);
+}
+
+.ce-model {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted, #64748B);
+  text-transform: uppercase;
+}
+
+.ce-right-col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.ce-timestamp {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text-muted, #94a3b8);
+  white-space: nowrap;
+
+  .material-icons {
+    font-size: 14px;
+  }
+}
+
+/* ══════════════════════════════════════════════════
+   MIDDLE ROW — metrics panels
+   ══════════════════════════════════════════════════ */
+.ce-metrics-grid {
+  display: flex;
+  gap: 8px;
+}
+
+.ce-metric-panel {
+  flex: 1;
+  background: var(--bg, #f8fafc);
+  border-radius: 8px;
+  padding: 10px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ce-metric-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-muted, #64748B);
+
+  .material-icons {
+    font-size: 12px;
+  }
+
+  &.temp .material-icons { color: #f59e0b; }
+  &.hum .material-icons { color: #3b82f6; }
+}
+
+.ce-metric-value {
+  font-size: 18px;
+  font-weight: 500;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 2px;
+  color: var(--text, #0f172a);
+
+  .unit {
+    font-size: 9px;
+    font-weight: 600;
+    color: var(--text-muted, #64748B);
+  }
+}
+
+/* ══════════════════════════════════════════════════
+   BOTTOM ROW — battery · timestamp
+   ══════════════════════════════════════════════════ */
+.ce-bottom-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 4px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border, #e2e8f0);
+}
+
+.ce-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 6px;
+  white-space: nowrap;
+
+  .material-icons {
+    font-size: 14px;
+  }
+}
+
+.ce-chip-green {
+  color: var(--success, #10b981);
+  background: var(--success-bg, rgba(16, 185, 129, 0.1));
+}
+
+.ce-chip-orange {
+  color: var(--warning, #f59e0b);
+  background: var(--warning-bg, rgba(245, 158, 11, 0.1));
+}
+
+.ce-chip-gray {
+  color: var(--text-muted, #94a3b8);
+  background: rgba(148, 163, 184, 0.1);
+}

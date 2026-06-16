@@ -1,0 +1,261 @@
+.aq-card {
+  width: 336px;
+  background: var(--card, #FFFFFF);
+  border-radius: var(--radius, 16px);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  height: 100%;
+}
+
+.aq-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.aq-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.aq-icon-box {
+  width: 44px;
+  height: 44px;
+  background: var(--success-bg, #EBFBEE);
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  i {
+    color: var(--success, #34C759);
+    font-size: 24px;
+  }
+}
+
+.aq-device-name {
+  font-family: 'Outfit', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text, #1a202c);
+  line-height: 1.2;
+}
+
+:host {
+  display: block;
+}
+
+.aq-device-model {
+  font-size: 11px;
+  color: var(--text-muted, #8E8E93);
+}
+
+.aq-header-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.aq-meta-bottom {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-top: -4px;
+}
+
+.meta-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--success, #10B981);
+
+  i {
+    font-size: 16px;
+  }
+
+  &.warn {
+    color: var(--warning, #FF9500);
+  }
+}
+
+.aq-status-badge {
+  padding: 4px 14px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.aq-timestamp {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text-muted, #A0AEC0);
+  white-space: nowrap;
+  margin-top: 4px;
+
+  i {
+    font-size: 14px;
+  }
+}
+
+.aq-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Row 1: Square Tiles */
+.aq-row-top {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.aq-square-metric {
+  background: var(--panel, #F8F9FA);
+  border: 2px solid var(--border, rgba(226, 232, 240, 0.6));
+  border-radius: 16px;
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+
+  i {
+    font-size: 20px;
+    margin-bottom: 2px;
+  }
+}
+
+.aq-metric-label {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--text-muted, #A0AEC0);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 0px;
+}
+
+.aq-metric-value {
+  font-family: 'Outfit', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text, #1a202c);
+}
+
+.aq-unit {
+  font-size: 10px;
+  color: var(--text-muted, #A0AEC0);
+  font-weight: 400;
+  margin-left: 1px;
+}
+
+/* Row 2: Bars */
+.aq-row-mid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.aq-bar-metric {
+  background: var(--panel, #F8F9FA);
+  border-radius: 16px;
+  padding: 14px 16px;
+}
+
+.aq-bar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.aq-bar-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted, #A0AEC0);
+}
+
+.aq-bar-value {
+  font-family: 'Outfit', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text, #1a202c);
+}
+
+.aq-bar-track {
+  height: 6px;
+  background: var(--border, rgba(0, 0, 0, 0.04));
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.aq-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.5s ease;
+}
+
+/* Row 3: Small Horizontal Icons */
+.aq-row-bottom {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.aq-small-metric {
+  background: var(--panel, #F8F9FA);
+  border-radius: 16px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.icon-circle {
+  width: 32px;
+  height: 32px;
+  background: var(--card, #ffffff);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+
+  i {
+    font-size: 18px;
+  }
+}
+
+.aq-small-label {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--text-muted, #A0AEC0);
+  text-transform: uppercase;
+}
+
+.aq-small-value {
+  font-family: 'Outfit', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text, #1a202c);
+}
+
+.icon-orange {
+  color: var(--warning, #FF9500);
+}
+
+.icon-blue {
+  color: var(--info, #007AFF);
+}
+
+.icon-green {
+  color: var(--success, #34C759);
+}

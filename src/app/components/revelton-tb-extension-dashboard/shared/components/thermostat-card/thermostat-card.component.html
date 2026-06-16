@@ -1,0 +1,122 @@
+<div class="thermo-card" [class.z-top]="isModeMenuOpen || isPresetMenuOpen" *ngIf="trv">
+    <div class="thermo-header-new">
+        <div class="thermo-header-top">
+            <div class="thermo-header-left">
+                <div class="thermo-icon-box" [style.background]="getTrvColor() + '15'">
+                    <i class="material-icons" [style.color]="getTrvColor()">local_fire_department</i>
+                </div>
+                <div>
+                    <div class="thermo-name">{{ trv.displayName }}</div>
+                    <div class="thermo-model">{{ trv.model || trv.entityName }}</div>
+                </div>
+            </div>
+            <div class="thermo-header-right">
+                <div class="thermo-state-badge" *ngIf="trv.runningState"
+                    [style.background]="getTrvColor() + '15'" [style.color]="getTrvColor()">
+                    <span class="state-dot" [style.background]="getTrvColor()"></span>
+                    <span class="state-text">{{ getRunningStateLabel(trv.runningState) }}</span>
+                </div>
+            </div>
+        </div>
+        <div class="thermo-meta-bottom">
+            <div class="meta-left">
+                <span *ngIf="trv.batteryLow === true" class="meta-item-orange">
+                    <i class="material-icons">battery_alert</i>Low
+                </span>
+                <span *ngIf="trv.batteryLow !== true && trv.battery != null"
+                    [ngClass]="trv.battery <= 20 ? 'meta-item-orange' : 'meta-item-green'"><i
+                        class="material-icons">{{ trv.battery <= 20 ? 'battery_alert' : 'battery_std' }}</i>{{ trv.battery }}%</span>
+                <span *ngIf="trv.batteryLow === false && trv.battery == null"
+                    class="meta-item-green"><i class="material-icons">battery_std</i>Good</span>
+                <span *ngIf="trv.offline" class="meta-item-red"><i
+                        class="material-icons">wifi_off</i>Offline</span>
+                <span *ngIf="!trv.offline && trv.linkquality != null"
+                    [ngClass]="getLinkQualityClass(trv.linkquality)"><i
+                        class="material-icons">wifi</i>{{ getLinkQualityText(trv.linkquality) }}</span>
+            </div>
+            <div class="meta-right">
+                <div class="thermo-timestamp" *ngIf="trv.lastSeen">
+                    <i class="material-icons">schedule</i>{{ trv.lastSeen }}
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="temp-display-compact">
+        <div class="temp-compact-col">
+            <div class="temp-target-label">{{ t.preset | uppercase }}</div>
+            <div class="temp-value-wrapper">
+                <span class="temp-value" [style.color]="getTrvColor()">{{ trv.targetTemp != null ?
+                    (trv.targetTemp | number:'1.0-1') : '--' }}</span>
+                <span class="temp-unit" *ngIf="trv.targetTemp != null" [style.color]="getTrvColor()">°C</span>
+            </div>
+        </div>
+        
+        <div class="temp-divider"></div>
+        
+        <div class="temp-compact-col">
+            <div class="temp-target-label">{{ t.status | uppercase }}</div>
+            <div class="temp-value-wrapper">
+                <span class="temp-value temp-value--dark">{{ trv.currentTemp != null ? (trv.currentTemp | number:'1.0-1') : '--' }}</span>
+                <span class="temp-unit temp-unit--dark" *ngIf="trv.currentTemp != null">°C</span>
+            </div>
+        </div>
+    </div>
+    <div class="slider-container" *ngIf="trv.systemMode !== 'off'">
+        <div class="slider-track" #sliderTrack (click)="onSliderClick($event)">
+            <div class="slider-fill" [style.width]="getSliderPercent() + '%'"
+                style="background: #1C1C1E"></div>
+            <div class="slider-thumb" [style.left]="getSliderPercent() + '%'"
+                style="border-color: #D1D5DB"
+                (mousedown)="onSliderStart($event, sliderTrack)"
+                (touchstart)="onSliderStart($event, sliderTrack)"></div>
+        </div>
+        <div class="slider-labels">
+            <span>15°</span>
+            <span>25°</span>
+        </div>
+    </div>
+    <div class="controls-row">
+        <div class="control-group">
+            <div class="control-label">{{ t.mode }}</div>
+            <button class="control-btn" (click)="toggleMode($event)">
+                <span class="control-btn-left">
+                    <i class="material-icons" [style.color]="getModeColor(trv.systemMode)"
+                        style="font-size: 16px">{{ getModeIcon(trv.systemMode) }}</i>
+                    {{ getModeLabel(trv.systemMode) }}
+                </span>
+                <i class="material-icons" style="font-size: 14px; color: #8E8E93">{{ isModeMenuOpen ?
+                    'expand_less' : 'expand_more' }}</i>
+            </button>
+            <div class="dropdown-menu" *ngIf="isModeMenuOpen">
+                <button class="dropdown-item" *ngFor="let m of modes"
+                    [class.active]="trv.systemMode === m.id" (click)="selectMode(m.id)">
+                    <i class="material-icons" [style.color]="m.color" style="font-size: 16px">{{ m.icon }}</i>
+                    {{ m.label }}
+                    <span class="active-dot" *ngIf="trv.systemMode === m.id"
+                        [style.background]="m.color"></span>
+                </button>
+            </div>
+        </div>
+        <div class="control-group">
+            <div class="control-label">{{ t.preset }}</div>
+            <button class="control-btn" (click)="togglePreset($event)">
+                <span class="control-btn-left">
+                    <i class="material-icons" [style.color]="getPresetColor(trv.preset)"
+                        style="font-size: 16px">{{ getPresetIcon(trv.preset) }}</i>
+                    {{ getPresetLabel(trv.preset) }}
+                </span>
+                <i class="material-icons" style="font-size: 14px; color: #8E8E93">{{ isPresetMenuOpen ?
+                    'expand_less' : 'expand_more' }}</i>
+            </button>
+            <div class="dropdown-menu" *ngIf="isPresetMenuOpen">
+                <button class="dropdown-item" *ngFor="let p of presets"
+                    [class.active]="trv.preset === p.id" (click)="selectPreset(p.id)">
+                    <i class="material-icons" [style.color]="p.color" style="font-size: 16px">{{ p.icon }}</i>
+                    {{ p.label }}
+                    <span class="active-dot" *ngIf="trv.preset === p.id"
+                        [style.background]="p.color"></span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

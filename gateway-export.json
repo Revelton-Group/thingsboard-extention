@@ -1,0 +1,221 @@
+{
+    "mapping": [
+        {
+            "topicFilter": "zigbee2mqtt_1/+",
+            "subscriptionQos": 0,
+            "converter": {
+                "type": "json",
+                "deviceInfo": {
+                    "deviceNameExpression": "(?<=zigbee2mqtt_1/)(trv_.*)",
+                    "deviceNameExpressionSource": "topic",
+                    "deviceProfileExpressionSource": "constant",
+                    "deviceProfileExpression": "Radiator Control"
+                },
+                "attributes": [
+                    {
+                        "key": "max_temperature",
+                        "type": "integer",
+                        "value": "${max_temperature}"
+                    },
+                    {
+                        "key": "min_temperature",
+                        "type": "string",
+                        "value": "${min_temperature}"
+                    },
+                    {
+                        "key": "comfort_temperature",
+                        "type": "double",
+                        "value": "${comfort_temperature}"
+                    },
+                    {
+                        "key": "eco_temperature",
+                        "type": "double",
+                        "value": "${eco_temperature}"
+                    },
+                    {
+                        "key": "current_heating_setpoint",
+                        "type": "double",
+                        "value": "${current_heating_setpoint}"
+                    },
+                    {
+                        "key": "system_mode",
+                        "type": "string",
+                        "value": "${system_mode}"
+                    },
+                    {
+                        "key": "running_state",
+                        "type": "string",
+                        "value": "${running_state}"
+                    },
+                    {
+                        "key": "preset",
+                        "type": "string",
+                        "value": "${preset}"
+                    }
+                ],
+                "timeseries": [
+                    {
+                        "key": "temperature",
+                        "type": "double",
+                        "value": "${local_temperature}"
+                    },
+                    {
+                        "key": "position",
+                        "type": "double",
+                        "value": "${position}"
+                    },
+                    {
+                        "key": "linkquality",
+                        "type": "integer",
+                        "value": "${linkquality}"
+                    },
+                    {
+                        "key": "battery_low",
+                        "type": "double",
+                        "value": "${battery_low}"
+                    },
+                    {
+                        "key": "last_seen",
+                        "type": "string",
+                        "value": "${last_seen}"
+                    }
+                ]
+            }
+        },
+        {
+            "topicFilter": "zigbee2mqtt_1/+",
+            "subscriptionQos": 0,
+            "converter": {
+                "type": "json",
+                "deviceInfo": {
+                    "deviceNameExpression": "(?<=zigbee2mqtt_1/)(temperature_.*)",
+                    "deviceNameExpressionSource": "topic",
+                    "deviceProfileExpressionSource": "constant",
+                    "deviceProfileExpression": "Environmental Sensor"
+                },
+                "attributes": [],
+                "timeseries": [
+                    {
+                        "key": "temperature",
+                        "type": "double",
+                        "value": "${temperature}"
+                    },
+                    {
+                        "key": "humidity",
+                        "type": "double",
+                        "value": "${humidity}"
+                    },
+                    {
+                        "key": "battery",
+                        "type": "double",
+                        "value": "${battery}"
+                    },
+                    {
+                        "key": "linkquality",
+                        "type": "double",
+                        "value": "${linkquality}"
+                    },
+                    {
+                        "key": "last_seen",
+                        "type": "string",
+                        "value": "${last_seen}"
+                    }
+                ]
+            }
+        },
+        {
+            "topicFilter": "zigbee2mqtt_1/+",
+            "subscriptionQos": 0,
+            "converter": {
+                "type": "json",
+                "deviceInfo": {
+                    "deviceNameExpression": "(?<=zigbee2mqtt_1/)(window_.*)",
+                    "deviceNameExpressionSource": "topic",
+                    "deviceProfileExpressionSource": "constant",
+                    "deviceProfileExpression": "Contact Sensor"
+                },
+                "attributes": [],
+                "timeseries": [
+                    {
+                        "key": "contact",
+                        "type": "boolean",
+                        "value": "${contact}"
+                    },
+                    {
+                        "key": "battery",
+                        "type": "double",
+                        "value": "${battery}"
+                    },
+                    {
+                        "key": "linkquality",
+                        "type": "double",
+                        "value": "${linkquality}"
+                    },
+                    {
+                        "key": "last_seen",
+                        "type": "string",
+                        "value": "${last_seen}"
+                    },
+                    {
+                        "key": "tamper",
+                        "type": "boolean",
+                        "value": "${tamper}"
+                    }
+                ]
+            }
+        }
+    ],
+    "requestsMapping": {
+        "connectRequests": [],
+        "disconnectRequests": [],
+        "attributeRequests": [],
+        "attributeUpdates": [
+            {
+                "deviceNameFilter": "trv_.*",
+                "attributeFilter": "current_heating_setpoint",
+                "topicExpression": "zigbee2mqtt_1/${deviceName}/set",
+                "valueExpression": "{\"current_heating_setpoint\": ${attributeValue}}"
+            },
+            {
+                "deviceNameFilter": "trv_.*",
+                "attributeFilter": "system_mode",
+                "topicExpression": "zigbee2mqtt_1/${deviceName}/set",
+                "valueExpression": "{\"system_mode\": \"${attributeValue}\"}"
+            },
+            {
+                "deviceNameFilter": "trv_.*",
+                "attributeFilter": "preset",
+                "topicExpression": "zigbee2mqtt_1/${deviceName}/set",
+                "valueExpression": "{\"preset\": \"${attributeValue}\"}"
+            }
+        ],
+        "serverSideRpc": [
+            {
+                "type": "oneWay",
+                "deviceNameFilter": "trv_.*",
+                "methodFilter": "set_temperature",
+                "requestTopicExpression": "zigbee2mqtt_1/${deviceName}/set",
+                "valueExpression": "{\"current_heating_setpoint\": ${params}}"
+            },
+            {
+                "type": "oneWay",
+                "deviceNameFilter": "trv_.*",
+                "methodFilter": "set_system_mode",
+                "requestTopicExpression": "zigbee2mqtt_1/${deviceName}/set",
+                "valueExpression": "{\"system_mode\": \"${params}\"}"
+            },
+            {
+                "type": "oneWay",
+                "deviceNameFilter": "trv_.*",
+                "methodFilter": "set_preset",
+                "requestTopicExpression": "zigbee2mqtt_1/${deviceName}/set",
+                "valueExpression": "{\"preset\": \"${params}\"}"
+            }
+        ]
+    },
+    "name": "HA-MQTT",
+    "id": "6af5f017-4bb0-4135-9dc3-94c6e0252da0",
+    "logLevel": "INFO",
+    "enableRemoteLogging": true,
+    "configVersion": "3.8.0"
+}

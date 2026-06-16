@@ -1,0 +1,34 @@
+<div class="filter-bar-container">
+  <!-- Location Selector Section -->
+  <div class="location-selector">
+    <mat-icon class="location-icon">location_on</mat-icon>
+    <mat-form-field
+      appearance="fill"
+      class="location-dropdown"
+      subscriptSizing="dynamic"
+    >
+      <mat-select
+        [value]="selectedLocation"
+        (selectionChange)="onLocationSelect($event.value)"
+        panelClass="clean-dropdown-panel"
+      >
+        <mat-option *ngFor="let location of locations" [value]="location">
+          {{ location }}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+  </div>
+
+  <!-- Time Range Quick Select Section -->
+  <div class="time-range-selector">
+    <button
+      *ngFor="let range of timeRanges"
+      type="button"
+      class="range-btn"
+      [class.active]="selectedTimeRange === range.value"
+      (click)="onTimeRangeSelect(range.value)"
+    >
+      {{ range.label }}
+    </button>
+  </div>
+</div>

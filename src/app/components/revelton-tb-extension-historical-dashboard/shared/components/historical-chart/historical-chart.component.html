@@ -1,0 +1,38 @@
+
+<!--
+  Historical Chart Component
+  Principle: KISS (Keep It Simple, Stupid)
+  Usage: Displays time-series data using ECharts. It is optimized for Environment and Acoustics data.
+-->
+<div class="chart-wrapper">
+  <div class="chart-header">
+    <div class="header-left">
+      <mat-icon class="header-icon">{{ icon }}</mat-icon>
+      <h3 class="chart-title">{{ chartTitle }}</h3>
+    </div>
+    <div class="header-actions" *ngIf="showLegend">
+      <!-- Custom legend items can be injected here or handled via ECharts options -->
+    </div>
+  </div>
+
+  <div class="chart-content">
+    <!-- Loading State -->
+    <div class="chart-loader" *ngIf="isLoading">
+      <mat-spinner diameter="40"></mat-spinner>
+      <span>Loading historical data...</span>
+    </div>
+
+    <!-- Empty State -->
+    <div class="chart-empty" *ngIf="!isLoading && (!data || data.length === 0)">
+      <mat-icon>insights</mat-icon>
+      <p>No data available for the selected period</p>
+    </div>
+
+    <!-- ECharts Container -->
+    <div
+      #chartContainer
+      class="echarts-container"
+      [class.hidden]="isLoading || !data || data.length === 0">
+    </div>
+  </div>
+</div>

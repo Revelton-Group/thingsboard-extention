@@ -1,0 +1,139 @@
+
+:host {
+  display: block;
+  height: 100%;
+}
+
+.summary-card {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 20px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  position: relative;
+  overflow: hidden;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  }
+
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+
+    .title-wrapper {
+      .label {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: #94a3b8;
+        letter-spacing: 0.05em;
+        margin: 0 0 4px 0;
+      }
+    }
+
+    .icon-container {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background-color 0.3s ease;
+
+      mat-icon {
+        font-size: 20px;
+        width: 20px;
+        height: 20px;
+      }
+    }
+  }
+
+  .card-content {
+    .value-wrapper {
+      display: flex;
+      align-items: baseline;
+      margin-bottom: 4px;
+
+      .value {
+        font-size: 28px;
+        font-weight: 700;
+        color: #1e293b;
+      }
+
+      .unit {
+        font-size: 18px;
+        font-weight: 600;
+        color: #1e293b;
+        margin-left: 2px;
+      }
+    }
+
+    .sub-text {
+      font-size: 13px;
+      color: #64748b;
+      margin: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+}
+
+/**
+ * Color Themes for different sensor types
+ * Following the design in the provided image
+ */
+.card-temp {
+  .icon-container {
+    background-color: #fff1f2;
+    color: #f43f5e;
+  }
+}
+
+.card-humidity {
+  .icon-container {
+    background-color: #eff6ff;
+    color: #3b82f6;
+  }
+}
+
+.card-co2 {
+  .icon-container {
+    background-color: #f5f3ff;
+    color: #8b5cf6;
+  }
+}
+
+.card-presence {
+  .icon-container {
+    background-color: #f0fdf4;
+    color: #22c55e;
+  }
+}
+
+// Dark mode support
+:host-context(.tb-dark) {
+  .summary-card {
+    background: #1e1e1e;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+
+    .card-content {
+      .value-wrapper {
+        .value, .unit {
+          color: #f8fafc;
+        }
+      }
+      .sub-text {
+        color: #94a3b8;
+      }
+    }
+  }
+}

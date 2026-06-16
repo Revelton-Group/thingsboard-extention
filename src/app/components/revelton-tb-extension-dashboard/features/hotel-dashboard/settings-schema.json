@@ -1,0 +1,21 @@
+{
+  "schema": {
+    "type": "object",
+    "properties": {
+      "hotelName": {
+        "title": "Hotel Name",
+        "type": "string",
+        "default": "Revelton Studios"
+      },
+      "hotelLocation": {
+        "title": "Hotel Location",
+        "type": "string",
+        "default": "Jaltská 9, 360 01 Karlovy Vary 1, Czechia"
+      }
+    }
+  },
+  "form": [
+    "hotelName",
+    "hotelLocation"
+  ]
+}

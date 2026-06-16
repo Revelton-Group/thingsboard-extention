@@ -1,0 +1,619 @@
+import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { BehaviorSubject, Observable } from 'rxjs';
+import { WidgetContext } from '@home/models/widget-component.models';
+import { TranslationService } from './translation.service';
+
+/** Breakpoint thresholds for AQI calculation — override per-pollutant at runtime */
+export interface AQBreakpoints {
+  co2: { good: number; fair: number; poor: number; hazardous: number };
+  tvoc: { good: number; fair: number; poor: number; hazardous: number };
+  pm25: { good: number; fair: number; poor: number; hazardous: number };
+  pm10: { good: number; fair: number; poor: number; hazardous: number };
+  humidity: { comfortMin: number; comfortMax: number; warnMin: number; warnMax: number };
+  temp: { comfortMin: number; comfortMax: number; warnMin: number; warnMax: number };
+}
+
+/** Result returned by calculateAirQuality() */
+export interface AirQualityResult {
+  aqi: number;
+  label: string;
+  color: string;
+  dominant: string;
+  subIndexes: { [sensorName: string]: number };
+}
+
+export interface RoomData {
+  sensorData: {
+    roomNumber: string;
+    temperature: number | null;
+    humidity: number | null;
+    airQuality: number | null;
+    checkedIn: boolean;
+    waterLeak: boolean;
+    noise: number | null;
+    booked: boolean;
+    roomTitle: string | null;
+  };
+  hasData: {
+    temperature: boolean;
+    humidity: boolean;
+    airQuality: boolean;
+    checkedIn: boolean;
+    waterLeak: boolean;
+    noise: boolean;
+    booked: boolean;
+  };
+  // Mews reservation data
+  reservation: {
+    checkIn: string;
+    checkOut: string;
+    guestName: string;
+    reservationState: string;
+    hasReservation: boolean;
+    // Computed display fields
+    checkDisplay: string;       // 'In', 'Wait', 'Out', '--'
+    checkIconClass: string;     // 'icon-teal', 'icon-gray', 'icon-orange'
+    checkPillClass: string;     // 'pill-normal', 'pill-inactive', 'pill-wait'
+    bookDisplay: string;        // 'Yes', 'No', '--'
+    bookIconClass: string;      // 'icon-green', 'icon-red', 'icon-gray'
+    bookPillClass: string;      // 'pill-normal', 'pill-danger', 'pill-inactive'
+    bookCellClass: string;      // 'cell-danger', ''
+    checkoutRemaining: string;  // '2h 30m', '' 
+    statusSummary: string;      // 'Guest in room · checkout in 2h', 'Arriving today 15:00', etc.
+  };
+  winAgg: any;
+  trvAgg: any;
+  tempStatus: string;
+  humStatus: string;
+  airStatus: string;
+  noiseStatus: string;
+  roomStatus: string;
+  alarmCount: number;
+  sensorAlarmCount?: number; // Only temp/hum/air/noise/waterLeak — drives bell color
+  hasBatteryLow?: boolean;
+  // Device maps
+  windowDevices: any;
+  trvDevices: any;
+  tempDevices: any;
+  humDevices: any;
+  batteryDevices: any;
+  batteryLowDevices: any;
+  linkQualityDevices: any;
+  lastSeenDevices: any;
+  offlineDevices: any;
+  tamperDevices: any;
+  airSensors: any;
+  deviceMeta: any;
+  leakDevices: any;
+  noiseDevices: any;
+  activeDevices: any;
+  deviceEntityIdMap: any;
+}
+
+@Injectable({
+  providedIn: 'root'
+})
+export class RoomDataService {
+
+  private dataSubject = new BehaviorSubject<RoomData | null>(null);
+  public data$ = this.dataSubject.asObservable();
+
+  private THRESHOLDS = {
+    temperature: { warning: { min: 16, max: 28 }, danger: { min: 14, max: 32 } },
+    humidity: { warning: { min: 30, max: 65 }, danger: { min: 20, max: 80 } },
+    airQuality: { warning: 100, danger: 150 },
+    noise: { warning: 55, danger: 70 }
+  };
+
+  private lastSeenTimestamps: { [device: string]: number } = {};
+
+  constructor(private http: HttpClient, private translationService: TranslationService) {}
+
+  get t() {
+    return this.translationService.t;
+  }
+
+  public updateFromTelemetry(ctx: WidgetContext, currentData: RoomData): RoomData {
+    if (!ctx?.data) return currentData;
+
+    const newData = { ...currentData };
+
+    for (const item of ctx.data) {
+      if (!item || !item.dataKey) continue;
+
+      const key = item.dataKey.name;
+      let value = null;
+
+      if (item.data && item.data.length > 0 && item.data[0]) {
+        value = item.data[0][1];
+      }
+      
+      const entityName = (item.datasource && item.datasource.entityName) ? item.datasource.entityName : 'unknown';
+
+
+      if (value === null || value === undefined || value === '' || value === 'null') continue;
+
+
+
+      // Capture entity UUID
+      const ds = item.datasource;
+      if (ds?.entityId && entityName !== 'unknown') {
+        const id = typeof ds.entityId === 'string' ? ds.entityId : (ds.entityId as any).id;
+        if (id) newData.deviceEntityIdMap[entityName] = id;
+      }
+
+      switch (key) {
+        case 'temp':
+        case 'temperature':
+        case 'local_temperature':
+        case 'last_temperature_measurement': {
+          const temp = parseFloat(value);
+          if (!isNaN(temp)) {
+            newData.tempDevices[entityName] = temp;
+            newData.hasData.temperature = true;
+            if (this.isAirSensor(entityName, newData.deviceMeta)) {
+              if (!newData.airSensors[entityName]) newData.airSensors[entityName] = {};
+              newData.airSensors[entityName].temp = temp;
+            }
+          }
+          break;
+        }
+        case 'hum':
+        case 'humidity':
+        case 'relative_humidity': {
+          const hum = parseFloat(value);
+          if (!isNaN(hum)) {
+            newData.humDevices[entityName] = hum;
+            newData.hasData.humidity = true;
+            if (this.isAirSensor(entityName, newData.deviceMeta)) {
+              if (!newData.airSensors[entityName]) newData.airSensors[entityName] = {};
+              newData.airSensors[entityName].hum = hum;
+            }
+          }
+          break;
+        }
+        case 'current_heating_setpoint':
+          if (!newData.trvDevices[entityName]) newData.trvDevices[entityName] = {};
+          newData.trvDevices[entityName].setPoint = parseFloat(value) || 0;
+          break;
+        case 'running_state':
+          if (!newData.trvDevices[entityName]) newData.trvDevices[entityName] = {};
+          const mode = String(value).toLowerCase();
+          newData.trvDevices[entityName].status = mode === 'heat' ? 'heating' : mode === 'off' ? 'off' : mode === 'idle' ? 'idle' : mode;
+          break;
+        case 'preset':
+          if (!newData.trvDevices[entityName]) newData.trvDevices[entityName] = {};
+          newData.trvDevices[entityName].preset = String(value).toLowerCase();
+          break;
+        case 'system_mode':
+        case 'mode':
+          if (!newData.trvDevices[entityName]) newData.trvDevices[entityName] = {};
+          newData.trvDevices[entityName].system_mode = String(value).toLowerCase();
+          break;
+        case 'eco_temperature':
+          if (!newData.trvDevices[entityName]) newData.trvDevices[entityName] = {};
+          newData.trvDevices[entityName].eco_temperature = parseFloat(value);
+          break;
+        case 'comfort_temperature':
+          if (!newData.trvDevices[entityName]) newData.trvDevices[entityName] = {};
+          newData.trvDevices[entityName].comfort_temperature = parseFloat(value);
+          break;
+        case 'contact':
+          if (!newData.windowDevices[entityName]) newData.windowDevices[entityName] = { contact: 'closed' };
+          newData.windowDevices[entityName].contact = (value === true || value === 'true' || value === 1 || value === '1') ? 'closed' : 'open';
+          break;
+        case 'battery_low':
+        case 'batteryLow':
+          newData.batteryLowDevices[entityName] = (value === true || String(value).toLowerCase() === 'true' || value === 1);
+          break;
+        case 'tamper':
+          newData.tamperDevices[entityName] = (value === true || value === 'true' || value === 1);
+          break;
+        case 'active':
+          newData.activeDevices[entityName] = (value === true || String(value).toLowerCase() === 'true' || value === 1 || value === '1');
+          break;
+        case 'battery':
+          newData.batteryDevices[entityName] = parseFloat(value);
+          break;
+        case 'linkquality':
+          newData.linkQualityDevices[entityName] = parseFloat(value);
+          break;
+        case 'last_seen':
+        case 'lastActivityTime':
+          const ts = Date.parse(value) || parseInt(value, 10);
+          if (!isNaN(ts)) {
+            this.lastSeenTimestamps[entityName] = ts;
+            newData.lastSeenDevices[entityName] = this.timeAgo(ts);
+            newData.offlineDevices[entityName] = (Date.now() - ts) > (12 * 60 * 60 * 1000);
+          }
+          break;
+        case 'airQuality':
+          newData.sensorData.airQuality = parseFloat(value);
+          newData.hasData.airQuality = true;
+          if (this.isAirSensor(entityName, newData.deviceMeta)) {
+            if (!newData.airSensors[entityName]) newData.airSensors[entityName] = {};
+            newData.airSensors[entityName].aqi = parseFloat(value);
+          }
+          break;
+        case 'co2':
+        case 'pm25':
+        case 'pm10':
+        case 'tvoc':
+        case 'iaq':
+        case 'light':
+        case 'pressure':
+          if (this.isAirSensor(entityName, newData.deviceMeta)) {
+            if (!newData.airSensors[entityName]) newData.airSensors[entityName] = {};
+            newData.airSensors[entityName][key] = parseFloat(value);
+            newData.hasData.airQuality = true;
+          }
+          break;
+        case 'model':
+          if (!newData.deviceMeta[entityName]) newData.deviceMeta[entityName] = {};
+          newData.deviceMeta[entityName].model = String(value);
+          break;
+        case 'location':
+          if (!newData.deviceMeta[entityName]) newData.deviceMeta[entityName] = {};
+          newData.deviceMeta[entityName].location = String(value);
+          break;
+        case 'checkedIn':
+          newData.sensorData.checkedIn = (value === true || value === 'true' || value === 1);
+          newData.hasData.checkedIn = true;
+          break;
+        case 'isOccupied':
+          newData.sensorData.checkedIn = (value === true || value === 'true' || value === 1 || value === '1');
+          newData.hasData.checkedIn = true;
+          break;
+        case 'waterLeak':
+          newData.sensorData.waterLeak = (value === true || value === 'true' || value === 1);
+          newData.hasData.waterLeak = true;
+          newData.leakDevices[entityName] = { leak: newData.sensorData.waterLeak };
+          break;
+        case 'noise':
+          newData.sensorData.noise = parseFloat(value);
+          newData.hasData.noise = true;
+          newData.noiseDevices[entityName] = { level: parseFloat(value) };
+          break;
+        case 'booked':
+          newData.sensorData.booked = (value === true || value === 'true' || value === 1);
+          newData.hasData.booked = true;
+          break;
+        case 'checkIn':
+          newData.reservation.checkIn = String(value);
+          newData.reservation.hasReservation = true;
+          newData.sensorData.booked = true;
+          newData.hasData.booked = true;
+          break;
+        case 'checkOut':
+          newData.reservation.checkOut = String(value);
+          break;
+        case 'guestName':
+          newData.reservation.guestName = String(value);
+          break;
+        case 'reservationState':
+          newData.reservation.reservationState = String(value);
+          if (value && value !== '' && value !== 'null') {
+            newData.sensorData.booked = true;
+            newData.hasData.booked = true;
+          }
+          break;
+        case 'roomTitle':
+        case 'RoomTitle':
+        case 'room_title':
+        case 'title':
+          newData.sensorData.roomTitle = String(value);
+          break;
+      }
+    }
+
+    this.aggregateAll(newData);
+    this.computeReservationDisplay(newData);
+    this.updateStatuses(newData);
+    return newData;
+  }
+
+  private computeReservationDisplay(data: RoomData): void {
+    const res = data.reservation;
+    const now = new Date();
+
+    // Default state — no Mews data
+    if (!res.hasReservation) {
+      res.checkDisplay = data.hasData.checkedIn ? (data.sensorData.checkedIn ? 'In' : 'Out') : '--';
+      res.checkIconClass = data.hasData.checkedIn ? 'icon-teal' : 'icon-gray';
+      res.checkPillClass = data.hasData.checkedIn && data.sensorData.checkedIn ? 'pill-normal' : 'pill-inactive';
+      res.bookDisplay = data.hasData.booked ? (data.sensorData.booked ? this.t.booked : this.t.vacant) : '--';
+      res.bookIconClass = data.hasData.booked && data.sensorData.booked ? 'icon-green' : 'icon-gray';
+      res.bookPillClass = data.hasData.booked && data.sensorData.booked ? 'pill-normal' : 'pill-inactive';
+      res.bookCellClass = '';
+      res.checkoutRemaining = '';
+      res.statusSummary = '';
+      return;
+    }
+
+    const state = (res.reservationState || '').toLowerCase();
+    const checkOutDate = res.checkOut ? new Date(res.checkOut) : null;
+    const checkInDate = res.checkIn ? new Date(res.checkIn) : null;
+
+    // Calculate checkout remaining time
+    res.checkoutRemaining = '';
+    if (checkOutDate && !isNaN(checkOutDate.getTime())) {
+      const diffMs = checkOutDate.getTime() - now.getTime();
+      if (diffMs > 0) {
+        const hours = Math.floor(diffMs / 3600000);
+        const mins = Math.floor((diffMs % 3600000) / 60000);
+        if (hours > 24) {
+          const days = Math.floor(hours / 24);
+          res.checkoutRemaining = days + 'd ' + (hours % 24) + 'h';
+        } else {
+          res.checkoutRemaining = hours + 'h ' + mins + 'm';
+        }
+      }
+    }
+
+    switch (state) {
+      case 'started': {
+        // Guest has checked in and is currently staying
+        data.sensorData.checkedIn = true;
+        data.hasData.checkedIn = true;
+        data.sensorData.booked = true;
+        data.hasData.booked = true;
+        
+        const isOverdue = checkOutDate && now > checkOutDate;
+        
+        res.checkDisplay = 'In';
+        res.checkIconClass = isOverdue ? 'icon-orange' : 'icon-teal';
+        res.checkPillClass = isOverdue ? 'pill-danger' : 'pill-normal';
+        
+        if (!isOverdue) {
+          res.bookDisplay = this.t.started;
+          res.bookIconClass = 'icon-green';
+          res.bookPillClass = 'pill-normal';
+          res.bookCellClass = '';
+          res.statusSummary = `${this.t.guestInRoom} · ${this.t.checkout} ${this.t.in} ${res.checkoutRemaining}`;
+        } else {
+          res.bookDisplay = this.t.overdue;
+          res.bookIconClass = 'icon-red';
+          res.bookPillClass = 'pill-danger';
+          res.bookCellClass = 'cell-danger';
+          res.statusSummary = `${this.t.guestInRoom} · ${this.t.checkoutPassed}`;
+        }
+        break;
+      }
+      case 'confirmed':
+      case 'optional': {
+        // Guest has a reservation but hasn't checked in yet
+        data.sensorData.booked = true;
+        data.hasData.booked = true;
+        data.hasData.checkedIn = true;
+        data.sensorData.checkedIn = false;
+        
+        const isLate = checkInDate && now > checkInDate;
+        
+        res.checkDisplay = 'Wait';
+        res.checkIconClass = isLate ? 'icon-orange' : 'icon-gray';
+        res.checkPillClass = isLate ? 'pill-wait' : 'pill-wait';
+        res.bookDisplay = isLate ? this.t.lateArrival : (state === 'confirmed' ? this.t.confirmed : this.t.optional);
+        res.bookIconClass = isLate ? 'icon-red' : (state === 'confirmed' ? 'icon-green' : 'icon-gray');
+        res.bookPillClass = isLate ? 'pill-danger' : (state === 'confirmed' ? 'pill-wait' : 'pill-inactive');
+        res.bookCellClass = isLate ? 'cell-danger' : '';
+        
+        // Check if arriving today
+        if (checkInDate && !isNaN(checkInDate.getTime())) {
+          // Format the dates in Europe/Prague timezone
+          const getPragueParts = (d: Date) => {
+            const formatter = new Intl.DateTimeFormat('en-US', {
+              timeZone: 'Europe/Prague',
+              year: 'numeric', month: 'numeric', day: 'numeric',
+              hour: '2-digit', minute: '2-digit', hour12: false
+            });
+            const parts = formatter.formatToParts(d);
+            const get = (type: string) => parts.find(p => p.type === type)?.value || '';
+            return {
+              dateStr: `${get('year')}-${get('month')}-${get('day')}`,
+              hh: get('hour'),
+              mm: get('minute'),
+              dd: get('day').padStart(2, '0'),
+              mo: get('month').padStart(2, '0')
+            };
+          };
+
+          const checkInPrague = getPragueParts(checkInDate);
+          const nowPrague = getPragueParts(now);
+          const isToday = checkInPrague.dateStr === nowPrague.dateStr;
+          
+          if (isLate) {
+            res.statusSummary = `${this.t.lateArrival} · ${this.t.shouldHaveArrivedAt} ${checkInPrague.hh}:${checkInPrague.mm}`;
+          } else if (isToday) {
+            res.statusSummary = `${this.t.arrivingToday} ${this.t.at} ${checkInPrague.hh}:${checkInPrague.mm}`;
+          } else {
+            res.statusSummary = `${this.t.arrivingOn} ${checkInPrague.dd}.${checkInPrague.mo}`;
+          }
+        } else {
+          res.statusSummary = isLate ? this.t.overdueForCheckin : this.t.waitingForCheckin;
+        }
+        break;
+      }
+      case 'processed': {
+        // Guest has checked out
+        data.hasData.checkedIn = true;
+        data.sensorData.checkedIn = false;
+        data.sensorData.booked = false;
+        data.hasData.booked = true;
+        res.checkDisplay = 'Out';
+        res.checkIconClass = 'icon-gray';
+        res.checkPillClass = 'pill-inactive';
+        res.bookDisplay = this.t.processed;
+        res.bookIconClass = 'icon-gray';
+        res.bookPillClass = 'pill-inactive';
+        res.bookCellClass = '';
+        res.checkoutRemaining = '';
+        res.statusSummary = this.t.checkedOut;
+        break;
+      }
+      case 'canceled': {
+        data.hasData.checkedIn = true;
+        data.sensorData.checkedIn = false;
+        data.sensorData.booked = false;
+        data.hasData.booked = true;
+        res.checkDisplay = '--';
+        res.checkIconClass = 'icon-gray';
+        res.checkPillClass = 'pill-inactive';
+        res.bookDisplay = this.t.canceled;
+        res.bookIconClass = 'icon-gray';
+        res.bookPillClass = 'pill-inactive';
+        res.bookCellClass = '';
+        res.checkoutRemaining = '';
+        res.statusSummary = this.t.reservationCanceled;
+        break;
+      }
+      default: {
+        // Unknown state — fallback
+        res.checkDisplay = data.sensorData.checkedIn ? 'In' : '--';
+        res.checkIconClass = data.sensorData.checkedIn ? 'icon-teal' : 'icon-gray';
+        res.checkPillClass = data.sensorData.checkedIn ? 'pill-normal' : 'pill-inactive';
+        res.bookDisplay = data.sensorData.booked ? 'Yes' : '--';
+        res.bookIconClass = data.sensorData.booked ? 'icon-green' : 'icon-gray';
+        res.bookPillClass = data.sensorData.booked ? 'pill-normal' : 'pill-inactive';
+        res.bookCellClass = '';
+        res.statusSummary = '';
+        break;
+      }
+    }
+  }
+
+  private isAirSensor(name: string, meta: any): boolean {
+    const label = meta[name]?.label || '';
+    const n = name.toUpperCase();
+    const l = label.toUpperCase();
+    return n.startsWith('AQ') || n.startsWith('AIR') || n.startsWith('AM') || l.startsWith('AQ') || l.startsWith('AIR');
+  }
+
+  private isTRV(name: string): boolean {
+    const n = name.toUpperCase();
+    return n.startsWith('TRV_') || n.includes('THERMOSTAT');
+  }
+
+  private aggregateAll(data: RoomData) {
+    // Temp — Prefer dedicated sensors over TRV internal sensors
+    const allTempKeys = Object.keys(data.tempDevices);
+    const sensorTempKeys = allTempKeys.filter(k => !this.isTRV(k));
+
+    if (sensorTempKeys.length > 0) {
+      data.sensorData.temperature = parseFloat((sensorTempKeys.reduce((s, k) => s + data.tempDevices[k], 0) / sensorTempKeys.length).toFixed(1));
+      data.hasData.temperature = true;
+    } else {
+      // If no dedicated sensors, we don't use TRV local_temperature as the room average
+      data.sensorData.temperature = null;
+      data.hasData.temperature = false;
+    }
+    // Humid
+    const humKeys = Object.keys(data.humDevices);
+    if (humKeys.length > 0) {
+      data.sensorData.humidity = Math.round(humKeys.reduce((s, k) => s + data.humDevices[k], 0) / humKeys.length);
+    }
+    // Windows
+    const winKeys = Object.keys(data.windowDevices);
+    const winOpen = winKeys.filter(k => data.windowDevices[k].contact === 'open').length;
+    data.winAgg = {
+      total: winKeys.length,
+      openCount: winOpen,
+      anyOpen: winOpen > 0,
+      display: winKeys.length === 0 ? '--' : (winKeys.length === 1 ? (winOpen ? 'open' : 'closed') : (winOpen === 0 ? 'closed' : `${winOpen}/${winKeys.length} open`))
+    };
+    // TRVs
+    const trvKeys = Object.keys(data.trvDevices);
+    if (trvKeys.length > 0) {
+      const avgSet = Math.round(trvKeys.reduce((s, k) => s + (data.trvDevices[k].setPoint || 0), 0) / trvKeys.length);
+      const hasHeating = trvKeys.some(k => data.trvDevices[k].status === 'heating');
+      const hasOff = trvKeys.some(k => data.trvDevices[k].status === 'off');
+      const worst = hasHeating ? 'heating' : hasOff ? 'off' : 'idle';
+      data.trvAgg = { count: trvKeys.length, avgSetPoint: avgSet, worstStatus: worst, display: `${avgSet}° ${worst}` };
+    }
+  }
+
+  private updateStatuses(data: RoomData) {
+    data.tempStatus = data.hasData.temperature ? this.calcStatus('temperature', data.sensorData.temperature!) : 'normal';
+    data.humStatus = data.hasData.humidity ? this.calcStatus('humidity', data.sensorData.humidity!) : 'normal';
+    data.airStatus = data.hasData.airQuality ? this.calcStatus('airQuality', data.sensorData.airQuality!) : 'normal';
+    data.noiseStatus = data.hasData.noise ? this.calcStatus('noise', data.sensorData.noise!) : 'normal';
+
+    const hasBatteryLow = Object.values(data.batteryLowDevices).some(v => v === true) || 
+                          Object.values(data.batteryDevices).some((v: any) => v < 20);
+    data.hasBatteryLow = hasBatteryLow;
+
+    const s = [data.tempStatus, data.humStatus, data.airStatus, data.noiseStatus, data.sensorData.waterLeak ? 'danger' : 'normal', hasBatteryLow ? 'warning' : 'normal'];
+    data.roomStatus = s.includes('danger') ? 'danger' : s.includes('warning') ? 'warning' : 'normal';
+
+    // sensorAlarmCount — only sensor/environmental alerts drive the bell RED
+    const sensorAlerts = (data.tempStatus !== 'normal' ? 1 : 0) + (data.humStatus !== 'normal' ? 1 : 0) +
+                         (data.airStatus !== 'normal' ? 1 : 0) + (data.noiseStatus !== 'normal' ? 1 : 0) +
+                         (data.sensorData.waterLeak ? 1 : 0);
+    data.sensorAlarmCount = sensorAlerts;
+
+    // alarmCount — full count including windows and battery (for badge number)
+    let alerts = sensorAlerts + data.winAgg.openCount + (hasBatteryLow ? 1 : 0);
+    data.alarmCount = alerts;
+  }
+
+  private calcStatus(type: string, val: number): string {
+    const t = (this.THRESHOLDS as any)[type];
+    if (!t) return 'normal';
+    if (t.warning.min !== undefined) {
+      if (val < t.danger.min || val > t.danger.max) return 'danger';
+      if (val < t.warning.min || val > t.warning.max) return 'warning';
+    } else {
+      if (val >= t.danger) return 'danger';
+      if (val >= t.warning) return 'warning';
+    }
+    return 'normal';
+  }
+
+  public timeAgo(ts: number): string {
+    const s = Math.floor((Date.now() - ts) / 1000);
+    if (s < 10) return this.t.justNow;
+    if (s < 60) return s + ' ' + this.t.secondsAgo;
+    if (s < 3600) return Math.floor(s / 60) + ' ' + this.t.minutesAgo;
+    if (s < 86400) return Math.floor(s / 3600) + ' ' + this.t.hoursAgo;
+    return Math.floor(s / 86400) + ' ' + this.t.daysAgo;
+  }
+
+  public static calculateAirQuality(
+    co2: number | null, tvoc: number | null, pm25: number | null, pm10: number | null,
+    humidity: number | null, temp: number | null, light: number | null, pressure: number | null,
+    thresholds?: Partial<AQBreakpoints>
+  ): AirQualityResult {
+    // Breakpoints
+    const bp: AQBreakpoints = {
+      co2: { good: 800, fair: 1200, poor: 2000, hazardous: 5000 },
+      tvoc: { good: 0.3, fair: 1.0, poor: 3.0, hazardous: 25.0 },
+      pm25: { good: 12, fair: 35, poor: 55, hazardous: 150 },
+      pm10: { good: 54, fair: 154, poor: 254, hazardous: 424 },
+      humidity: { comfortMin: 30, comfortMax: 60, warnMin: 20, warnMax: 70 },
+      temp: { comfortMin: 18, comfortMax: 26, warnMin: 14, warnMax: 32 },
+      ...thresholds
+    };
+
+    const linearScale = (v: number, bl: number, bh: number, al: number, ah: number) => ((ah - al) / (bh - bl)) * (v - bl) + al;
+
+    const scores: { [key: string]: number } = {};
+    if (co2 !== null) scores['CO2'] = co2 <= bp.co2.good ? linearScale(co2, 0, bp.co2.good, 0, 50) : co2 <= bp.co2.fair ? linearScale(co2, bp.co2.good, bp.co2.fair, 51, 100) : linearScale(co2, bp.co2.fair, bp.co2.poor, 101, 200);
+    if (tvoc !== null) scores['TVOC'] = tvoc <= bp.tvoc.good ? linearScale(tvoc, 0, bp.tvoc.good, 0, 50) : linearScale(tvoc, bp.tvoc.good, bp.tvoc.fair, 51, 100);
+    if (pm25 !== null) scores['PM2.5'] = pm25 <= bp.pm25.good ? linearScale(pm25, 0, bp.pm25.good, 0, 50) : linearScale(pm25, bp.pm25.good, bp.pm25.fair, 51, 100);
+
+    const aqi = Math.max(0, ...Object.values(scores), 0);
+    const label = aqi <= 50 ? 'Good' : aqi <= 100 ? 'Fair' : aqi <= 200 ? 'Poor' : 'Hazardous';
+    const color = aqi <= 50 ? '#34C759' : aqi <= 100 ? '#FFCC00' : aqi <= 200 ? '#FF9500' : '#FF3B30';
+    const dominant = Object.keys(scores).reduce((a, b) => scores[a] > scores[b] ? a : b, '--');
+
+    return { aqi: Math.round(aqi), label, color, dominant, subIndexes: scores };
+  }
+
+  public getAirQualityLabel(aqi: number | null): string {
+    if (aqi === null || aqi === undefined) return '--';
+    if (aqi <= 50) return this.t.excellent;
+    if (aqi <= 100) return this.t.good;
+    if (aqi <= 200) return this.t.fair;
+    return this.t.poor;
+  }
+}

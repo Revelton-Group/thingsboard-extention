@@ -1,0 +1,85 @@
+<div class="ce-tile" *ngIf="device">
+  <!-- Top Row: Status Dot, Name, Signal -->
+  <div class="ce-top-row">
+    <div class="ce-name-block">
+      <span
+        class="ce-status-dot"
+        [style.background-color]="getStatusColor()"
+      ></span>
+      <span class="ce-device-name" [title]="deviceDisplayName">
+        {{ deviceDisplayName }}
+      </span>
+    </div>
+
+    <div class="ce-right-col">
+      <div class="ce-timestamp" *ngIf="lastSeen">
+        <i class="material-icons">schedule</i>{{ lastSeen }}
+      </div>
+    </div>
+  </div>
+
+  <!-- Middle Row: Sensor Values (Cards) -->
+  <div class="ce-metrics-grid">
+    <!-- Temperature Card -->
+    <div class="ce-metric-panel">
+      <div class="ce-metric-header temp">
+        <i class="material-icons">device_thermostat</i>
+        <span>TEMP</span>
+      </div>
+      <div class="ce-metric-value">
+        {{ currentTemp != null ? (currentTemp | number : "1.0-1") : "--" }}
+        <span class="unit" *ngIf="currentTemp != null">°C</span>
+      </div>
+    </div>
+
+    <!-- Humidity Card -->
+    <div class="ce-metric-panel">
+      <div class="ce-metric-header hum">
+        <i class="material-icons">water_drop</i>
+        <span>HUMID</span>
+      </div>
+      <div class="ce-metric-value">
+        {{
+          currentHumidity != null ? (currentHumidity | number : "1.0-0") : "--"
+        }}
+        <span class="unit" *ngIf="currentHumidity != null">%</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Row: Battery, Link Quality -->
+  <div class="ce-bottom-row">
+    <!-- Battery Status -->
+    <ng-container>
+      <span class="ce-chip ce-chip-orange" *ngIf="batteryLow === true">
+        <i class="material-icons">battery_alert</i>Low
+      </span>
+      <span
+        class="ce-chip"
+        [ngClass]="battery <= 5 ? 'ce-chip-orange' : 'ce-chip-green'"
+        *ngIf="batteryLow !== true && battery != null"
+      >
+        <i class="material-icons">{{
+          battery <= 5 ? "battery_alert" : "battery_std"
+        }}</i>
+        {{ battery }}%
+      </span>
+      <span
+        class="ce-chip ce-chip-green"
+        *ngIf="batteryLow === false && battery == null"
+      >
+        <i class="material-icons">battery_std</i>Good
+      </span>
+    </ng-container>
+
+    <!-- Link Quality -->
+    <span
+      class="ce-chip"
+      [ngClass]="getLinkQualityClass()"
+      *ngIf="linkquality != null"
+    >
+      <i class="material-icons">wifi</i>
+      {{ getLinkQualityText() }}
+    </span>
+  </div>
+</div>

@@ -1,0 +1,36 @@
+<div class="sensor-row" *ngIf="sensor" [ngClass]="{'is-open': sensor.isOpen}">
+    <!-- Icon Section -->
+    <div class="sensor-icon-container" [style.background]="sensor.iconBg || (sensor.isOpen ? '#FFF7ED' : '#F8FAFC')">
+        <i class="material-icons" [style.color]="sensor.iconColor || (sensor.isOpen ? '#F59E0B' : '#64748B')">window</i>
+    </div>
+
+    <!-- Info Section -->
+    <div class="sensor-info">
+        <div class="sensor-header-row">
+            <span class="sensor-name">{{ sensor.displayName || 'Window' }}</span>
+            <span class="status-dot">·</span>
+            <span class="status-text" [style.color]="sensor.isOpen ? '#F59E0B' : '#10B981'">
+                {{ sensor.isOpen ? t.open : t.closed }}
+            </span>
+        </div>
+        <div class="sensor-subtext">{{ sensor.model || 'Tuya TS0203' }}</div>
+    </div>
+
+    <!-- Meta Section -->
+    <div class="sensor-meta">
+        <div class="meta-top">
+            <span class="meta-item battery" [ngClass]="(sensor.battery <= 20) ? 'warn' : 'ok'" *ngIf="sensor.battery != null">
+                <i class="material-icons">battery_std</i>
+                {{ sensor.battery }}%
+            </span>
+            <span class="meta-item signal" [ngClass]="getLinkQualityClass(sensor.linkquality)" *ngIf="sensor.linkquality != null">
+                <i class="material-icons">wifi</i>
+                {{ getLinkQualityText(sensor.linkquality) }}
+            </span>
+        </div>
+        <div class="meta-bottom">
+            <i class="material-icons">schedule</i>
+            {{ sensor.lastSeen || 'Just now' }}
+        </div>
+    </div>
+</div>

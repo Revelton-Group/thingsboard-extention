@@ -1,0 +1,188 @@
+<div class="revelton-dashboard-container" [class.light-mode]="vm?.isLightMode">
+
+  <!-- ═══════════════════════════════════════════════════
+       SIDEBAR NAVIGATION
+       All room data comes from vm$ — zero inline logic
+  ════════════════════════════════════════════════════ -->
+  <aside class="sidebar">
+    <div class="sidebar-header" (dblclick)="toggleFullscreen()" title="Double click to toggle fullscreen" style="cursor: pointer;">
+      <div class="logo-icon">
+        <mat-icon>analytics</mat-icon>
+      </div>
+      <div class="header-titles">
+        <h2>Room Analytics</h2>
+        <p>Sensor Dashboard</p>
+      </div>
+    </div>
+
+    <div class="property-selector">
+      <h3 class="section-title">PROPERTY</h3>
+      <div class="property-dropdown">
+        <span>Jeltska Hotel</span>
+        <mat-icon>expand_more</mat-icon>
+      </div>
+    </div>
+
+    <div class="rooms-container">
+      <h3 class="section-title">ROOMS</h3>
+      <div class="floor-group" *ngFor="let group of vm?.groupedLocations">
+        <div class="floor-header">
+          <span class="dot"></span>
+          <span class="floor-name">{{ group.floor }}</span>
+        </div>
+        <div class="room-list">
+          <div
+            class="room-item"
+            *ngFor="let room of group.rooms; let i = index"
+            [class.active]="vm?.selectedLocation === room.name"
+            (click)="onLocationChange(room.name)">
+            <div class="room-number-badge">{{ i + 1 }}</div>
+            <div class="room-details">
+              <span class="room-name">{{ room.name }}</span>
+            </div>
+            <span class="room-type" [class]="room.type.toLowerCase()">{{ room.type }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-legend">
+      <span class="legend-item"><span class="dot normal"></span> Normal</span>
+      <span class="legend-item"><span class="dot warning"></span> Warning</span>
+      <span class="legend-item"><span class="dot alert"></span> Alert</span>
+    </div>
+  </aside>
+
+  <!-- ═══════════════════════════════════════════════════
+       MAIN CONTENT
+  ════════════════════════════════════════════════════ -->
+  <main class="main-content">
+
+    <!-- Top Header -->
+    <header class="dashboard-header" (dblclick)="toggleFullscreen()" title="Double click empty space to toggle fullscreen">
+      <div class="header-left">
+        <button class="close-btn"><mat-icon>close</mat-icon></button>
+        <mat-icon class="hotel-icon">business</mat-icon>
+        <span class="breadcrumb">Jeltska Hotel</span>
+        <span class="breadcrumb-separator">•</span>
+        <h1>{{ vm?.selectedRoomDetails?.name }}</h1>
+        <p>{{ vm?.selectedRoomDetails?.floor }} — {{ vm?.selectedRoomDetails?.type }}</p>
+      </div>
+
+      <div class="header-right" (dblclick)="$event.stopPropagation()">
+        <div class="time-filters-wrapper">
+          <div class="time-filters">
+            <button
+              *ngFor="let range of timeRangeOptions"
+              [class.active]="vm?.selectedTimeRange === range.key"
+              (click)="onTimeRangeChange(range.key)">
+              <mat-icon *ngIf="range.key === 'custom'">date_range</mat-icon>
+              {{ range.buttonLabel }}
+            </button>
+          </div>
+
+          <!-- Custom date range picker dropdown -->
+          <div class="custom-picker-dropdown" *ngIf="showCustomPicker" (click)="$event.stopPropagation()">
+            <div class="picker-header">
+              <mat-icon>date_range</mat-icon>
+              <span>Custom Time Range</span>
+            </div>
+            <div class="picker-body">
+              <div class="picker-field">
+                <label>From</label>
+                <input type="datetime-local" [(ngModel)]="customStart" />
+              </div>
+              <div class="picker-field">
+                <label>To</label>
+                <input type="datetime-local" [(ngModel)]="customEnd" />
+              </div>
+            </div>
+            <div class="picker-actions">
+              <button class="picker-cancel" (click)="showCustomPicker = false">Cancel</button>
+              <button class="picker-apply" (click)="applyCustomRange()">
+                <mat-icon>check</mat-icon> Apply
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <button class="theme-toggle-btn" (click)="toggleTheme()">
+          <mat-icon>{{ vm?.isLightMode ? 'dark_mode' : 'light_mode' }}</mat-icon>
+        </button>
+      </div>
+    </header>
+
+    <!-- Modern Loading Overlay -->
+    <div class="loading-overlay" *ngIf="vm?.isLoading">
+      <div class="modern-loader">
+        <div class="glow-ring"></div>
+        <div class="glow-ring"></div>
+        <div class="glow-ring"></div>
+        <mat-icon>autorenew</mat-icon>
+      </div>
+      <div class="loading-text">Syncing Sensors...</div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════
+         METRICS GRID
+         Each panel is a self-contained smart component.
+         Template is purely declarative — no logic here.
+    ════════════════════════════════════════════════ -->
+    <div class="dashboard-grid" [class.is-loading]="vm?.isLoading">
+
+      <!-- Top Row: Air Quality (spans 2 cols) + Acoustics (1 col) -->
+      <div class="grid-row top-row">
+
+        <!-- Thermostat hidden for now per user request. Remove d-none when needed. -->
+        <revelton-thermostat-panel
+          class="d-none"
+          [stats]="vm?.thermostatStats"
+          [chartData]="vm?.thermostatChartData">
+        </revelton-thermostat-panel>
+
+        <!-- Air Quality Panel — spans 2 grid columns -->
+        <revelton-air-quality-panel
+          [stats]="vm?.airQualityStats"
+          [chart]="vm?.airQualityChart">
+        </revelton-air-quality-panel>
+
+        <!-- Air Quality Metrics Panel (Pollutants & Pressure) -->
+        <revelton-air-quality-metrics-panel
+          [aqChart]="vm?.airQualityChart">
+        </revelton-air-quality-metrics-panel>
+
+        <!-- Acoustics Panel -->
+        <revelton-acoustics-panel
+          [stats]="vm?.noiseStats"
+          [chartData]="vm?.noiseChartData">
+        </revelton-acoustics-panel>
+
+      </div>
+
+      <!-- Bottom Row: Window / Water Leak / Occupancy -->
+      <div class="grid-row bottom-row">
+
+        <!-- Window Panel -->
+        <revelton-window-panel
+          [stats]="vm?.windowStats"
+          [selectedTimeRange]="vm?.selectedTimeRange"
+          [locationName]="vm?.selectedLocation">
+        </revelton-window-panel>
+
+        <!-- Water Leak Panel -->
+        <revelton-water-leak-panel
+          [stats]="vm?.waterLeakStats"
+          [chartData]="vm?.waterLeakChartData">
+        </revelton-water-leak-panel>
+
+        <!-- Occupancy Panel -->
+        <revelton-occupancy-panel
+          [stats]="vm?.occupancyStats"
+          [chartData]="vm?.occupancyChartData">
+        </revelton-occupancy-panel>
+
+      </div>
+    </div>
+
+  </main>
+</div>

@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc *)",
+      "Bash(yarn build:scss)",
+      "WebFetch(domain:charger-dashboard.preview.emergentagent.com)",
+      "Bash(yarn start *)"
+    ]
+  }
+}

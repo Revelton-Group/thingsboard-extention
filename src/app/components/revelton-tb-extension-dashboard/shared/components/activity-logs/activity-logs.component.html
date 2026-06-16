@@ -1,0 +1,22 @@
+<div class="section-container">
+    <div class="tabs-header">
+        <button class="tab-btn" [class.active]="activeTab === 'logs'" (click)="activeTab = 'logs'">
+            <i class="material-icons" style="font-size: 10px">timeline</i> {{ t.activityLogs }}
+        </button>
+        <button class="tab-btn" [class.active]="activeTab === 'auto'" (click)="activeTab = 'auto'">
+            <i class="material-icons" style="font-size: 10px">bolt</i> {{ t.auto }}
+        </button>
+    </div>
+    <div class="log-scroll" *ngIf="activeTab === 'logs'">
+        <div class="all-clear">
+            <i class="material-icons">timeline</i>
+            <span>Logs (coming soon)</span>
+        </div>
+    </div>
+    <div class="log-scroll" *ngIf="activeTab === 'auto'">
+        <div class="all-clear">
+            <i class="material-icons">bolt</i>
+            <span>Automations (coming soon)</span>
+        </div>
+    </div>
+</div>

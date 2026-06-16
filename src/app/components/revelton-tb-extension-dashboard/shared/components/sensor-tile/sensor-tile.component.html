@@ -1,0 +1,42 @@
+<div class="sensor-tile" *ngIf="sensor"
+    [ngClass]="{'leak': sensor.type === 'water' && sensor.isLeak, 'open': sensor.type === 'window' && sensor.isOpen}">
+    <div class="sensor-top">
+        <div class="sensor-left">
+            <div class="sensor-icon-box" [style.background]="sensor.iconBg">
+                <i class="material-icons" [style.color]="sensor.iconColor" style="font-size: 16px">{{
+                    sensor.icon }}</i>
+            </div>
+            <div>
+                <div class="sensor-name">
+                    {{ sensor.displayName }} · <span [style.color]="sensor.statusColor">{{ sensor.statusLabel
+                        }}</span>
+                </div>
+                <div class="sensor-model">{{ sensor.model || sensor.entityName }}</div>
+            </div>
+        </div>
+        <div class="sensor-right">
+            <div class="sensor-meta-row"
+                *ngIf="sensor.battery != null || sensor.batteryLow != null || sensor.linkquality != null">
+                <span *ngIf="sensor.batteryLow" class="meta-item-orange">
+                    <i class="material-icons">battery_alert</i>Low
+                </span>
+                <span *ngIf="!sensor.batteryLow && sensor.battery != null"
+                    [ngClass]="sensor.battery <= 20 ? 'meta-item-orange' : 'meta-item-green'"><i
+                        class="material-icons">{{ sensor.battery <= 20 ? 'battery_alert' : 'battery_std'
+                            }}</i>{{ sensor.battery }}%</span>
+                <span *ngIf="sensor.batteryLow === false && sensor.battery == null"
+                    class="meta-item-green"><i class="material-icons">battery_std</i>Good</span>
+                <span *ngIf="sensor.offline" class="meta-item-red"><i
+                        class="material-icons">wifi_off</i>Offline</span>
+                <span *ngIf="!sensor.offline && sensor.linkquality != null"
+                    [ngClass]="getLinkQualityClass(sensor.linkquality)"><i class="material-icons">wifi</i>{{
+                    getLinkQualityText(sensor.linkquality) }}</span>
+            </div>
+            <div class="sensor-timestamp" *ngIf="sensor.lastSeen"><i class="material-icons">schedule</i>{{
+                sensor.lastSeen }}</div>
+        </div>
+    </div>
+    <div class="sensor-tamper" *ngIf="sensor.tamper">
+        <i class="material-icons">warning_amber</i>TAMPER DETECTED
+    </div>
+</div>

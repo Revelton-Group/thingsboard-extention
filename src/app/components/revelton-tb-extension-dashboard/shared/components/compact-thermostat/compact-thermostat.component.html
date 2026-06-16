@@ -1,0 +1,97 @@
+<div class="ct-tile" *ngIf="device">
+  <!-- Top Row: Status Dot, Name, Timestamp -->
+  <div class="ct-top-row">
+    <div class="ct-name-block">
+      <span
+        class="ct-status-dot"
+        [style.background-color]="getTrvColor()"
+      ></span>
+      <span class="ct-device-name" [title]="deviceDisplayName">
+        {{ deviceDisplayName }}
+      </span>
+    </div>
+
+    <div class="ct-right-col">
+      <div class="ct-timestamp" *ngIf="lastSeen">
+        <i class="material-icons">schedule</i>{{ lastSeen }}
+      </div>
+    </div>
+  </div>
+
+  <!-- Middle Row: Sensor Values (Cards) -->
+  <div class="ct-metrics-grid">
+    <!-- Current Temp Card -->
+    <div class="ct-metric-panel">
+      <div class="ct-metric-header temp">
+        <i class="material-icons">device_thermostat</i>
+        <span>TEMP</span>
+      </div>
+      <div class="ct-metric-value">
+        {{ currentTemp != null ? (currentTemp | number : "1.0-1") : "--" }}
+        <span class="unit" *ngIf="currentTemp != null">°C</span>
+      </div>
+    </div>
+
+    <!-- Target Temp Card -->
+    <div class="ct-metric-panel">
+      <div class="ct-metric-header setpoint">
+        <i class="material-icons">adjust</i>
+        <span>TARGET</span>
+      </div>
+      <div class="ct-metric-value" [style.color]="getTrvColor()">
+        {{ setpoint != null ? (setpoint | number : "1.0-1") : "--" }}
+        <span class="unit" *ngIf="setpoint != null">°C</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Row: Status Chip, Battery, Link Quality -->
+  <div class="ct-bottom-row">
+    <!-- Running State Chip -->
+    <span
+      class="ct-chip"
+      *ngIf="getStatusLabel()"
+      [style.color]="getTrvColor()"
+      [style.background]="getTrvColor() + '1a'"
+    >
+      <span class="ct-dot" [style.background]="getTrvColor()"></span>
+      {{ getStatusLabel() }}
+    </span>
+
+    <!-- Battery Status -->
+    <ng-container>
+      <span class="ct-chip ct-chip-orange" *ngIf="batteryLow === true">
+        <i class="material-icons">battery_alert</i>Low
+      </span>
+      <span
+        class="ct-chip"
+        [ngClass]="battery <= 20 ? 'ct-chip-orange' : 'ct-chip-green'"
+        *ngIf="batteryLow !== true && battery != null"
+      >
+        <i class="material-icons">{{
+          battery <= 20 ? "battery_alert" : "battery_std"
+        }}</i>
+        {{ battery }}%
+      </span>
+    </ng-container>
+
+    <!-- Offline Status -->
+    <span
+      class="ct-chip"
+      style="color: var(--danger, #ef4444); background: rgba(239, 68, 68, 0.1)"
+      *ngIf="isOffline"
+    >
+      <i class="material-icons">wifi_off</i>Offline
+    </span>
+
+    <!-- Link Quality -->
+    <span
+      class="ct-chip"
+      [ngClass]="getLinkQualityClass()"
+      *ngIf="linkquality != null && !isOffline"
+    >
+      <i class="material-icons">wifi</i>
+      {{ getLinkQualityText() }}
+    </span>
+  </div>
+</div>

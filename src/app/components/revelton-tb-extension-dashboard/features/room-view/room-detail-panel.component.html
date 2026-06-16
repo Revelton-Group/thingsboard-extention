@@ -1,0 +1,139 @@
+<!-- Room Detail Dialog — matches test-widget design -->
+<div class="room-dialog">
+    <!-- Close button -->
+    <button class="close-btn" (click)="closeDialog()">
+        <i class="material-icons">close</i>
+    </button>
+
+    <!-- Header -->
+    <div class="room-header">
+        <div class="header-content">
+            <div class="header-glass">
+                <div class="header-top">
+                    <div class="header-left">
+                        <span class="status-indicator"></span>
+                        <span class="room-title" [title]="roomTitleLabel + ' ' + roomNumber">{{ roomTitleLabel }} {{ roomNumber }}</span>
+                        <span class="floor-badge" *ngIf="floorLabel">{{ floorLabel }}</span>
+                    </div>
+                    <div class="header-right-info">
+                        <button class="icon-btn hist-btn" (click)="openHistoricalData()" title="Historical Data">
+                            <i class="material-icons" style="font-size: 16px;">timeline</i>
+                        </button>
+                        <div class="reservation-status" *ngIf="statusSummary">
+                            <i class="material-icons" style="font-size: 13px; margin-right: 4px;">schedule</i>
+                            <span>{{ statusSummary }}</span>
+                        </div>
+                        <div class="connection-status">
+                            <i class="material-icons" style="font-size: 14px">wifi</i>
+                            <span>{{ t.connected }}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="quick-stats">
+                    <div class="qstat">
+                        <span class="qstat-label">{{ t.temperature }}</span>
+                        <span class="qstat-value">{{ avgTemp !== null ? (avgTemp | number:'1.0-1') + '°C' : '--'
+                            }}</span>
+                    </div>
+                    <div class="qstat">
+                        <span class="qstat-label">{{ t.humidity }}</span>
+                        <span class="qstat-value">{{ avgHum !== null ? (avgHum | number:'1.0-0') + '%' : '--' }}</span>
+                    </div>
+                    <div class="qstat">
+                        <span class="qstat-label">{{ t.airQuality }}</span>
+                        <span class="qstat-value"
+                            [style.color]="aqOverall === 'Good' ? '#34C759' : (aqOverall === '--' ? '' : '#FF3B30')">{{
+                            aqOverall }}</span>
+                    </div>
+                    <div class="qstat">
+                        <span class="qstat-label">{{ t.occupancy }}</span>
+                        <span class="qstat-value" [style.color]="occupancyDisplay === 'Occupied' ? '#34C759' : ''">{{
+                            occupancyDisplay }}</span>
+                    </div>
+                    <div class="qstat">
+                        <span class="qstat-label">{{ t.booked }}</span>
+                        <div class="qstat-value-group">
+                            <i class="material-icons" [style.color]="bookingDisplay === 'Started' ? '#34C759' : (bookingDisplay === 'Overdue' || bookingDisplay === 'Late Arrival' ? '#FF3B30' : (bookingDisplay === 'Available' ? '#8E8E93' : '#FF9500'))" style="font-size: 14px; margin-right: 4px;">calendar_today</i>
+                            <span class="qstat-value"
+                                [style.color]="bookingDisplay === 'Started' ? '#34C759' : (bookingDisplay === 'Overdue' || bookingDisplay === 'Late Arrival' ? '#FF3B30' : (bookingDisplay === 'Available' ? '#8E8E93' : '#FF9500'))">{{
+                                bookingDisplay }}</span>
+                        </div>
+                    </div>
+                    <div class="qstat" *ngIf="guestName">
+                        <span class="qstat-label">{{ t.guest | uppercase }}</span>
+                        <span class="qstat-value" style="font-size: 13px;">{{ guestName }}</span>
+                    </div>
+                    <div class="qstat" *ngIf="checkInDisplay">
+                        <span class="qstat-label">{{ t.checkIn | uppercase }}</span>
+                        <span class="qstat-value" style="font-size: 12px;">{{ checkInDisplay }}</span>
+                    </div>
+                    <div class="qstat" *ngIf="checkOutDisplay">
+                        <span class="qstat-label">{{ t.checkOut | uppercase }}</span>
+                        <span class="qstat-value" style="font-size: 12px;">{{ checkOutDisplay }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <!-- ROW 1: Thermostats + Air Quality -->
+        <div class="row-1">
+            <!-- Thermostats Section -->
+            <div class="section-container thermostats-wrapper" *ngIf="thermostats.length > 0"
+                 [style.backgroundColor]="getThermostatSectionColor() + '1A'"
+                 [style.borderColor]="getThermostatSectionColor() + '40'">
+                <div class="section-label">
+                    <i class="material-icons" style="font-size: 12px">local_fire_department</i>
+                    {{ t.thermostats | uppercase }} ({{ thermostats.length }})
+                </div>
+                <div class="thermo-grid">
+                    <tb-thermostat-card *ngFor="let trv of thermostats; trackBy: trackByEntityName" [trv]="trv"
+                        [modes]="modes" [presets]="presets" (modeChange)="selectMode(trv, $event)"
+                        (presetChange)="selectPreset(trv, $event)" (tempChange)="onTempChange(trv, $event)">
+                    </tb-thermostat-card>
+                </div>
+            </div>
+            <!-- Air Quality Section -->
+            <div class="section-container aq-section" *ngIf="aqSensors.length > 0">
+                <div class="section-label">
+                    <i class="material-icons" style="font-size: 12px">air</i>
+                    {{ t.airQuality | uppercase }} ({{ aqSensors.length }})
+                </div>
+                <div class="aq-list">
+                    <tb-air-quality-sensor *ngFor="let aq of aqSensors; trackBy: trackByEntityName"
+                        [sensor]="aq"></tb-air-quality-sensor>
+                </div>
+            </div>
+        </div>
+
+        <!-- ROW 2: Sensors + (Alerts & Logs) -->
+        <div class="row-2">
+            <!-- Sensors Section -->
+            <div class="section-container">
+                <div class="section-label">
+                    <i class="material-icons" style="font-size: 12px">sensors</i>
+                    {{ t.sensors | uppercase }} ({{ allSensors.length }})
+                </div>
+                <div class="sensor-grid">
+                    <ng-container *ngFor="let s of allSensors; trackBy: trackByEntityName">
+                        <tb-window-sensor *ngIf="s.type === 'window'" [sensor]="s"></tb-window-sensor>
+                        <tb-water-leak-sensor *ngIf="s.type === 'water'" [sensor]="s"></tb-water-leak-sensor>
+                        <tb-noise-sensor *ngIf="s.type === 'noise'" [sensor]="s"></tb-noise-sensor>
+                        <tb-occupancy-sensor *ngIf="s.type === 'occupancy'" [sensor]="s"></tb-occupancy-sensor>
+                        <tb-sensor-tile
+                            *ngIf="s.type !== 'window' && s.type !== 'water' && s.type !== 'noise' && s.type !== 'occupancy'"
+                            [sensor]="s"></tb-sensor-tile>
+                    </ng-container>
+                    <div *ngIf="allSensors.length === 0" class="empty-state">{{ t.loading }}</div>
+                </div>
+            </div>
+
+            <!-- Right column: Alerts -->
+            <div class="right-col">
+                <tb-alerts-panel [alerts]="alerts" (acknowledge)="acknowledgeAlert($event)"></tb-alerts-panel>
+            </div>
+        </div>
+    </div>
+
+</div>

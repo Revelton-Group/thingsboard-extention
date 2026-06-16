@@ -1,0 +1,201 @@
+
+:host {
+  display: block;
+  width: 100%;
+}
+
+.filter-bar-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #ffffff;
+  padding: 12px 20px;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  margin-top: 24px;
+  margin-bottom: 32px;
+
+  .location-selector {
+    display: flex;
+    align-items: center;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 8px 16px;
+    min-width: 200px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+      border-color: #cbd5e1;
+      background: #f1f5f9;
+    }
+
+    mat-icon.location-icon {
+      color: #94a3b8;
+      margin-right: 8px;
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+    }
+
+    .location-dropdown {
+      flex: 1;
+      width: 100%;
+
+      ::ng-deep {
+        .mat-mdc-text-field-wrapper {
+          background-color: transparent !important;
+          padding: 0 !important;
+        }
+
+        .mat-mdc-form-field-flex {
+          padding: 0 !important;
+          align-items: center;
+        }
+
+        .mat-mdc-form-field-infix {
+          padding: 0 !important;
+          min-height: auto;
+          width: 100%;
+        }
+
+        .mdc-line-ripple {
+          display: none !important;
+        }
+
+        .mat-mdc-select-value {
+          font-size: 15px;
+          font-weight: 600;
+          color: #1e293b;
+        }
+
+        .mat-mdc-select-arrow {
+          color: #64748b;
+        }
+      }
+    }
+  }
+
+  .time-range-selector {
+    display: flex;
+    background: #f1f5f9;
+    padding: 4px;
+    border-radius: 8px;
+    gap: 4px;
+
+    .range-btn {
+      border: none;
+      background: transparent;
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #64748b;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+
+      &:hover:not(.active) {
+        color: #1e293b;
+        background: rgba(255, 255, 255, 0.5);
+      }
+
+      &.active {
+        background: #ffffff;
+        color: #1e293b;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+      }
+    }
+
+    // Global styles for the dropdown panel
+    ::ng-deep .clean-dropdown-panel {
+      margin-top: 8px !important;
+      border-radius: 8px !important;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08) !important;
+
+      .mat-mdc-option {
+        font-size: 14px;
+        font-weight: 500;
+        color: #1e293b;
+        min-height: 40px;
+
+        &:hover:not(.mdc-list-item--disabled) {
+          background-color: #f1f5f9;
+        }
+
+        &.mdc-list-item--selected {
+          background-color: #e2e8f0;
+          color: #0f172a;
+        }
+      }
+    }
+
+    :host-context(.tb-dark) {
+      ::ng-deep .clean-dropdown-panel {
+        background: #2a2a2a !important;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3) !important;
+
+        .mat-mdc-option {
+          color: #f8fafc;
+
+          &:hover:not(.mdc-list-item--disabled) {
+            background-color: #333;
+          }
+
+          &.mdc-list-item--selected {
+            background-color: #444;
+            color: #ffffff;
+          }
+        }
+      }
+    }
+  }
+}
+
+// Dark mode support
+:host-context(.tb-dark) {
+  .filter-bar-container {
+    background: #1e1e1e;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+
+    .location-selector {
+      background: #2a2a2a;
+      border-color: #333;
+
+      &:hover {
+        background: #333;
+        border-color: #444;
+      }
+
+      .location-dropdown {
+        ::ng-deep {
+          .mat-mdc-select-value {
+            color: #f8fafc;
+          }
+          .mat-mdc-select-arrow {
+            color: #cbd5e1;
+          }
+        }
+      }
+    }
+
+    .time-range-selector {
+      background: #2a2a2a;
+
+      .range-btn {
+        color: #94a3b8;
+
+        &.active {
+          background: #333;
+          color: #f8fafc;
+        }
+
+        &:hover:not(.active) {
+          color: #f8fafc;
+          background: rgba(255, 255, 255, 0.05);
+        }
+      }
+    }
+  }
+}

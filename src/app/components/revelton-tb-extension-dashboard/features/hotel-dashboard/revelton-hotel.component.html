@@ -1,0 +1,603 @@
+<div class="revelton-hotel-container">
+  <!-- Header Section moved outside rooms-grid to be fixed -->
+  <div class="header-section" (dblclick)="toggleFullscreen()">
+    <div class="header-top-bar">
+      <div class="header-title">
+        <h1 class="hotel-logo">
+          {{ hotelNameFirstPart }}
+          <span class="highlight">{{ hotelNameLastPart }}</span>
+        </h1>
+        <div class="hotel-location">
+          <i class="material-icons">location_on</i>
+          {{ hotelLocation }}
+        </div>
+      </div>
+
+      <div class="header-controls">
+        <div class="time-weather">
+          <span class="time-text">{{ currentTimeStr }}</span>
+          <div class="weather-info">
+            <i class="material-icons weather-icon">{{ currentWeather.icon }}</i>
+            <span class="temp-text">{{ currentWeather.temp }}</span>
+            <span class="condition-text">{{ currentWeather.condition }}</span>
+          </div>
+        </div>
+
+        <div class="lang-selector" (click)="toggleLangDropdown($event)">
+          <span class="flag-icon">{{
+            activeLang.code === "EN" ? "🇬🇧" : "🇷🇺"
+            }}</span>
+          <span class="lang-name">{{ activeLang.code }}</span>
+          <i class="material-icons dropdown-arrow">expand_more</i>
+
+          <div class="lang-dropdown-menu" *ngIf="showLangDropdown" [style.background]="activePalette?.card"
+            [style.border-color]="activePalette?.border" (click)="$event.stopPropagation()">
+            <div class="lang-option" *ngFor="let lang of languages" [class.active]="activeLang.code === lang.code"
+              (click)="selectLang(lang, $event)">
+              <div class="lang-opt-content">
+                <span class="flag-icon">{{
+                  lang.code === "EN" ? "🇬🇧" : "🇷🇺"
+                  }}</span>
+                <span [style.color]="activePalette?.text">{{ lang.name }}</span>
+              </div>
+              <i class="material-icons check-icon" *ngIf="activeLang.code === lang.code"
+                [style.color]="activePalette?.text">check</i>
+            </div>
+          </div>
+        </div>
+
+
+        <button class="control-config-btn" (click)="openControlPanel()" title="Control Panel">
+          <i class="material-icons">settings</i>
+          <span class="config-name">{{ t.controlConfig }}</span>
+        </button>
+
+
+        <div class="theme-selector" (click)="toggleThemeDropdown($event)">
+          <i class="material-icons palette-icon">palette</i>
+          <span class="theme-name">{{ activeTheme.name }}</span>
+          <div class="theme-color-dot" [style.background]="activeTheme.color"></div>
+          <i class="material-icons dropdown-arrow">expand_more</i>
+
+          <div class="theme-dropdown-menu" *ngIf="showThemeDropdown" [style.background]="activePalette?.card"
+            [style.border-color]="activePalette?.border" (click)="$event.stopPropagation()">
+            <div class="dropdown-section">
+              <div class="section-label">{{ t.appearance }}</div>
+              <div class="appearance-toggle" [style.background]="activePalette?.bg">
+                <button [class.active]="activeTheme.mode === 'Light'" (click)="setThemeMode('Light', $event)">
+                  <i class="material-icons">light_mode</i> {{ t.light }}
+                </button>
+                <button [class.active]="activeTheme.mode === 'Dark'" (click)="setThemeMode('Dark', $event)">
+                  <i class="material-icons">dark_mode</i> {{ t.dark }}
+                </button>
+              </div>
+            </div>
+            <div class="dropdown-section">
+              <div class="section-label">{{ t.palette }}</div>
+              <div class="palette-list">
+                <div class="palette-option" *ngFor="let theme of themes"
+                  [class.active]="activeTheme.name === theme.name" [style.color]="activePalette?.text"
+                  (click)="selectTheme(theme, $event)">
+                  <div class="theme-color-dot large" [style.background]="theme.color"></div>
+                  <span [style.color]="activePalette?.text">{{
+                    theme.name
+                    }}</span>
+                  <i class="material-icons check-icon" *ngIf="activeTheme.name === theme.name"
+                    [style.color]="activePalette?.text">check</i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dashboard Header -->
+    <div class="hotel-dashboard">
+      <!-- New KPI Cards -->
+      <div class="kpi-card occupancy-card">
+        <div class="kpi-body">
+          <div class="occupancy-left">
+            <div class="kpi-header">
+              <div class="kpi-icon-wrapper">
+                <i class="material-icons">data_usage</i>
+              </div>
+              <span class="kpi-title">{{ t.occupancy }}</span>
+            </div>
+            <div class="kpi-main">
+              <span class="kpi-value">{{ hotelStats?.roomsBooked }} /
+                {{ hotelStats?.totalRooms }}</span>
+              <span class="kpi-subtext">{{ t.rooms }}</span>
+            </div>
+          </div>
+          <!-- CSS circle for occupancy with percentage inside -->
+          <div class="kpi-chart large-chart" [style.--percent]="hotelStats?.occupancyPercent">
+            <span>{{ hotelStats?.occupancyPercent }}%</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="kpi-card interactive-kpi" [ngClass]="{ 'active-dropdown': showCheckInsList }"
+        (click)="toggleCheckInsList($event)" (mouseleave)="closeCheckInsList($event)"
+        [style.cursor]="hotelStats?.checkInsToday > 0 ? 'pointer' : 'default'">
+        <div class="kpi-header">
+          <div class="kpi-icon-wrapper light-blue-bg">
+            <i class="material-icons">login</i>
+          </div>
+          <span class="kpi-title">{{ t.checkInsToday }}</span>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-main">
+            <span class="kpi-value">{{ hotelStats?.checkInsToday }}</span>
+            <span class="kpi-subtext">{{ t.guestArrivals }}</span>
+          </div>
+        </div>
+
+        <!-- Check-ins Dropdown -->
+        <div class="kpi-dropdown" *ngIf="showCheckInsList" (click)="$event.stopPropagation()">
+          <div class="kpi-dropdown-header">
+            <span>{{ t.details }}</span>
+            <button class="close-btn" (click)="closeCheckInsList($event)">
+              <i class="material-icons">close</i>
+            </button>
+          </div>
+          <div class="kpi-dropdown-list">
+            <div class="kpi-list-item" *ngFor="let item of hotelStats?.checkInsList">
+              <div class="kpi-item-left">
+                <span class="room-badge">{{ t.room }} {{ item.room }}</span>
+                <span class="guest-name">{{ item.guest }}</span>
+              </div>
+              <div class="kpi-item-right">
+                {{ item.time }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="kpi-card interactive-kpi" [ngClass]="{ 'active-dropdown': showCheckOutsList }"
+        (click)="toggleCheckOutsList($event)" (mouseleave)="closeCheckOutsList($event)"
+        [style.cursor]="hotelStats?.checkOutsToday > 0 ? 'pointer' : 'default'">
+        <div class="kpi-header">
+          <div class="kpi-icon-wrapper light-blue-bg">
+            <i class="material-icons">logout</i>
+          </div>
+          <span class="kpi-title">{{ t.checkOutsToday }}</span>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-main">
+            <span class="kpi-value">{{ hotelStats?.checkOutsToday }}</span>
+            <span class="kpi-subtext">{{ t.guestDepartures }}</span>
+          </div>
+        </div>
+
+        <!-- Check-outs Dropdown -->
+        <div class="kpi-dropdown" *ngIf="showCheckOutsList" (click)="$event.stopPropagation()">
+          <div class="kpi-dropdown-header">
+            <span>{{ t.details }}</span>
+            <button class="close-btn" (click)="closeCheckOutsList($event)">
+              <i class="material-icons">close</i>
+            </button>
+          </div>
+          <div class="kpi-dropdown-list">
+            <div class="kpi-list-item" *ngFor="let item of hotelStats?.checkOutsList">
+              <div class="kpi-item-left">
+                <span class="room-badge">{{ t.room }} {{ item.room }}</span>
+                <span class="guest-name">{{ item.guest }}</span>
+              </div>
+              <div class="kpi-item-right" [class.overdue]="item.isOverdue">
+                <span class="departure-time">{{ item.time }}</span>
+                <span class="overdue-tag" *ngIf="item.isOverdue">OVERDUE</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dash-card">
+        <div class="dash-icon"><i class="material-icons">wifi</i></div>
+        <div class="dash-info">
+          <span class="dash-label">{{ t.onlineOffline }}</span>
+          <span class="dash-value"><span class="text-green">{{ hotelStats?.onlineDevices }}</span> /
+            <span class="text-red">{{ hotelStats?.offlineDevices }}</span></span>
+        </div>
+      </div>
+      <div class="dash-card battery-card" [ngClass]="{
+          'has-alerts': (hotelStats?.batteryAlerts || 0) > 0,
+          'active-dropdown': showBatteryAlertsList
+        }" (click)="toggleBatteryAlerts($event)" (mouseleave)="closeBatteryAlerts($event)">
+        <div class="dash-icon" [ngClass]="{ 'alert-icon': (hotelStats?.batteryAlerts || 0) > 0 }">
+          <i class="material-icons">battery_alert</i>
+        </div>
+        <div class="dash-info">
+          <span class="dash-label">{{ t.batteryAlerts }}</span>
+          <span class="dash-value" [ngClass]="{ 'text-red': (hotelStats?.batteryAlerts || 0) > 0 }">{{
+            hotelStats?.batteryAlerts }}</span>
+        </div>
+
+        <!-- Dropdown List -->
+        <div class="battery-dropdown" *ngIf="showBatteryAlertsList" (click)="$event.stopPropagation()">
+          <div class="battery-dropdown-header">
+            <span>{{ t.details }}</span>
+            <button class="close-btn" (click)="closeBatteryAlerts($event)">
+              <i class="material-icons">close</i>
+            </button>
+          </div>
+          <div class="battery-table">
+            <div class="battery-header">
+              <span class="h-room">ROOM</span>
+              <span class="h-device">DEVICES</span>
+              <span class="h-status">BATTERY</span>
+            </div>
+            <div class="battery-list-body">
+              <div class="battery-table-row" *ngFor="
+                  let item of hotelStats?.batteryAlertDevices;
+                  let i = index
+                ">
+                <div class="cell-room">
+                  <span class="row-index">{{ i + 1 }}</span>
+                  <span class="room-num">{{ item.room }}</span>
+                </div>
+                <div class="cell-device">
+                  <span class="dev-type">{{ item.type }}</span>
+                  <span class="dev-name">({{ item.device }})</span>
+                </div>
+                <div class="cell-status" [ngClass]="{
+                    'text-danger': item.battery === null || item.battery < 20
+                  }">
+                  {{ item.battery !== null ? item.battery + "%" : t.low }}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="dash-card mews-card" [ngClass]="{ 'active-dropdown': showMewsList }" (click)="toggleMewsList($event)"
+        (mouseleave)="closeMewsList($event)">
+        <div class="dash-icon" [ngClass]="{
+            'icon-online':
+              hotelStats?.mewsStatus === 'ONLINE' &&
+              !hotelStats?.mewsAlertActive,
+            'icon-alert': hotelStats?.mewsAlertActive,
+            'icon-offline':
+              hotelStats?.mewsStatus === 'OFFLINE' &&
+              !hotelStats?.mewsAlertActive
+          }">
+          <i class="material-icons">{{
+            hotelStats?.mewsStatus === "ONLINE" && !hotelStats?.mewsAlertActive
+            ? "cloud_done"
+            : hotelStats?.mewsAlertActive
+            ? "error_outline"
+            : "cloud_off"
+            }}</i>
+        </div>
+        <div class="dash-info">
+          <div class="dash-info-header">
+            <span class="dash-label">{{ t.mewsBridge }}</span>
+            <div *ngIf="hotelStats?.mewsLastActivity" class="mews-activity-inline">
+              <i class="material-icons">history</i>
+              <span class="activity-time">{{ t.lastSync }}: {{ hotelStats?.mewsLastActivity }}</span>
+            </div>
+          </div>
+          <span class="dash-value mews-value" [ngClass]="{
+              'text-green':
+                hotelStats?.mewsStatus === 'ONLINE' &&
+                !hotelStats?.mewsAlertActive,
+              'text-orange': hotelStats?.mewsAlertActive,
+              'text-muted':
+                hotelStats?.mewsStatus === 'OFFLINE' &&
+                !hotelStats?.mewsAlertActive
+            }">
+            <ng-container *ngIf="
+                hotelStats?.mewsAlertActive && hotelStats?.mewsErrorMessage
+              ">
+              {{ hotelStats?.mewsErrorMessage }}
+            </ng-container>
+            <ng-container *ngIf="!hotelStats?.mewsAlertActive">
+              {{ hotelStats?.mewsStatus }}
+              <span *ngIf="(hotelStats?.mewsRoomsSynced || 0) > 0"
+                style="font-size: 11px; opacity: 0.8; margin-left: 4px">({{ hotelStats?.mewsRoomsSynced }} {{
+                t.roomsSynced }})</span>
+            </ng-container>
+          </span>
+        </div>
+
+        <!-- Mews Status Dropdown -->
+        <div class="mews-dropdown" *ngIf="showMewsList" (click)="$event.stopPropagation()">
+          <div class="mews-dropdown-header">
+            <span>Mews Connection Status</span>
+            <button class="close-btn" (click)="closeMewsList($event)">
+              <i class="material-icons">close</i>
+            </button>
+          </div>
+          <div class="mews-dropdown-content">
+            <div class="mews-status-item">
+              <span class="mews-item-label">Bridge Status:</span>
+              <span class="mews-item-value" [ngClass]="
+                  hotelStats?.mewsStatus === 'ONLINE'
+                    ? 'text-green'
+                    : 'text-red'
+                ">
+                {{ hotelStats?.mewsStatus }}
+              </span>
+            </div>
+            <div class="mews-status-item" *ngIf="hotelStats?.mewsAlertActive">
+              <span class="mews-item-label">Error Detected:</span>
+              <span class="mews-item-value text-red">{{
+                hotelStats?.mewsErrorMessage || "Unknown Error"
+                }}</span>
+            </div>
+            <div class="mews-status-item" *ngIf="!hotelStats?.mewsAlertActive">
+              <span class="mews-item-label">Error Status:</span>
+              <span class="mews-item-value text-green">System Healthy</span>
+            </div>
+            <div class="mews-status-item">
+              <span class="mews-item-label">Last Successful Sync:</span>
+              <span class="mews-item-value">{{
+                hotelStats?.mewsLastActivity || "--"
+                }}</span>
+            </div>
+            <div class="mews-status-item">
+              <span class="mews-item-label">Rooms Synced:</span>
+              <span class="mews-item-value">{{ hotelStats?.mewsRoomsSynced || 0 }} rooms</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="rooms-section">
+    <div class="rooms-grid" *ngIf="rooms.length > 0">
+      <div class="room-wrapper" *ngFor="let room of rooms; trackBy: trackByRoomId">
+        <!-- INLINE ROOM CARD — standalone, no tb-room-card dependency -->
+        <div class="custom-room-widget" [ngClass]="{
+            'status-warning': room.roomData.roomStatus === 'warning',
+            'status-danger': room.roomData.roomStatus === 'danger'
+          }" (click)="onRoomClick($event, room)">
+          <!-- TOP-CENTER ROOM HANDLE — SVG arc + plate -->
+          <div class="room-pin-top" [ngClass]="{
+              'pin-normal': room.roomData.roomStatus === 'normal',
+              'pin-warning': room.roomData.roomStatus === 'warning',
+              'pin-danger': room.roomData.roomStatus === 'danger'
+            }">
+            <svg class="room-pin-arc-svg" viewBox="0 0 140 48" preserveAspectRatio="none" aria-hidden="true">
+              <path d="M 10 46 C 10 10, 130 10, 130 46" fill="none" stroke="currentColor" stroke-width="3"
+                stroke-linecap="round" />
+            </svg>
+            <div class="room-pin-plate">
+              <span class="pin-label">{{ t.room | uppercase }}</span>
+              <span class="pin-number">{{
+                room.roomData.sensorData.roomNumber
+                }}</span>
+            </div>
+          </div>
+
+          <div class="room-header">
+            <div class="room-title">
+              <span class="status-dot" [ngClass]="
+                  room.roomData.roomStatus === 'normal'
+                    ? 'online'
+                    : room.roomData.roomStatus
+                " *ngIf="formatRoomTitle(room.roomData.sensorData.roomTitle)"></span>
+              <h3 *ngIf="formatRoomTitle(room.roomData.sensorData.roomTitle)"
+                [title]="room.roomData.sensorData.roomTitle">
+                {{ formatRoomTitle(room.roomData.sensorData.roomTitle) }}
+              </h3>
+            </div>
+            <div class="room-notifications-group" style="display: flex; gap: 4px;">
+              <div class="room-notifications battery-notification alarm-warning" *ngIf="room.roomData.hasBatteryLow"
+                title="Low Battery Alert">
+                <i class="material-icons">battery_alert</i>
+              </div>
+              <div class="room-notifications" [ngClass]="{
+                  'alarm-danger': room.roomData.sensorAlarmCount > 0
+                }">
+                <i class="material-icons">notifications_active</i>
+                <span class="badge" *ngIf="room.roomData.alarmCount > 0">{{
+                  room.roomData.alarmCount
+                  }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="metrics-grid">
+            <tb-metric-cell icon="thermostat" [iconClass]="
+                room.roomData.hasData.temperature ? 'icon-orange' : 'icon-gray'
+              " [dynamicClass]="'cell-' + room.roomData.tempStatus" label="TEMP" valueClass="primary-text" [value]="
+                room.roomData.sensorData.temperature != null
+                  ? (room.roomData.sensorData.temperature | number : '1.1-1') +
+                    '°'
+                  : '--'
+              ">
+            </tb-metric-cell>
+
+            <tb-metric-cell icon="invert_colors" [iconClass]="
+                room.roomData.hasData.humidity ? 'icon-blue' : 'icon-gray'
+              " [dynamicClass]="
+                room.roomData.hasData.humidity
+                  ? 'cell-' + room.roomData.humStatus
+                  : ''
+              " label="HUMID" valueClass="primary-text" [value]="
+                room.roomData.hasData.humidity
+                  ? (room.roomData.sensorData.humidity | number : '1.0-0') + '%'
+                  : '--'
+              ">
+            </tb-metric-cell>
+
+            <tb-metric-cell icon="air" [iconClass]="
+                room.roomData.hasData.airQuality ? 'icon-green' : 'icon-gray'
+              " [dynamicClass]="
+                room.roomData.hasData.airQuality
+                  ? 'cell-' + room.roomData.airStatus
+                  : ''
+              " label="AIR" valueClass="primary-text" [value]="
+                room.roomData.hasData.airQuality
+                  ? getAirQualityLabel(room.roomData.sensorData.airQuality)
+                  : '--'
+              ">
+            </tb-metric-cell>
+
+            <tb-metric-cell containerClass="cell-thermo" icon="local_fire_department" [iconClass]="
+                room.roomData.trvAgg.worstStatus === 'heating'
+                  ? 'icon-orange'
+                  : room.roomData.trvAgg.worstStatus === 'idle'
+                  ? 'icon-cyan'
+                  : room.roomData.trvAgg.worstStatus === 'off' ||
+                    room.roomData.trvAgg.count === 0
+                  ? 'icon-gray'
+                  : 'icon-red'
+              " label="THERMO" [valueClass]="
+                'pill-base ' +
+                (room.roomData.trvAgg.count === 0 ||
+                room.roomData.trvAgg.worstStatus === 'off'
+                  ? 'pill-inactive'
+                  : room.roomData.trvAgg.worstStatus === 'heating'
+                  ? 'pill-warning'
+                  : room.roomData.trvAgg.worstStatus === 'idle' &&
+                    room.roomData.trvAgg.count > 0
+                  ? 'pill-normal'
+                  : '')
+              " [value]="
+                room.roomData.trvAgg.count > 0
+                  ? room.roomData.trvAgg.display
+                  : '--'
+              ">
+            </tb-metric-cell>
+
+            <tb-metric-cell containerClass="cell-window" [dynamicClass]="
+                room.roomData.winAgg.anyOpen ? 'cell-warning' : ''
+              " icon="window" [iconClass]="
+                room.roomData.winAgg.total > 0 ? 'icon-green' : 'icon-gray'
+              " label="WINDOW" [valueClass]="
+                'pill-base ' +
+                (room.roomData.winAgg.total === 0
+                  ? 'pill-inactive'
+                  : room.roomData.winAgg.anyOpen
+                  ? 'pill-warning'
+                  : 'pill-normal')
+              " [value]="
+                room.roomData.winAgg.total > 0
+                  ? room.roomData.winAgg.display
+                  : '--'
+              ">
+            </tb-metric-cell>
+
+            <tb-metric-cell containerClass="cell-check" icon="meeting_room"
+              [iconClass]="room.roomData.reservation.checkIconClass" label="CHECK" [valueClass]="
+                'pill-base ' + room.roomData.reservation.checkPillClass
+              " [value]="room.roomData.reservation.checkDisplay">
+            </tb-metric-cell>
+
+            <tb-metric-cell containerClass="cell-water" [dynamicClass]="
+                room.roomData.hasData.waterLeak &&
+                room.roomData.sensorData.waterLeak
+                  ? 'cell-danger'
+                  : ''
+              " icon="waves" [iconClass]="
+                room.roomData.hasData.waterLeak ? 'icon-blue' : 'icon-gray'
+              " label="WATER" [valueClass]="
+                'pill-base ' +
+                (!room.roomData.hasData.waterLeak
+                  ? 'pill-inactive'
+                  : room.roomData.sensorData.waterLeak
+                  ? 'pill-danger'
+                  : 'pill-normal')
+              " [value]="
+                room.roomData.hasData.waterLeak
+                  ? room.roomData.sensorData.waterLeak
+                    ? 'LEAK!'
+                    : 'OK'
+                  : '--'
+              ">
+            </tb-metric-cell>
+
+            <tb-metric-cell containerClass="cell-noise" [dynamicClass]="
+                room.roomData.hasData.noise
+                  ? 'cell-' + room.roomData.noiseStatus
+                  : ''
+              " icon="volume_up" [iconClass]="
+                room.roomData.hasData.noise ? 'icon-purple' : 'icon-gray'
+              " label="NOISE" [valueClass]="
+                'pill-base ' +
+                (room.roomData.hasData.noise
+                  ? 'pill-' + room.roomData.noiseStatus
+                  : 'pill-inactive')
+              " [value]="
+                room.roomData.hasData.noise
+                  ? (room.roomData.sensorData.noise | number : '1.0-0') + 'dB'
+                  : '--'
+              ">
+            </tb-metric-cell>
+
+            <tb-metric-cell containerClass="cell-booked" [dynamicClass]="room.roomData.reservation.bookCellClass"
+              icon="event_available" [iconClass]="room.roomData.reservation.bookIconClass" label="BOOKED" [valueClass]="
+                'pill-base ' + room.roomData.reservation.bookPillClass
+              " [value]="room.roomData.reservation.bookDisplay">
+            </tb-metric-cell>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- /.rooms-grid -->
+
+    <tb-other-devices-panel *ngIf="otherDevices.length > 0" [types]="groupedOtherDeviceTypes"
+      [groupedDevices]="groupedOtherDevices">
+    </tb-other-devices-panel>
+  </div>
+  <!-- /.rooms-section -->
+
+  <div *ngIf="rooms.length === 0" class="no-data">
+    <p>Otaq (Datasource) tapılmadı...</p>
+  </div>
+
+  <!-- Inline Room Detail Overlay -->
+  <div class="room-detail-overlay" *ngIf="selectedRoom" (click)="closeRoomDetail()">
+    <div class="room-detail-modal" (click)="$event.stopPropagation()">
+      <tb-room-card-dialog *ngIf="selectedRoom" [data]="getSelectedRoomData()" (close)="closeRoomDetail()">
+      </tb-room-card-dialog>
+    </div>
+  </div>
+
+  <!-- Global Historical Data Overlay Modal -->
+  <div class="hist-modal-overlay" *ngIf="selectedHistoricalRoom" (click)="closeHistoricalData()">
+    <div class="hist-modal" (click)="$event.stopPropagation()">
+      <div class="hist-modal-header">
+        <div class="hist-title">
+          <i class="material-icons">timeline</i>
+          <span>Historical Data — {{ selectedHistoricalRoom.name }}</span>
+        </div>
+        
+        <div class="header-actions">
+          <div class="time-toggles-header">
+            <button [class.active]="timeRangeHours === 24"  (click)="setHistoricalTimeRange(24)">24H</button>
+            <button [class.active]="timeRangeHours === 168" (click)="setHistoricalTimeRange(168)">7D</button>
+            <button [class.active]="timeRangeHours === 720" (click)="setHistoricalTimeRange(720)">30D</button>
+          </div>
+          <button class="close-modal-btn" (click)="closeHistoricalData()">
+            <i class="material-icons">close</i>
+          </button>
+        </div>
+      </div>
+      <div class="hist-modal-body">
+        <tb-room-historical-data 
+          [ctx]="selectedHistoricalRoom.mockCtx"
+          [deviceEntityIdMap]="selectedHistoricalRoom.roomData.deviceEntityIdMap"
+          [thermostats]="getArray(selectedHistoricalRoom.roomData.trvDevices)"
+          [aqSensors]="getArray(selectedHistoricalRoom.roomData.airSensors)"
+          [tempDevices]="selectedHistoricalRoom.roomData.tempDevices"
+          [humDevices]="selectedHistoricalRoom.roomData.humDevices"
+          [windowDevices]="selectedHistoricalRoom.roomData.windowDevices"
+          [leakDevices]="selectedHistoricalRoom.roomData.leakDevices"
+          [noiseDevices]="selectedHistoricalRoom.roomData.noiseDevices"
+          [checkedIn]="selectedHistoricalRoom.roomData.sensorData.checkedIn"
+          [timeRangeHours]="timeRangeHours">
+        </tb-room-historical-data>
+      </div>
+    </div>
+  </div>
+
+  <!-- Control Panel Modal (self-contained, listens to ControlPanelService) -->
+  <tb-control-panel></tb-control-panel>
+
+</div>

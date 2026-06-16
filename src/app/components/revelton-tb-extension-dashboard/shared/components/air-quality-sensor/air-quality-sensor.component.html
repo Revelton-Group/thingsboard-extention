@@ -1,0 +1,102 @@
+<div class="aq-card" *ngIf="sensor">
+    <div class="aq-header">
+        <div class="aq-header-left">
+            <div class="aq-icon-box">
+                <i class="material-icons">air</i>
+            </div>
+            <div>
+                <div class="aq-device-name">{{ sensor.displayName || 'Air Monitor' }}</div>
+                <div class="aq-device-model">{{ sensor.model || 'AM308 (8-in-1)' }}</div>
+            </div>
+        </div>
+        <div class="aq-header-right">
+            <div class="aq-status-badge"
+                [style.background]="sensor.overallColor ? (sensor.overallColor + '1A') : '#EBFBEE'"
+                [style.color]="sensor.overallColor || '#34C759'">
+                {{ sensor.overall || t.good }}
+            </div>
+            <div class="aq-timestamp" *ngIf="sensor.lastSeen">
+                <i class="material-icons">schedule</i>{{ sensor.lastSeen }}
+            </div>
+        </div>
+    </div>
+
+    <!-- Metadata Row (Matches Thermostat Style) -->
+    <div class="aq-meta-bottom" *ngIf="sensor.battery != null || sensor.linkquality != null">
+        <span class="meta-item" *ngIf="sensor.battery != null" [ngClass]="{'warn': sensor.battery <= 20}">
+            <i class="material-icons">{{ sensor.battery <= 20 ? 'battery_alert' : 'battery_std' }}</i>
+                    {{ sensor.battery }}%
+        </span>
+        <span class="meta-item" *ngIf="sensor.linkquality != null">
+            <i class="material-icons">wifi</i>
+            {{ getLinkQualityText(sensor.linkquality) }}
+        </span>
+    </div>
+
+    <div class="aq-content">
+        <!-- Main Stats Row -->
+        <div class="aq-row-top">
+            <div class="aq-square-metric">
+                <i class="material-icons icon-orange">thermostat</i>
+                <div class="aq-metric-label">{{ t.temperature }}</div>
+                <div class="aq-metric-value">{{ sensor.temperature ? (sensor.temperature | number:'1.1-1') : '--' }}<span class="aq-unit">°</span></div>
+            </div>
+            <div class="aq-square-metric">
+                <i class="material-icons icon-blue">water_drop</i>
+                <div class="aq-metric-label">{{ t.humidity }}</div>
+                <div class="aq-metric-value">{{ sensor.humidity ? (sensor.humidity | number:'1.0-0') : '--' }}<span class="aq-unit">%</span></div>
+            </div>
+            <div class="aq-square-metric">
+                <i class="material-icons icon-green">show_chart</i>
+                <div class="aq-metric-label">{{ t.co2 }}</div>
+                <div class="aq-metric-value">{{ (sensor.co2 !== null && sensor.co2 !== undefined) ? sensor.co2 : '--' }}<span class="aq-unit">ppm</span></div>
+            </div>
+        </div>
+
+        <!-- Secondary Stats Row (Wide) -->
+        <div class="aq-row-mid">
+            <div class="aq-bar-metric">
+                <div class="aq-bar-header">
+                    <span class="aq-bar-label">TVOC</span>
+                    <span class="aq-bar-value">{{ (sensor.tvoc !== null && sensor.tvoc !== undefined) ? sensor.tvoc : '--' }} <span class="aq-unit">mg/m³</span></span>
+                </div>
+                <div class="aq-bar-track">
+                    <div class="aq-bar-fill" [style.width.%]="sensor.tvocPerc || 0"
+                        [style.background]="getTVOCColor(sensor.tvoc)"></div>
+                </div>
+            </div>
+            <div class="aq-bar-metric">
+                <div class="aq-bar-header">
+                    <span class="aq-bar-label">{{ t.pm25 }}</span>
+                    <span class="aq-bar-value">{{ (sensor.pm25 !== null && sensor.pm25 !== undefined) ? sensor.pm25 : '--' }} <span class="aq-unit">ug/m³</span></span>
+                </div>
+                <div class="aq-bar-track">
+                    <div class="aq-bar-fill" [style.width.%]="sensor.pm25Perc || 0"
+                        [style.background]="getPM25Color(sensor.pm25)"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Extra Stats Row -->
+        <div class="aq-row-bottom">
+            <div class="aq-small-metric">
+                <div class="icon-circle">
+                    <i class="material-icons icon-orange">wb_sunny</i>
+                </div>
+                <div class="aq-small-info">
+                    <div class="aq-small-label">LIGHT</div>
+                    <div class="aq-small-value">{{ (sensor.light !== null && sensor.light !== undefined) ? sensor.light : '--' }} <span class="aq-unit">lux</span></div>
+                </div>
+            </div>
+            <div class="aq-small-metric">
+                <div class="icon-circle">
+                    <i class="material-icons icon-blue">compress</i>
+                </div>
+                <div class="aq-small-info">
+                    <div class="aq-small-label">PRESSURE</div>
+                    <div class="aq-small-value">{{ (sensor.pressure !== null && sensor.pressure !== undefined) ? (sensor.pressure | number:'1.0-0') : '--' }} <span class="aq-unit">hPa</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

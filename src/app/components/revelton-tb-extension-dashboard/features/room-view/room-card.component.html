@@ -1,0 +1,73 @@
+<div #widgetContainer class="custom-room-widget"
+    [ngClass]="{'status-warning': roomData.roomStatus === 'warning', 'status-danger': roomData.roomStatus === 'danger'}"
+    (click)="onWidgetClick($event)">
+    <div class="room-header">
+        <div class="room-title">
+            <span class="status-dot" [ngClass]="roomData.roomStatus === 'normal' ? 'online' : roomData.roomStatus"></span>
+            <h2>{{ t.room }}</h2>
+            <span class="room-number">{{ roomData.sensorData.roomNumber }}</span>
+        </div>
+        <div class="room-notifications"
+            [ngClass]="{'alarm-warning': roomData.alarmCount > 0 && roomData.alarmCount < 3, 'alarm-danger': roomData.alarmCount >= 3}">
+            <i class="material-icons">notifications_active</i>
+            <span class="badge" *ngIf="roomData.alarmCount > 0">{{ roomData.alarmCount }}</span>
+        </div>
+    </div>
+
+    <div class="metrics-grid">
+        <tb-metric-cell containerClass="cell-temp" [dynamicClass]="roomData.hasData.temperature ? 'cell-' + roomData.tempStatus : ''"
+            icon="thermostat" [iconClass]="roomData.hasData.temperature ? 'icon-orange' : 'icon-gray'" [label]="t.temperature" valueClass="primary-text"
+            [value]="roomData.hasData.temperature ? ((roomData.sensorData.temperature | number:'1.1-1') + '°') : '--'">
+        </tb-metric-cell>
+
+        <tb-metric-cell containerClass="cell-humid" [dynamicClass]="roomData.hasData.humidity ? 'cell-' + roomData.humStatus : ''"
+            icon="water_drop" [iconClass]="roomData.hasData.humidity ? 'icon-blue' : 'icon-gray'" [label]="t.humidity" valueClass="primary-text"
+            [value]="roomData.hasData.humidity ? ((roomData.sensorData.humidity | number:'1.0-0') + '%') : '--'">
+        </tb-metric-cell>
+
+        <tb-metric-cell containerClass="cell-air" [dynamicClass]="roomData.hasData.airQuality ? 'cell-' + roomData.airStatus : ''"
+            icon="air" [iconClass]="roomData.hasData.airQuality ? 'icon-green' : 'icon-gray'" [label]="t.airQuality" valueClass="primary-text"
+            [value]="roomData.hasData.airQuality ? getAirQualityLabel(roomData.sensorData.airQuality) : '--'">
+        </tb-metric-cell>
+
+        <tb-metric-cell containerClass="cell-thermo" icon="local_fire_department"
+            [iconClass]="roomData.trvAgg.worstStatus === 'heating' ? 'icon-orange' : (roomData.trvAgg.worstStatus === 'idle' ? 'icon-cyan' : (roomData.trvAgg.worstStatus === 'off' || roomData.trvAgg.count === 0 ? 'icon-gray' : 'icon-red'))"
+            label="THERMO"
+            [valueClass]="'pill-base ' + (roomData.trvAgg.count === 0 || roomData.trvAgg.worstStatus === 'off' ? 'pill-inactive' : (roomData.trvAgg.worstStatus === 'heating' ? 'pill-warning' : (roomData.trvAgg.worstStatus === 'idle' && roomData.trvAgg.count > 0 ? 'pill-normal' : '')))"
+            [value]="roomData.trvAgg.count > 0 ? roomData.trvAgg.display : '--'">
+        </tb-metric-cell>
+
+        <tb-metric-cell containerClass="cell-window" [dynamicClass]="roomData.winAgg.anyOpen ? 'cell-warning' : ''" icon="window"
+            [iconClass]="roomData.winAgg.total > 0 ? 'icon-green' : 'icon-gray'" [label]="t.windows"
+            [valueClass]="'pill-base ' + (roomData.winAgg.total === 0 ? 'pill-inactive' : (roomData.winAgg.anyOpen ? 'pill-warning' : 'pill-normal'))"
+            [value]="roomData.winAgg.total > 0 ? roomData.winAgg.display : '--'">
+        </tb-metric-cell>
+
+        <tb-metric-cell containerClass="cell-check" icon="meeting_room"
+            [iconClass]="roomData.reservation.checkIconClass" [label]="t.status"
+            [valueClass]="'pill-base ' + roomData.reservation.checkPillClass"
+            [value]="roomData.reservation.checkDisplay">
+        </tb-metric-cell>
+
+        <tb-metric-cell containerClass="cell-water"
+            [dynamicClass]="roomData.hasData.waterLeak && roomData.sensorData.waterLeak ? 'cell-danger' : ''" icon="waves"
+            [iconClass]="roomData.hasData.waterLeak ? 'icon-blue' : 'icon-gray'" [label]="t.waterLeak"
+            [valueClass]="'pill-base ' + (!roomData.hasData.waterLeak ? 'pill-inactive' : (roomData.sensorData.waterLeak ? 'pill-danger' : 'pill-normal'))"
+            [value]="roomData.hasData.waterLeak ? (roomData.sensorData.waterLeak ? t.leakDetected : 'OK') : '--'">
+        </tb-metric-cell>
+
+        <tb-metric-cell containerClass="cell-noise" [dynamicClass]="roomData.hasData.noise ? ('cell-' + roomData.noiseStatus) : ''"
+            icon="volume_up" [iconClass]="roomData.hasData.noise ? 'icon-purple' : 'icon-gray'" [label]="t.noise"
+            [valueClass]="'pill-base ' + (roomData.hasData.noise ? ('pill-' + roomData.noiseStatus) : 'pill-inactive')"
+            [value]="roomData.hasData.noise ? ((roomData.sensorData.noise | number:'1.0-0') + 'dB') : '--'">
+        </tb-metric-cell>
+
+        <tb-metric-cell containerClass="cell-booked"
+            [dynamicClass]="roomData.reservation.bookDisplay === 'Overdue' || roomData.reservation.bookDisplay === 'Late Arrival' ? 'cell-danger' : ''"
+            icon="event_available"
+            [iconClass]="roomData.reservation.bookDisplay === 'Started' || roomData.reservation.bookDisplay === 'Confirmed' ? 'icon-green' : (roomData.reservation.bookDisplay === 'Overdue' || roomData.reservation.bookDisplay === 'Late Arrival' ? 'icon-red' : 'icon-gray')" [label]="t.booked"
+            [valueClass]="'pill-base ' + (roomData.reservation.bookDisplay === 'Started' ? 'pill-normal' : (roomData.reservation.bookDisplay === 'Overdue' || roomData.reservation.bookDisplay === 'Late Arrival' ? 'pill-danger' : (roomData.reservation.bookDisplay === 'Confirmed' || roomData.reservation.bookDisplay === 'Optional' ? 'pill-wait' : 'pill-inactive')))"
+            [value]="roomData.reservation.bookDisplay">
+        </tb-metric-cell>
+    </div>
+</div>

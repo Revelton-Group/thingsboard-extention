@@ -1,0 +1,123 @@
+:host {
+    display: block;
+}
+
+.sensor-row {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  background: var(--card, #FFFFFF);
+  border-radius: var(--radius-sm, 12px);
+  border: 1px solid var(--border, rgba(0, 0, 0, 0.04));
+  gap: 12px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+
+  &:hover {
+    background: var(--accent-muted, rgba(129, 140, 248, 0.1));
+    border-color: var(--accent, #818cf8);
+    box-shadow: 0 8px 24px var(--accent-muted, rgba(129, 140, 248, 0.15));
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    transform: translateY(-2px);
+  }
+
+  &.is-open {
+  background: var(--warning-bg, #FFF7ED);
+  border-color: var(--warning, rgba(245, 158, 11, 0.2));
+  }
+}
+
+.sensor-icon-container {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  i {
+    font-size: 20px;
+  }
+}
+
+.sensor-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sensor-header-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sensor-name {
+  font-family: 'Outfit', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text, #1a202c);
+}
+
+.status-dot {
+  color: var(--text-muted, #A0AEC0);
+  font-weight: 700;
+}
+
+.status-text {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.sensor-subtext {
+  font-size: 12px;
+  color: var(--text-muted, #8E8E93);
+}
+
+.sensor-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.meta-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.meta-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 700;
+
+  i {
+    font-size: 16px;
+  }
+
+  &.battery.ok { color: var(--success, #10B981); }
+  &.battery.warn { color: var(--warning, #F59E0B); }
+  
+  &.meta-item-green { color: var(--success, #10B981); }
+  &.meta-item-orange { color: var(--warning, #F59E0B); }
+  &.meta-item-gray { color: var(--text-muted, #A0AEC0); }
+}
+
+.meta-bottom {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text-muted, #A0AEC0);
+  font-weight: 500;
+
+  i {
+    font-size: 14px;
+  }
+}
