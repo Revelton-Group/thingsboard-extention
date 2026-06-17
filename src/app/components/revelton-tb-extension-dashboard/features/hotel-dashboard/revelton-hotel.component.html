@@ -548,7 +548,8 @@
   <!-- /.rooms-section -->
 
   <div *ngIf="rooms.length === 0" class="no-data">
-    <p>Otaq (Datasource) tapılmadı...</p>
+    <i class="material-icons no-data-icon">sensors_off</i>
+    <p>{{ t.noDatasource }}</p>
   </div>
 
   <!-- Inline Room Detail Overlay -->

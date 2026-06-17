@@ -98,7 +98,7 @@
             <div class="section-container aq-section" *ngIf="aqSensors.length > 0">
                 <div class="section-label">
                     <i class="material-icons" style="font-size: 12px">air</i>
-                    {{ t.airQuality | uppercase }} ({{ aqSensors.length }})
+                    INDOOR CLIMATE ({{ aqSensors.length }})
                 </div>
                 <div class="aq-list">
                     <tb-air-quality-sensor *ngFor="let aq of aqSensors; trackBy: trackByEntityName"

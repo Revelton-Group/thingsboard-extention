@@ -204,6 +204,7 @@ export interface TranslationSet {
   histUnitPpb: string;
   histUnitUgM3: string;
   histUnoccupied: string;
+  noDatasource: string;
 }
 
 @Injectable({
@@ -240,9 +241,9 @@ export class TranslationService {
       light: "Light",
       dark: "Dark",
 
-      temperature: "TEMPERATURE",
-      humidity: "HUMIDITY",
-      airQuality: "AIR QUALITY",
+      temperature: "Temperature",
+      humidity: "Humidity",
+      airQuality: "Air Quality",
       waterLeak: "WATER LEAK",
       leakDetected: "LEAK DETECTED",
       noLeak: "No Leak",
@@ -412,6 +413,7 @@ export class TranslationService {
       histUnitPpb: "ppb",
       histUnitUgM3: "µg/m³",
       histUnoccupied: "Unoccupied",
+      noDatasource: "No data source",
     },
     RU: {
       details: "Детали",
@@ -437,9 +439,9 @@ export class TranslationService {
       light: "Светлая",
       dark: "Темная",
 
-      temperature: "ТЕМПЕРАТУРА",
-      humidity: "ВЛАЖНОСТЬ",
-      airQuality: "КАЧЕСТВО ВОЗДУХА",
+      temperature: "Температура",
+      humidity: "Влажность",
+      airQuality: "Качество воздуха",
       waterLeak: "УТЕЧКА ВОДЫ",
       leakDetected: "УТЕЧКА!",
       noLeak: "Норма",
@@ -609,6 +611,7 @@ export class TranslationService {
       histUnitPpb: "ppb",
       histUnitUgM3: "µg/m³",
       histUnoccupied: "Свободно",
+      noDatasource: "Источник данных не найден",
     },
   };
 

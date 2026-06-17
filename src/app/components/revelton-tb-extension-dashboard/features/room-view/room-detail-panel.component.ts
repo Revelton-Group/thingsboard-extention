@@ -333,7 +333,7 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
     for (const [name, aqData] of Object.entries(airDevices) as any) {
       const aqResult = RoomDataService.calculateAirQuality(
         aqData.co2 ?? null, aqData.tvoc ?? aqData.iaq ?? null, aqData.pm25 ?? null, aqData.pm10 ?? null,
-        aqData.hum ?? null, aqData.temp ?? null, null, null
+        aqData.hum ?? null, aqData.temp ?? null, aqData.light ?? null, aqData.pressure ?? null
       );
       this.aqSensors.push({
         entityName: name,
@@ -350,6 +350,7 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
         pm10: aqData.pm10 ?? null,
         light: aqData.light ?? null,
         pressure: aqData.pressure ?? null,
+        pir: aqData.pir ?? null,
         model: this.data.deviceMeta?.[name]?.model ?? 'AM308',
         battery: this.data.batteryDevices?.[name] ?? null,
         linkquality: this.data.linkQualityDevices?.[name] ?? null,

@@ -150,6 +150,7 @@ export class HotelStateService implements OnDestroy {
   private roomMap = new Map<string, InlineRoom>();
   private ctxOtherDevices = new Map<string, OtherDevice>();
   private discoveredOtherDevices = new Map<string, OtherDevice>();
+  private deviceProfileMap = new Map<string, string>();
 
   /* ──── Backend Discovery state ──── */
   private discoveredDevices = new Map<
@@ -216,6 +217,7 @@ export class HotelStateService implements OnDestroy {
      ─────────────────────────────────────────────────────────── */
   processDataUpdate(ctx: any): InlineRoom[] {
     if (!ctx || !ctx.data) return this._rooms$.value;
+    this.lastCtx = ctx;
 
     const stats = { ...this._hotelStats$.value };
     const dataByRoom = new Map<string, any[]>();
@@ -245,10 +247,12 @@ export class HotelStateService implements OnDestroy {
         if (!ds || !ds.entityName) return;
         const entityName = ds.entityName;
         const aliasName = (ds.aliasName || "").toLowerCase();
+        const isRoomAlias = aliasName.includes("room") || aliasName.includes("guest");
         const isOtherAlias =
           aliasName.includes("other") ||
           aliasName.includes("public") ||
-          aliasName.includes("office");
+          aliasName.includes("office") ||
+          (!isRoomAlias && ds.entityType === "ASSET");
 
         // Extract entity ID safely (may be a string or a {id, entityType} object)
         const rawId = ds.entityId;
@@ -259,6 +263,34 @@ export class HotelStateService implements OnDestroy {
             `[HotelState] ⚠️ Could not extract entityId for datasource: ${entityName}`
           );
           return;
+        }
+
+        // Asynchronously fetch device details to determine Device Profile (deviceType)
+        if (ds.entityType === "DEVICE" && !this.deviceProfileMap.has(entityName)) {
+          ctx.http.get(`/api/device/info/${entityId}`).subscribe(
+            (deviceInfo: any) => {
+              if (deviceInfo && deviceInfo.deviceProfileName) {
+                console.log(`[HotelState] ℹ️ Loaded device profile for ${entityName}:`, deviceInfo.deviceProfileName);
+                this.deviceProfileMap.set(entityName, deviceInfo.deviceProfileName);
+                if (this.lastCtx) {
+                  this.processDataUpdate(this.lastCtx);
+                }
+              }
+            },
+            () => {
+              ctx.http.get(`/api/device/${entityId}`).subscribe(
+                (device: any) => {
+                  if (device && device.type) {
+                    console.log(`[HotelState] ℹ️ Loaded device type/profile for ${entityName}:`, device.type);
+                    this.deviceProfileMap.set(entityName, device.type);
+                    if (this.lastCtx) {
+                      this.processDataUpdate(this.lastCtx);
+                    }
+                  }
+                }
+              );
+            }
+          );
         }
 
         console.log(
@@ -307,7 +339,38 @@ export class HotelStateService implements OnDestroy {
         // Filter out the Mews Bridge device so it's not treated as a room
         // but let mews-service-room_X devices pass through — they carry per-room reservation data
         const lowerName = entityName.toLowerCase();
-        if (lowerName.startsWith("mews") && !lowerName.includes("room")) {
+        const deviceType = item.datasource.deviceType || 
+                           (item.datasource.entity as any)?.deviceProfileName || 
+                           (item.datasource.entity as any)?.type || 
+                           item.datasource.deviceProfileName || 
+                           "";
+        
+        if (lowerName.includes("mews")) {
+          const flatParts: string[] = [];
+          Object.keys(item.datasource).forEach(k => {
+            const val = item.datasource[k];
+            if (typeof val !== 'object' && val !== null && val !== undefined) {
+              flatParts.push(k + '="' + val + '"');
+            }
+          });
+          console.log("[HotelState] 🔍 MEWS FLAT DATASOURCE: " + flatParts.join(', '));
+
+          if (item.datasource.entity) {
+            const entityParts: string[] = [];
+            Object.keys(item.datasource.entity).forEach(k => {
+              const val = item.datasource.entity[k];
+              if (typeof val !== 'object' && val !== null && val !== undefined) {
+                entityParts.push(k + '="' + val + '"');
+              }
+            });
+            console.log("[HotelState] 🔍 MEWS FLAT ENTITY: " + entityParts.join(', '));
+          }
+        }
+
+        const profile = this.deviceProfileMap.get(entityName) || deviceType || "";
+        const isMewsBridge = profile.toLowerCase() === "mews bridge" || 
+                             (lowerName.startsWith("mews") && !lowerName.includes("room"));
+        if (isMewsBridge) {
           if (item.data && item.data.length > 0) {
             const keyName = item.dataKey?.name || "";
             const val = item.data[0][1];
@@ -346,11 +409,12 @@ export class HotelStateService implements OnDestroy {
         }
 
         const aliasName = (item.datasource.aliasName || "").toLowerCase();
-        const isRoomAlias = aliasName.includes("room");
+        const isRoomAlias = aliasName.includes("room") || aliasName.includes("guest");
         const isOtherAlias =
           aliasName.includes("other") ||
           aliasName.includes("public") ||
-          aliasName.includes("office");
+          aliasName.includes("office") ||
+          (!isRoomAlias && item.datasource.entityType === "ASSET");
 
         let roomNumber = entityName;
 
@@ -755,6 +819,12 @@ export class HotelStateService implements OnDestroy {
       if (data.airSensors?.[name]) return "Air Monitor";
     }
 
+    const profile = this.deviceProfileMap.get(name) || "";
+    const lowerProfile = profile.toLowerCase();
+    if (lowerProfile.includes("am308") || lowerProfile.includes("ambience") || lowerProfile.includes("air")) {
+      return "Air Monitor";
+    }
+
     const lower = name.toLowerCase();
     if (
       lower.includes("window") ||
@@ -912,10 +982,12 @@ export class HotelStateService implements OnDestroy {
           if (!id) continue;
 
           const aliasName = (ds.aliasName || "").toLowerCase();
+          const isRoomAlias = aliasName.includes("room") || aliasName.includes("guest");
           const isOtherAlias =
             aliasName.includes("other") ||
             aliasName.includes("public") ||
-            aliasName.includes("office");
+            aliasName.includes("office") ||
+            (!isRoomAlias && ds.entityType === "ASSET");
 
           if (ds.entityType === "ASSET") {
             if (isOtherAlias) {
@@ -1036,9 +1108,7 @@ export class HotelStateService implements OnDestroy {
     // When forceOther=true the caller already knows this is a non-room asset
     // (e.g. detected via "other" alias name), so we skip the name-based heuristic
     // entirely — this prevents "Hall 1" or "Office 3" from being treated as room cards.
-    const isRoom = forceOther
-      ? false
-      : extractedRoomNumber !== assetName || /^\d+$/.test(extractedRoomNumber);
+    const isRoom = !forceOther;
     const locationName = isRoom ? extractedRoomNumber : assetName;
 
     // Register this location as a room SYNCHRONOUSLY (before async calls) so that
@@ -1542,6 +1612,7 @@ export class HotelStateService implements OnDestroy {
           entityId: entityId,
           entityName: entityName,
           entityType: entityType,
+          deviceType: this.deviceProfileMap.get(entityName),
         },
       });
     }

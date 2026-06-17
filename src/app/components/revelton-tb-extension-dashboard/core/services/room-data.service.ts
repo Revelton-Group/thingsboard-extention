@@ -142,12 +142,18 @@ export class RoomDataService {
         const id = typeof ds.entityId === 'string' ? ds.entityId : (ds.entityId as any).id;
         if (id) newData.deviceEntityIdMap[entityName] = id;
       }
+      if (ds?.deviceType && entityName !== 'unknown') {
+        if (!newData.deviceMeta[entityName]) newData.deviceMeta[entityName] = {};
+        newData.deviceMeta[entityName].model = ds.deviceType;
+      }
 
       switch (key) {
         case 'temp':
         case 'temperature':
         case 'local_temperature':
-        case 'last_temperature_measurement': {
+        case 'last_temperature_measurement':
+        case 'data_temperature':
+        case 'data_temp': {
           const temp = parseFloat(value);
           if (!isNaN(temp)) {
             newData.tempDevices[entityName] = temp;
@@ -161,7 +167,9 @@ export class RoomDataService {
         }
         case 'hum':
         case 'humidity':
-        case 'relative_humidity': {
+        case 'relative_humidity':
+        case 'data_humidity':
+        case 'data_hum': {
           const hum = parseFloat(value);
           if (!isNaN(hum)) {
             newData.humDevices[entityName] = hum;
@@ -214,11 +222,24 @@ export class RoomDataService {
           newData.activeDevices[entityName] = (value === true || String(value).toLowerCase() === 'true' || value === 1 || value === '1');
           break;
         case 'battery':
+        case 'data_battery':
+        case 'status_battery_level':
           newData.batteryDevices[entityName] = parseFloat(value);
           break;
         case 'linkquality':
-          newData.linkQualityDevices[entityName] = parseFloat(value);
+        case 'rssi': {
+          const val = parseFloat(value);
+          if (!isNaN(val)) {
+            if (val < 0) {
+              // Convert RSSI (dBm) to LQI (0-254) range: LQI = (RSSI + 110) * 2.54
+              const lqi = Math.min(254, Math.max(0, Math.round((val + 110) * 2.54)));
+              newData.linkQualityDevices[entityName] = lqi;
+            } else {
+              newData.linkQualityDevices[entityName] = val;
+            }
+          }
           break;
+        }
         case 'last_seen':
         case 'lastActivityTime':
           const ts = Date.parse(value) || parseInt(value, 10);
@@ -237,16 +258,38 @@ export class RoomDataService {
           }
           break;
         case 'co2':
+        case 'data_co2':
         case 'pm25':
+        case 'data_pm25':
+        case 'pm2_5':
+        case 'data_pm2_5':
         case 'pm10':
+        case 'data_pm10':
         case 'tvoc':
+        case 'data_tvoc':
         case 'iaq':
+        case 'data_iaq':
         case 'light':
+        case 'light_level':
+        case 'data_light':
+        case 'data_light_level':
         case 'pressure':
+        case 'data_pressure': {
+          let cleanKey = key.replace('data_', '');
+          if (cleanKey === 'light_level') cleanKey = 'light';
+          if (cleanKey === 'pm2_5') cleanKey = 'pm25';
           if (this.isAirSensor(entityName, newData.deviceMeta)) {
             if (!newData.airSensors[entityName]) newData.airSensors[entityName] = {};
-            newData.airSensors[entityName][key] = parseFloat(value);
+            newData.airSensors[entityName][cleanKey] = parseFloat(value);
             newData.hasData.airQuality = true;
+          }
+          break;
+        }
+        case 'pir':
+        case 'data_pir':
+          if (this.isAirSensor(entityName, newData.deviceMeta)) {
+            if (!newData.airSensors[entityName]) newData.airSensors[entityName] = {};
+            newData.airSensors[entityName].pir = String(value);
           }
           break;
         case 'model':
@@ -484,9 +527,13 @@ export class RoomDataService {
 
   private isAirSensor(name: string, meta: any): boolean {
     const label = meta[name]?.label || '';
+    const model = meta[name]?.model || '';
     const n = name.toUpperCase();
     const l = label.toUpperCase();
-    return n.startsWith('AQ') || n.startsWith('AIR') || n.startsWith('AM') || l.startsWith('AQ') || l.startsWith('AIR');
+    const m = model.toUpperCase();
+    return n.startsWith('AQ') || n.startsWith('AIR') || n.startsWith('AM') || n.includes('AM308') || n.includes('MILESIGHT') ||
+           l.startsWith('AQ') || l.startsWith('AIR') || l.includes('AM308') || l.includes('MILESIGHT') ||
+           m.includes('AM308') || m.includes('AMBIENCE') || m.includes('AIR') || m.includes('MILESIGHT');
   }
 
   private isTRV(name: string): boolean {
@@ -529,6 +576,34 @@ export class RoomDataService {
       const hasOff = trvKeys.some(k => data.trvDevices[k].status === 'off');
       const worst = hasHeating ? 'heating' : hasOff ? 'off' : 'idle';
       data.trvAgg = { count: trvKeys.length, avgSetPoint: avgSet, worstStatus: worst, display: `${avgSet}° ${worst}` };
+    }
+
+    // Air Quality AQI Calculation (triggered watch compile)
+    const airKeys = Object.keys(data.airSensors);
+    if (airKeys.length > 0) {
+      let totalAqi = 0;
+      let count = 0;
+      for (const k of airKeys) {
+        const sensor = data.airSensors[k];
+        const res = RoomDataService.calculateAirQuality(
+          sensor.co2 !== undefined ? sensor.co2 : null,
+          sensor.tvoc !== undefined ? sensor.tvoc : null,
+          sensor.pm25 !== undefined ? sensor.pm25 : null,
+          sensor.pm10 !== undefined ? sensor.pm10 : null,
+          sensor.humidity !== undefined ? sensor.humidity : (sensor.hum !== undefined ? sensor.hum : null),
+          sensor.temperature !== undefined ? sensor.temperature : (sensor.temp !== undefined ? sensor.temp : null),
+          sensor.light !== undefined ? sensor.light : null,
+          sensor.pressure !== undefined ? sensor.pressure : null
+        );
+        if (res && res.aqi !== null && !isNaN(res.aqi)) {
+          totalAqi += res.aqi;
+          count++;
+        }
+      }
+      if (count > 0) {
+        data.sensorData.airQuality = Math.round(totalAqi / count);
+        data.hasData.airQuality = true;
+      }
     }
   }
 
@@ -600,6 +675,7 @@ export class RoomDataService {
     if (co2 !== null) scores['CO2'] = co2 <= bp.co2.good ? linearScale(co2, 0, bp.co2.good, 0, 50) : co2 <= bp.co2.fair ? linearScale(co2, bp.co2.good, bp.co2.fair, 51, 100) : linearScale(co2, bp.co2.fair, bp.co2.poor, 101, 200);
     if (tvoc !== null) scores['TVOC'] = tvoc <= bp.tvoc.good ? linearScale(tvoc, 0, bp.tvoc.good, 0, 50) : linearScale(tvoc, bp.tvoc.good, bp.tvoc.fair, 51, 100);
     if (pm25 !== null) scores['PM2.5'] = pm25 <= bp.pm25.good ? linearScale(pm25, 0, bp.pm25.good, 0, 50) : linearScale(pm25, bp.pm25.good, bp.pm25.fair, 51, 100);
+    if (pm10 !== null) scores['PM10'] = pm10 <= bp.pm10.good ? linearScale(pm10, 0, bp.pm10.good, 0, 50) : linearScale(pm10, bp.pm10.good, bp.pm10.fair, 51, 100);
 
     const aqi = Math.max(0, ...Object.values(scores), 0);
     const label = aqi <= 50 ? 'Good' : aqi <= 100 ? 'Fair' : aqi <= 200 ? 'Poor' : 'Hazardous';

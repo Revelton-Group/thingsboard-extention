@@ -48,4 +48,44 @@ export class AirQualitySensorComponent {
     if (v < 55) return '#FF9500';
     return '#FF3B30';
   }
+
+  getPM10Color(val: any): string {
+    const v = Number(val);
+    if (isNaN(v)) return '#34C759';
+    if (v < 54) return '#007AFF';
+    if (v < 154) return '#34C759';
+    if (v < 254) return '#FF9500';
+    return '#FF3B30';
+  }
+
+  getTVOCPerc(val: any): number {
+    const v = Number(val);
+    if (isNaN(v)) return 0;
+    return Math.min(100, Math.round((v / 3.0) * 100));
+  }
+
+  getPM25Perc(val: any): number {
+    const v = Number(val);
+    if (isNaN(v)) return 0;
+    return Math.min(100, Math.round((v / 55.0) * 100));
+  }
+
+  getPM10Perc(val: any): number {
+    const v = Number(val);
+    if (isNaN(v)) return 0;
+    return Math.min(100, Math.round((v / 254.0) * 100));
+  }
+
+  isMotionActive(): boolean {
+    if (!this.sensor || !this.sensor.pir) return false;
+    const pir = String(this.sensor.pir).toLowerCase();
+    return pir === 'trigger' || pir === 'triger' || pir === 'triggered' || pir === 'occupied' || pir === '1' || pir === 'true';
+  }
+
+  getMotionLabel(): string {
+    if (!this.sensor || !this.sensor.pir) return '--';
+    const pir = String(this.sensor.pir).toLowerCase();
+    if (pir === '--' || pir === '') return '--';
+    return this.isMotionActive() ? this.t.occupied : this.t.idle;
+  }
 }
