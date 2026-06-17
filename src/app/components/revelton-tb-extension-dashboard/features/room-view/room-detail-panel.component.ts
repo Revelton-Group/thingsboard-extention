@@ -310,21 +310,29 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
     // Noise Sensors
     const noiseDevices = this.data.noiseDevices || {};
     for (const [name, data] of Object.entries(noiseDevices) as any) {
-      const quiet = data.level <= 55;
+      const currentLevel = data.level ?? data.laeq ?? data.lai ?? 0;
+      const quiet = currentLevel <= 55;
+      const isWS302 = name.toUpperCase().includes('WS302') || name.toUpperCase().startsWith('RST-KLV-WS');
       this.allSensors.push({
         type: 'noise',
         entityName: name,
-        displayName: this.data.deviceMeta?.[name]?.location || this.formatDeviceName(name, 'Noise'),
-        statusLabel: Math.round(data.level) + ' dB – ' + (quiet ? this.t.normal : this.t.loud),
+        displayName: this.data.deviceMeta?.[name]?.location || (isWS302 ? 'Noise Sensor' : this.formatDeviceName(name, 'Noise')),
+        statusLabel: Math.round(currentLevel) + ' dB – ' + (quiet ? this.t.normal : this.t.loud),
+        levelVal: Math.round(currentLevel) + ' dB',
+        levelText: quiet ? this.t.normal : this.t.loud,
         statusColor: quiet ? '#34C759' : '#FF9500',
         icon: quiet ? 'volume_down' : 'volume_up',
-        iconColor: '#8E8E93',
-        iconBg: 'rgba(142,142,147,0.08)',
+        iconColor: quiet ? '#34C759' : '#FF9500',
+        iconBg: quiet ? 'rgba(52,199,89,0.08)' : 'rgba(255,149,0,0.08)',
         battery: this.data.batteryDevices?.[name] ?? null,
         linkquality: this.data.linkQualityDevices?.[name] ?? null,
-        model: this.data.deviceMeta?.[name]?.model ?? 'Noise Sensor',
+        model: isWS302 ? 'WS302' : (this.data.deviceMeta?.[name]?.model ?? 'Noise Sensor'),
         lastSeen: this.data.lastSeenDevices?.[name] ?? null,
-        offline: this.data.offlineDevices?.[name] ?? false
+        offline: this.data.offlineDevices?.[name] ?? false,
+        laeq: data.laeq ?? null,
+        lai: data.lai ?? null,
+        laimax: data.laimax ?? null,
+        isLoud: !quiet
       });
     }
 

@@ -218,7 +218,7 @@ export class RoomHistoricalDataComponent implements OnInit, OnChanges {
 
       // ── Step 2: Fetch telemetry for all devices concurrently ───────
       const fetchPromises: Promise<any>[] = [];
-      const keysToFetch = 'temperature,humidity,co2,tvoc,iaq,pm25,pm10,pressure,temp,hum,noise,contact,waterLeak,occupancy,presence,motion,pir';
+      const keysToFetch = 'temperature,humidity,co2,tvoc,iaq,pm25,pm10,pressure,temp,hum,noise,data_LAeq,contact,waterLeak,occupancy,presence,motion,pir';
       
       // We wrap the requests in a try/catch so if one fails it doesn't break the others
       const safeFetch = async (id: string | null) => {
@@ -262,8 +262,12 @@ export class RoomHistoricalDataComponent implements OnInit, OnChanges {
         }
 
         // Noise
-        if (id === noiseDeviceId && data['noise']?.length) {
-          normalized['noise'] = data['noise'];
+        if (id === noiseDeviceId) {
+          if (data['noise']?.length) {
+            normalized['noise'] = data['noise'];
+          } else if (data['data_LAeq']?.length) {
+            normalized['noise'] = data['data_LAeq'];
+          }
         }
 
         // Window

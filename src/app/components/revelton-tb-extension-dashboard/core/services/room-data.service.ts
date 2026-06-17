@@ -314,10 +314,36 @@ export class RoomDataService {
           newData.leakDevices[entityName] = { leak: newData.sensorData.waterLeak };
           break;
         case 'noise':
-          newData.sensorData.noise = parseFloat(value);
-          newData.hasData.noise = true;
-          newData.noiseDevices[entityName] = { level: parseFloat(value) };
+        case 'data_LAeq':
+        case 'data_LAI':
+        case 'data_LAImax': {
+          if (!newData.noiseDevices[entityName]) {
+            newData.noiseDevices[entityName] = { level: 0 };
+          }
+          const numVal = parseFloat(value);
+          if (!isNaN(numVal)) {
+            if (key === 'noise') {
+              newData.sensorData.noise = numVal;
+              newData.hasData.noise = true;
+              newData.noiseDevices[entityName].level = numVal;
+            } else if (key === 'data_LAeq') {
+              newData.sensorData.noise = numVal;
+              newData.hasData.noise = true;
+              newData.noiseDevices[entityName].level = numVal;
+              newData.noiseDevices[entityName].laeq = numVal;
+            } else if (key === 'data_LAI') {
+              newData.noiseDevices[entityName].lai = numVal;
+              if (!newData.noiseDevices[entityName].level || newData.noiseDevices[entityName].level === 0) {
+                newData.sensorData.noise = numVal;
+                newData.hasData.noise = true;
+                newData.noiseDevices[entityName].level = numVal;
+              }
+            } else if (key === 'data_LAImax') {
+              newData.noiseDevices[entityName].laimax = numVal;
+            }
+          }
           break;
+        }
         case 'booked':
           newData.sensorData.booked = (value === true || value === 'true' || value === 1);
           newData.hasData.booked = true;

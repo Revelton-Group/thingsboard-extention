@@ -7,11 +7,14 @@
             </div>
             <div>
                 <div class="sensor-name">
-                    {{ sensor.displayName }} · <span [style.color]="sensor.statusColor">{{ sensor.statusLabel
-                        }}</span>
+                    {{ sensor.displayName }}
                 </div>
                 <div class="sensor-model">{{ sensor.model || sensor.entityName }}</div>
             </div>
+        </div>
+        <div class="sensor-middle">
+            <div class="sensor-status-text" [style.color]="sensor.statusColor">{{ sensor.levelText }}</div>
+            <div class="sensor-status-val">{{ sensor.levelVal }}</div>
         </div>
         <div class="sensor-right">
             <div class="sensor-meta-row"
@@ -33,6 +36,20 @@
             </div>
             <div class="sensor-timestamp" *ngIf="sensor.lastSeen"><i class="material-icons">schedule</i>{{
                 sensor.lastSeen }}</div>
+        </div>
+    </div>
+    <div class="noise-readings" *ngIf="sensor.laeq != null || sensor.lai != null || sensor.laimax != null">
+        <div class="noise-reading-item" *ngIf="sensor.laeq != null">
+            <span class="reading-label">LAeq</span>
+            <span class="reading-val">{{ sensor.laeq | number:'1.1-1' }}<span class="reading-unit">dBA</span></span>
+        </div>
+        <div class="noise-reading-item" *ngIf="sensor.lai != null">
+            <span class="reading-label">LAI</span>
+            <span class="reading-val">{{ sensor.lai | number:'1.1-1' }}<span class="reading-unit">dBA</span></span>
+        </div>
+        <div class="noise-reading-item" *ngIf="sensor.laimax != null">
+            <span class="reading-label">LAImax</span>
+            <span class="reading-val">{{ sensor.laimax | number:'1.1-1' }}<span class="reading-unit">dBA</span></span>
         </div>
     </div>
     <div class="sensor-tamper" *ngIf="sensor.tamper">
