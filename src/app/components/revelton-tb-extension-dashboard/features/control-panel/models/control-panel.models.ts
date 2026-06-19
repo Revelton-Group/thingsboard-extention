@@ -65,11 +65,11 @@ export const MEWS_SYNC_OPTIONS = [
 ];
 
 /** ── Telegram Notifications ── */
-export type TelegramAlertLevel = 'danger' | 'warning_and_above' | 'all';
-
 export interface TelegramConfig {
   enabled: boolean;
-  alertLevel: TelegramAlertLevel;
+  botToken: string;
+  chatId: string;
+  topicId: string;
 }
 
 /** ── Air Quality Thresholds ── */
@@ -138,6 +138,8 @@ export const DEFAULT_CONTROL_PANEL_CONFIG: ControlPanelConfig = {
   },
   telegram: {
     enabled: false,
-    alertLevel: 'danger',
+    botToken: '',
+    chatId: '',
+    topicId: ''
   },
 };

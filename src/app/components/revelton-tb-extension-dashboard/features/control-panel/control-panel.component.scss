@@ -988,3 +988,97 @@
     }
 }
 
+/* ── Telegram Routing UI ── */
+.cp-telegram-regions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.cp-telegram-region-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.cp-telegram-region-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.cp-telegram-hotels {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-left: 12px;
+}
+
+.cp-telegram-hotel-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+}
+
+.cp-input--sm {
+    padding: 6px 10px;
+    font-size: 13px;
+    border-radius: 6px;
+}
+
+.cp-icon-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted, #94a3b8);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    border-radius: 6px;
+    transition: all 0.2s;
+
+    &:hover { background: rgba(255, 255, 255, 0.1); color: var(--text, #ffffff); }
+    &:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    &.cp-icon-btn--danger:hover {
+        background: rgba(244, 63, 94, 0.15);
+        color: #f43f5e;
+    }
+}
+
+.cp-add-hotel-btn {
+    background: transparent;
+    border: 1px dashed rgba(255, 255, 255, 0.2);
+    color: var(--text-muted, #94a3b8);
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 4px;
+    transition: all 0.2s;
+    align-self: flex-start;
+
+    &:hover { border-color: rgba(255, 255, 255, 0.4); color: var(--text, #ffffff); }
+    &:disabled { opacity: 0.5; cursor: not-allowed; }
+}
+
+.cp-empty-state {
+    padding: 24px;
+    text-align: center;
+    font-size: 13px;
+    color: var(--text-muted, #64748b);
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px dashed rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+}

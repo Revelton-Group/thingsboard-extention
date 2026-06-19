@@ -499,52 +499,14 @@ import {
                 </label>
               </div>
 
-              <div class="cp-card" style="gap: 12px; padding: 16px;" [class.cp-disabled]="!config.telegram.enabled">
+              <div class="cp-card" style="gap: 24px; padding: 16px; flex-direction: row; display: flex; align-items: stretch;" [class.cp-disabled]="!config.telegram.enabled">
 
-                <div class="cp-row" style="gap: 20px;">
-                  <!-- Alert level -->
-                  <div class="cp-field" style="flex: 1.2;">
-                    <label class="cp-label">{{ t.cpAlertLevel }}</label>
-                    <div class="cp-alert-level-group cp-alert-level-group--vertical">
-
-                      <label class="cp-radio-card" [class.cp-radio-card--active]="config.telegram.alertLevel === 'danger'">
-                        <input type="radio" name="alertLevel" value="danger"
-                          [(ngModel)]="config.telegram.alertLevel"
-                          [disabled]="!config.telegram.enabled">
-                        <div class="cp-radio-content">
-                          <span class="cp-dot cp-dot--danger"></span>
-                          <div class="cp-radio-title">{{ t.cpDangerOnly }}</div>
-                        </div>
-                      </label>
-
-                      <label class="cp-radio-card" [class.cp-radio-card--active]="config.telegram.alertLevel === 'warning_and_above'">
-                        <input type="radio" name="alertLevel" value="warning_and_above"
-                          [(ngModel)]="config.telegram.alertLevel"
-                          [disabled]="!config.telegram.enabled">
-                        <div class="cp-radio-content">
-                          <span class="cp-dot cp-dot--warning"></span>
-                          <div class="cp-radio-title">{{ t.cpWarningAndAbove }}</div>
-                        </div>
-                      </label>
-
-                      <label class="cp-radio-card" [class.cp-radio-card--active]="config.telegram.alertLevel === 'all'">
-                        <input type="radio" name="alertLevel" value="all"
-                          [(ngModel)]="config.telegram.alertLevel"
-                          [disabled]="!config.telegram.enabled">
-                        <div class="cp-radio-content">
-                          <span class="cp-dot cp-dot--all"></span>
-                          <div class="cp-radio-title">{{ t.cpAllAlerts }}</div>
-                        </div>
-                      </label>
-
-                    </div>
-                    <p class="cp-hint" style="margin-top: 6px;">{{ telegramDesc }}</p>
-                  </div>
-
+                <!-- LEFT COLUMN -->
+                <div style="flex: 1; display: flex; flex-direction: column; gap: 20px;">
                   <!-- Message Preview -->
-                  <div class="cp-field" style="flex: 1;" *ngIf="config.telegram.enabled">
+                  <div class="cp-field" *ngIf="config.telegram.enabled" style="flex: 1; display: flex; flex-direction: column;">
                     <label class="cp-label">{{ t.cpPreview }}</label>
-                    <div class="cp-telegram-preview">
+                    <div class="cp-telegram-preview" style="flex: 1;">
                       <div class="cp-telegram-bubble">
                         <div class="cp-telegram-header">🏨 Revelton Hotel Bot</div>
                         <div class="cp-telegram-body" [innerHTML]="telegramPreview"></div>
@@ -552,11 +514,35 @@ import {
                       </div>
                     </div>
                   </div>
+                  
+                  <div class="cp-info-box cp-info-box--warning" style="margin-top: auto;">
+                    <i class="material-icons">lock</i>
+                    <span>{{ t.cpBotTokenHint }}</span>
+                  </div>
                 </div>
 
-                <div class="cp-info-box cp-info-box--warning">
-                  <i class="material-icons">lock</i>
-                  <span>{{ t.cpBotTokenHint }}</span>
+                <!-- RIGHT COLUMN -->
+                <div style="flex: 1; display: flex; flex-direction: column; gap: 20px; border-left: 1px solid rgba(255, 255, 255, 0.05); padding-left: 24px;">
+                  <!-- Bot Token -->
+                  <div class="cp-field">
+                    <label class="cp-label">Main Bot Token</label>
+                    <input class="cp-input" type="password" [(ngModel)]="config.telegram.botToken" [disabled]="!config.telegram.enabled" placeholder="123456789:ABCdefGHIjkl...">
+                    <p class="cp-hint" style="margin-top: 6px;">The API Token provided by BotFather.</p>
+                  </div>
+
+                  <!-- Chat ID -->
+                  <div class="cp-field">
+                    <label class="cp-label">Chat ID (Region/Group)</label>
+                    <input class="cp-input" type="text" [(ngModel)]="config.telegram.chatId" [disabled]="!config.telegram.enabled" placeholder="e.g. -100123456789">
+                    <p class="cp-hint" style="margin-top: 6px;">The Telegram group where alerts will be sent.</p>
+                  </div>
+
+                  <!-- Topic ID -->
+                  <div class="cp-field">
+                    <label class="cp-label">Topic ID (Hotel Thread)</label>
+                    <input class="cp-input" type="text" [(ngModel)]="config.telegram.topicId" [disabled]="!config.telegram.enabled" placeholder="e.g. 42 (Optional)">
+                    <p class="cp-hint" style="margin-top: 6px;">The specific thread ID within the group.</p>
+                  </div>
                 </div>
 
               </div>
@@ -569,10 +555,7 @@ import {
       <!-- Footer -->
       <div class="cp-footer">
         <div style="display: flex; align-items: center; gap: 12px; margin-right: auto;">
-          <button class="cp-btn cp-btn--secondary" (click)="resetToDefaults()">
-            <i class="material-icons">restart_alt</i>
-            Reset
-          </button>
+          <!-- Reset button removed -->
           
           <div *ngIf="activeSection === 'air_quality'" style="display: flex; align-items: center; gap: 8px; border-left: 1.5px solid rgba(255, 255, 255, 0.08); padding-left: 12px;">
             <span style="font-size: 11px; color: #94a3b8; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em;">Monitor Enabled</span>
@@ -653,12 +636,20 @@ export class ControlPanelComponent implements OnInit, OnDestroy {
     this._subs.add(this.controlPanelService.activeSection$.subscribe(v => (this.activeSection = v)));
     this._subs.add(this.controlPanelService.config$.subscribe(c => {
       this.config = JSON.parse(JSON.stringify(c));
+      if (!this.config.telegram) this.config.telegram = { enabled: false, botToken: '', chatId: '', topicId: '' };
+      if (this.config.telegram.botToken === undefined) this.config.telegram.botToken = '';
+      if (this.config.telegram.chatId === undefined) this.config.telegram.chatId = '';
+      if (this.config.telegram.topicId === undefined) this.config.telegram.topicId = '';
       if (this.config && this.config.noise) {
         if (this.config.noise.laeqMax == null) this.config.noise.laeqMax = 60;
         if (this.config.noise.laiMax == null) this.config.noise.laiMax = 65;
         if (this.config.noise.laimaxMax == null) this.config.noise.laimaxMax = 70;
       }
       this.originalConfig = JSON.parse(JSON.stringify(c));
+      if (!this.originalConfig.telegram) this.originalConfig.telegram = { enabled: false, botToken: '', chatId: '', topicId: '' };
+      if (this.originalConfig.telegram.botToken === undefined) this.originalConfig.telegram.botToken = '';
+      if (this.originalConfig.telegram.chatId === undefined) this.originalConfig.telegram.chatId = '';
+      if (this.originalConfig.telegram.topicId === undefined) this.originalConfig.telegram.topicId = '';
       if (this.originalConfig && this.originalConfig.noise) {
         if (this.originalConfig.noise.laeqMax == null) this.originalConfig.noise.laeqMax = 60;
         if (this.originalConfig.noise.laiMax == null) this.originalConfig.noise.laiMax = 65;
@@ -677,26 +668,8 @@ export class ControlPanelComponent implements OnInit, OnDestroy {
     return MEWS_SYNC_OPTIONS.find(o => o.value === this.config.mews.intervalMinutes)?.label ?? `${this.config.mews.intervalMinutes} min`;
   }
 
-  get telegramDesc(): string {
-    switch (this.config.telegram.alertLevel) {
-      case 'danger': return this.t.cpDangerDesc;
-      case 'warning_and_above': return this.t.cpWarningDesc;
-      case 'all': return this.t.cpAllAlertsDesc;
-      default: return '';
-    }
-  }
-
   get telegramPreview(): string {
-    switch (this.config.telegram.alertLevel) {
-      case 'danger':
-        return `🚨 <b>${this.t.cpCritAlert}</b><br>${this.t.room}: 402<br>${this.t.cpSensor}: ${this.t.waterLeak}<br>${this.t.status}: ${this.t.cpDetected}<br>${this.t.cpActionRequired}`;
-      case 'warning_and_above':
-        return `⚠️ <b>WARNING</b><br>${this.t.room}: 105<br>${this.t.cpSensor}: ${this.t.temperature}<br>${this.t.cpValue}: 28.5°C (${this.t.cpHigh})<br>${this.t.cpCheckAC}`;
-      case 'all':
-        return `ℹ️ <b>INFO</b><br>${this.t.room}: 210<br>${this.t.cpSensor}: Window<br>${this.t.status}: ${this.t.cpOpenFor2Hours}`;
-      default:
-        return '';
-    }
+    return `🚨 <b>${this.t.cpCritAlert || 'CRITICAL ALERT'}</b><br>${this.t.room || 'Room'}: 402<br>${this.t.cpSensor || 'Sensor'}: ${this.t.waterLeak || 'WATER LEAK'}<br>${this.t.status || 'Status'}: ${this.t.cpDetected || 'Detected'}<br>${this.t.cpActionRequired || 'Action Required Immediately!'}`;
   }
 
   isDaySelected(day: Weekday): boolean {
@@ -723,10 +696,7 @@ export class ControlPanelComponent implements OnInit, OnDestroy {
     this.controlPanelService.close();
   }
 
-  resetToDefaults(): void {
-    this.config = JSON.parse(JSON.stringify(DEFAULT_CONTROL_PANEL_CONFIG));
-    this.checkPresetMatch();
-  }
+
 
   get hasUnsavedChanges(): boolean {
     if (!this.originalConfig) return false;
@@ -895,4 +865,6 @@ export class ControlPanelComponent implements OnInit, OnDestroy {
     return ['laeq', 'lai', 'laimax']
       .filter(m => this.getMetricStatus(m, this.getLiveValue(m)) === 'warning').length;
   }
+
+
 }
