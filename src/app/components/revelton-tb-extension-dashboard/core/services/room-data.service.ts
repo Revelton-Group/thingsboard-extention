@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { WidgetContext } from '@home/models/widget-component.models';
 import { TranslationService } from './translation.service';
+import { ControlPanelService } from '../../features/control-panel/services/control-panel.service';
 
 /** Breakpoint thresholds for AQI calculation — override per-pollutant at runtime */
 export interface AQBreakpoints {
@@ -87,7 +88,9 @@ export interface RoomData {
   deviceMeta: any;
   leakDevices: any;
   noiseDevices: any;
+  occupancyDevices: any;
   activeDevices: any;
+  plugDevices: any;
   deviceEntityIdMap: any;
 }
 
@@ -99,7 +102,12 @@ export class RoomDataService {
   private dataSubject = new BehaviorSubject<RoomData | null>(null);
   public data$ = this.dataSubject.asObservable();
 
-  private THRESHOLDS = {
+  private THRESHOLDS: {
+    temperature: { warning: { min: number, max: number }, danger: { min: number, max: number } },
+    humidity: { warning: { min: number, max: number }, danger: { min: number, max: number } },
+    airQuality: { warning: number, danger: number },
+    noise: { warning: number, danger: number }
+  } = {
     temperature: { warning: { min: 16, max: 28 }, danger: { min: 14, max: 32 } },
     humidity: { warning: { min: 30, max: 65 }, danger: { min: 20, max: 80 } },
     airQuality: { warning: 100, danger: 150 },
@@ -108,7 +116,36 @@ export class RoomDataService {
 
   private lastSeenTimestamps: { [device: string]: number } = {};
 
-  constructor(private http: HttpClient, private translationService: TranslationService) {}
+  constructor(
+    private http: HttpClient,
+    private translationService: TranslationService,
+    private controlPanelService: ControlPanelService
+  ) {
+    this.controlPanelService.config$.subscribe(config => {
+      if (config) {
+        if (config.airQuality && config.airQuality.enabled) {
+          // Warning at 80% of configured max, Danger at 100% of configured max
+          this.THRESHOLDS.airQuality = {
+            warning: Math.round(config.airQuality.co2Max * 0.8),
+            danger: config.airQuality.co2Max
+          };
+        } else {
+          this.THRESHOLDS.airQuality = { warning: 800, danger: 1000 };
+        }
+
+        if (config.noise && config.noise.enabled) {
+          const mainLimit = config.noise.laeqMax ?? config.noise.noiseMax ?? 60;
+          // Warning at configured limit - 10 dB, Danger at configured limit
+          this.THRESHOLDS.noise = {
+            warning: Math.max(40, mainLimit - 10),
+            danger: mainLimit
+          };
+        } else {
+          this.THRESHOLDS.noise = { warning: 50, danger: 60 };
+        }
+      }
+    });
+  }
 
   get t() {
     return this.translationService.t;
@@ -118,6 +155,7 @@ export class RoomDataService {
     if (!ctx?.data) return currentData;
 
     const newData = { ...currentData };
+    if (!newData.plugDevices) newData.plugDevices = {};
 
     for (const item of ctx.data) {
       if (!item || !item.dataKey) continue;
@@ -145,6 +183,9 @@ export class RoomDataService {
       if (ds?.deviceType && entityName !== 'unknown') {
         if (!newData.deviceMeta[entityName]) newData.deviceMeta[entityName] = {};
         newData.deviceMeta[entityName].model = ds.deviceType;
+      }
+      if (entityName !== 'unknown' && this.isPlugDevice(entityName, newData.deviceMeta)) {
+        if (!newData.plugDevices[entityName]) newData.plugDevices[entityName] = {};
       }
 
       switch (key) {
@@ -231,11 +272,23 @@ export class RoomDataService {
           const val = parseFloat(value);
           if (!isNaN(val)) {
             if (val < 0) {
-              // Convert RSSI (dBm) to LQI (0-254) range: LQI = (RSSI + 110) * 2.54
-              const lqi = Math.min(254, Math.max(0, Math.round((val + 110) * 2.54)));
+              // Convert RSSI (dBm) to LQI (0-254) range using custom LoRaWAN thresholds
+              const lqi = RoomDataService.rssiToLqi(val);
               newData.linkQualityDevices[entityName] = lqi;
             } else {
               newData.linkQualityDevices[entityName] = val;
+            }
+            if (this.isLeakSensor(entityName, newData.deviceMeta)) {
+              if (!newData.leakDevices[entityName]) {
+                newData.leakDevices[entityName] = {};
+              }
+              newData.leakDevices[entityName].rssi = val;
+            }
+            if (this.isOccupancySensor(entityName, newData.deviceMeta)) {
+              if (!newData.occupancyDevices[entityName]) {
+                newData.occupancyDevices[entityName] = {};
+              }
+              newData.occupancyDevices[entityName].rssi = val;
             }
           }
           break;
@@ -246,7 +299,7 @@ export class RoomDataService {
           if (!isNaN(ts)) {
             this.lastSeenTimestamps[entityName] = ts;
             newData.lastSeenDevices[entityName] = this.timeAgo(ts);
-            newData.offlineDevices[entityName] = (Date.now() - ts) > (12 * 60 * 60 * 1000);
+            newData.offlineDevices[entityName] = (Date.now() - ts) > (24 * 60 * 60 * 1000);
           }
           break;
         case 'airQuality':
@@ -309,41 +362,189 @@ export class RoomDataService {
           newData.hasData.checkedIn = true;
           break;
         case 'waterLeak':
-          newData.sensorData.waterLeak = (value === true || value === 'true' || value === 1);
-          newData.hasData.waterLeak = true;
-          newData.leakDevices[entityName] = { leak: newData.sensorData.waterLeak };
+        case 'data_leakage_status': {
+          if (this.isLeakSensor(entityName, newData.deviceMeta)) {
+            const isLeak = key === 'waterLeak' ? 
+              (value === true || value === 'true' || value === 1) : 
+              (String(value).toLowerCase() !== 'normal');
+            newData.sensorData.waterLeak = isLeak;
+            newData.hasData.waterLeak = true;
+            if (!newData.leakDevices[entityName]) {
+              newData.leakDevices[entityName] = {};
+            }
+            newData.leakDevices[entityName].leak = isLeak;
+          }
+          break;
+        }
+        case 'data_device_status':
+          if (this.isLeakSensor(entityName, newData.deviceMeta)) {
+            if (!newData.leakDevices[entityName]) newData.leakDevices[entityName] = {};
+            newData.leakDevices[entityName].deviceStatus = String(value);
+          }
+          if (this.isOccupancySensor(entityName, newData.deviceMeta)) {
+            if (!newData.occupancyDevices[entityName]) newData.occupancyDevices[entityName] = {};
+            newData.occupancyDevices[entityName].deviceStatus = String(value);
+          }
+          break;
+        case 'data_firmware_version':
+          if (this.isLeakSensor(entityName, newData.deviceMeta)) {
+            if (!newData.leakDevices[entityName]) newData.leakDevices[entityName] = {};
+            newData.leakDevices[entityName].firmwareVersion = String(value);
+          }
+          if (this.isOccupancySensor(entityName, newData.deviceMeta)) {
+            if (!newData.occupancyDevices[entityName]) newData.occupancyDevices[entityName] = {};
+            newData.occupancyDevices[entityName].firmwareVersion = String(value);
+          }
+          break;
+        case 'data_hardware_version':
+          if (this.isLeakSensor(entityName, newData.deviceMeta)) {
+            if (!newData.leakDevices[entityName]) newData.leakDevices[entityName] = {};
+            newData.leakDevices[entityName].hardwareVersion = String(value);
+          }
+          if (this.isOccupancySensor(entityName, newData.deviceMeta)) {
+            if (!newData.occupancyDevices[entityName]) newData.occupancyDevices[entityName] = {};
+            newData.occupancyDevices[entityName].hardwareVersion = String(value);
+          }
+          break;
+        case 'data_ipso_version':
+          if (this.isLeakSensor(entityName, newData.deviceMeta)) {
+            if (!newData.leakDevices[entityName]) newData.leakDevices[entityName] = {};
+            newData.leakDevices[entityName].ipsoVersion = String(value);
+          }
+          if (this.isOccupancySensor(entityName, newData.deviceMeta)) {
+            if (!newData.occupancyDevices[entityName]) newData.occupancyDevices[entityName] = {};
+            newData.occupancyDevices[entityName].ipsoVersion = String(value);
+          }
+          break;
+        case 'data_lorawan_class':
+          if (this.isLeakSensor(entityName, newData.deviceMeta)) {
+            if (!newData.leakDevices[entityName]) newData.leakDevices[entityName] = {};
+            newData.leakDevices[entityName].lorawanClass = String(value);
+          }
+          if (this.isOccupancySensor(entityName, newData.deviceMeta)) {
+            if (!newData.occupancyDevices[entityName]) newData.occupancyDevices[entityName] = {};
+            newData.occupancyDevices[entityName].lorawanClass = String(value);
+          }
+          break;
+        case 'data_sn':
+          if (this.isLeakSensor(entityName, newData.deviceMeta)) {
+            if (!newData.leakDevices[entityName]) newData.leakDevices[entityName] = {};
+            newData.leakDevices[entityName].sn = String(value);
+          }
+          if (this.isOccupancySensor(entityName, newData.deviceMeta)) {
+            if (!newData.occupancyDevices[entityName]) newData.occupancyDevices[entityName] = {};
+            newData.occupancyDevices[entityName].sn = String(value);
+          }
+          break;
+        case 'dr':
+          if (this.isLeakSensor(entityName, newData.deviceMeta)) {
+            if (!newData.leakDevices[entityName]) newData.leakDevices[entityName] = {};
+            newData.leakDevices[entityName].dr = parseFloat(value);
+          }
+          if (this.isOccupancySensor(entityName, newData.deviceMeta)) {
+            if (!newData.occupancyDevices[entityName]) newData.occupancyDevices[entityName] = {};
+            newData.occupancyDevices[entityName].dr = parseFloat(value);
+          }
+          break;
+        case 'f_cnt':
+          if (this.isLeakSensor(entityName, newData.deviceMeta)) {
+            if (!newData.leakDevices[entityName]) newData.leakDevices[entityName] = {};
+            newData.leakDevices[entityName].fCnt = parseFloat(value);
+          }
+          if (this.isOccupancySensor(entityName, newData.deviceMeta)) {
+            if (!newData.occupancyDevices[entityName]) newData.occupancyDevices[entityName] = {};
+            newData.occupancyDevices[entityName].fCnt = parseFloat(value);
+          }
+          break;
+        case 'f_port':
+          if (this.isLeakSensor(entityName, newData.deviceMeta)) {
+            if (!newData.leakDevices[entityName]) newData.leakDevices[entityName] = {};
+            newData.leakDevices[entityName].fPort = parseFloat(value);
+          }
+          if (this.isOccupancySensor(entityName, newData.deviceMeta)) {
+            if (!newData.occupancyDevices[entityName]) newData.occupancyDevices[entityName] = {};
+            newData.occupancyDevices[entityName].fPort = parseFloat(value);
+          }
+          break;
+        case 'snr':
+          if (this.isLeakSensor(entityName, newData.deviceMeta)) {
+            if (!newData.leakDevices[entityName]) newData.leakDevices[entityName] = {};
+            newData.leakDevices[entityName].snr = parseFloat(value);
+          }
+          if (this.isOccupancySensor(entityName, newData.deviceMeta)) {
+            if (!newData.occupancyDevices[entityName]) newData.occupancyDevices[entityName] = {};
+            newData.occupancyDevices[entityName].snr = parseFloat(value);
+          }
+          break;
+        case 'data_occupancy':
+        case 'occupancy':
+          if (this.isOccupancySensor(entityName, newData.deviceMeta)) {
+            if (!newData.occupancyDevices[entityName]) newData.occupancyDevices[entityName] = {};
+            newData.occupancyDevices[entityName].occupancy = String(value);
+          }
+          break;
+        case 'data_illuminance':
+        case 'illuminance':
+          if (this.isOccupancySensor(entityName, newData.deviceMeta)) {
+            if (!newData.occupancyDevices[entityName]) newData.occupancyDevices[entityName] = {};
+            newData.occupancyDevices[entityName].illuminance = String(value);
+          }
+          break;
+        case 'data_tsl_version':
+          if (this.isOccupancySensor(entityName, newData.deviceMeta)) {
+            if (!newData.occupancyDevices[entityName]) newData.occupancyDevices[entityName] = {};
+            newData.occupancyDevices[entityName].tslVersion = String(value);
+          }
           break;
         case 'noise':
         case 'data_LAeq':
         case 'data_LAI':
         case 'data_LAImax': {
-          if (!newData.noiseDevices[entityName]) {
-            newData.noiseDevices[entityName] = { level: 0 };
-          }
-          const numVal = parseFloat(value);
-          if (!isNaN(numVal)) {
-            if (key === 'noise') {
-              newData.sensorData.noise = numVal;
-              newData.hasData.noise = true;
-              newData.noiseDevices[entityName].level = numVal;
-            } else if (key === 'data_LAeq') {
-              newData.sensorData.noise = numVal;
-              newData.hasData.noise = true;
-              newData.noiseDevices[entityName].level = numVal;
-              newData.noiseDevices[entityName].laeq = numVal;
-            } else if (key === 'data_LAI') {
-              newData.noiseDevices[entityName].lai = numVal;
-              if (!newData.noiseDevices[entityName].level || newData.noiseDevices[entityName].level === 0) {
+          if (this.isNoiseSensor(entityName, newData.deviceMeta)) {
+            if (!newData.noiseDevices[entityName]) {
+              newData.noiseDevices[entityName] = { level: 0 };
+            }
+            const numVal = parseFloat(value);
+            if (!isNaN(numVal)) {
+              if (key === 'noise') {
                 newData.sensorData.noise = numVal;
                 newData.hasData.noise = true;
                 newData.noiseDevices[entityName].level = numVal;
+              } else if (key === 'data_LAeq') {
+                newData.sensorData.noise = numVal;
+                newData.hasData.noise = true;
+                newData.noiseDevices[entityName].level = numVal;
+                newData.noiseDevices[entityName].laeq = numVal;
+              } else if (key === 'data_LAI') {
+                newData.noiseDevices[entityName].lai = numVal;
+                if (!newData.noiseDevices[entityName].level || newData.noiseDevices[entityName].level === 0) {
+                  newData.sensorData.noise = numVal;
+                  newData.hasData.noise = true;
+                  newData.noiseDevices[entityName].level = numVal;
+                }
+              } else if (key === 'data_LAImax') {
+                newData.noiseDevices[entityName].laimax = numVal;
               }
-            } else if (key === 'data_LAImax') {
-              newData.noiseDevices[entityName].laimax = numVal;
             }
           }
           break;
         }
+        case 'state':
+        case 'socket_state':
+        case 'plug_state':
+          if (entityName !== 'unknown' && this.isPlugDevice(entityName, newData.deviceMeta)) {
+            if (!newData.plugDevices[entityName]) newData.plugDevices[entityName] = {};
+            newData.plugDevices[entityName].state = String(value);
+          }
+          break;
+        case 'power':
+        case 'load_power':
+        case 'active_power':
+          if (entityName !== 'unknown' && this.isPlugDevice(entityName, newData.deviceMeta)) {
+            if (!newData.plugDevices[entityName]) newData.plugDevices[entityName] = {};
+            newData.plugDevices[entityName].power = parseFloat(value);
+          }
+          break;
         case 'booked':
           newData.sensorData.booked = (value === true || value === 'true' || value === 1);
           newData.hasData.booked = true;
@@ -567,6 +768,51 @@ export class RoomDataService {
     return n.startsWith('TRV_') || n.includes('THERMOSTAT');
   }
 
+  private isLeakSensor(name: string, meta: any): boolean {
+    const label = meta[name]?.label || '';
+    const model = meta[name]?.model || '';
+    const n = name.toUpperCase();
+    const l = label.toUpperCase();
+    const m = model.toUpperCase();
+    return n.includes('WS303') || n.includes('WL') || n.includes('LEAK') || n.includes('WATER') || n === 'BATHROOM' ||
+           l.includes('WS303') || l.includes('WL') || l.includes('LEAK') || l.includes('WATER') || l === 'BATHROOM' ||
+           m.includes('WS303') || m.includes('LEAK') || m.includes('WATER');
+  }
+
+  private isNoiseSensor(name: string, meta: any): boolean {
+    const label = meta[name]?.label || '';
+    const model = meta[name]?.model || '';
+    const n = name.toUpperCase();
+    const l = label.toUpperCase();
+    const m = model.toUpperCase();
+    return n.includes('WS302') || n.includes('NS') || n.includes('NOISE') || n.includes('SOUND') ||
+           l.includes('WS302') || l.includes('NS') || l.includes('NOISE') || l.includes('SOUND') ||
+           m.includes('WS302') || m.includes('NOISE') || m.includes('SOUND');
+  }
+
+  private isOccupancySensor(name: string, meta: any): boolean {
+    const label = meta[name]?.label || '';
+    const model = meta[name]?.model || '';
+    const n = name.toUpperCase();
+    const l = label.toUpperCase();
+    const m = model.toUpperCase();
+    return n.includes('WS301') || n.includes('VS370') || n.includes('VS3') || n.includes('370') || n.includes('OCC') || n.includes('PRESENCE') || n.includes('RADAR') || n.includes('MOTION') ||
+           l.includes('WS301') || l.includes('VS370') || l.includes('VS3') || l.includes('370') || l.includes('OCC') || l.includes('PRESENCE') || l.includes('RADAR') || l.includes('MOTION') ||
+           m.includes('WS301') || m.includes('VS370') || m.includes('VS3') || m.includes('370') || m.includes('OCC') || m.includes('PRESENCE') || m.includes('RADAR') || m.includes('MOTION');
+  }
+
+  private isPlugDevice(name: string, meta: any): boolean {
+    const label = meta[name]?.label || '';
+    const model = meta[name]?.model || '';
+    const n = name.toUpperCase();
+    const l = label.toUpperCase();
+    const m = model.toUpperCase();
+    return n.includes('PLUG') || n.includes('SOCKET') ||
+           l.includes('PLUG') || l.includes('SOCKET') ||
+           m.includes('PLUG') || m.includes('SOCKET') ||
+           meta[name]?.type === 'Plug';
+  }
+
   private aggregateAll(data: RoomData) {
     // Temp — Prefer dedicated sensors over TRV internal sensors
     const allTempKeys = Object.keys(data.tempDevices);
@@ -609,6 +855,41 @@ export class RoomDataService {
     if (airKeys.length > 0) {
       let totalAqi = 0;
       let count = 0;
+      const config = this.controlPanelService.config;
+      const customBreakpoints: Partial<AQBreakpoints> = {};
+      if (config?.airQuality?.enabled) {
+        customBreakpoints.co2 = {
+          good: Math.round(config.airQuality.co2Max * 0.8),
+          fair: config.airQuality.co2Max,
+          poor: Math.round(config.airQuality.co2Max * 1.5),
+          hazardous: Math.round(config.airQuality.co2Max * 3.0)
+        };
+        customBreakpoints.pm25 = {
+          good: Math.round(config.airQuality.pm25Max * 0.35),
+          fair: config.airQuality.pm25Max,
+          poor: Math.round(config.airQuality.pm25Max * 1.5),
+          hazardous: Math.round(config.airQuality.pm25Max * 4.0)
+        };
+        customBreakpoints.pm10 = {
+          good: Math.round(config.airQuality.pm10Max * 0.35),
+          fair: config.airQuality.pm10Max,
+          poor: Math.round(config.airQuality.pm10Max * 1.5),
+          hazardous: Math.round(config.airQuality.pm10Max * 2.8)
+        };
+        customBreakpoints.temp = {
+          comfortMin: 18,
+          comfortMax: Math.max(18, config.airQuality.tempMax - 2),
+          warnMin: 14,
+          warnMax: config.airQuality.tempMax
+        };
+        customBreakpoints.humidity = {
+          comfortMin: 30,
+          comfortMax: Math.max(30, config.airQuality.humMax - 5),
+          warnMin: 20,
+          warnMax: config.airQuality.humMax
+        };
+      }
+
       for (const k of airKeys) {
         const sensor = data.airSensors[k];
         const res = RoomDataService.calculateAirQuality(
@@ -619,7 +900,8 @@ export class RoomDataService {
           sensor.humidity !== undefined ? sensor.humidity : (sensor.hum !== undefined ? sensor.hum : null),
           sensor.temperature !== undefined ? sensor.temperature : (sensor.temp !== undefined ? sensor.temp : null),
           sensor.light !== undefined ? sensor.light : null,
-          sensor.pressure !== undefined ? sensor.pressure : null
+          sensor.pressure !== undefined ? sensor.pressure : null,
+          customBreakpoints
         );
         if (res && res.aqi !== null && !isNaN(res.aqi)) {
           totalAqi += res.aqi;
@@ -717,5 +999,26 @@ export class RoomDataService {
     if (aqi <= 100) return this.t.good;
     if (aqi <= 200) return this.t.fair;
     return this.t.poor;
+  }
+
+  public static rssiToLqi(rssi: number): number {
+    // RSSI ranges:
+    // Excellent: -30 to -70 dBm -> LQI 150 to 254
+    // Good: -71 to -90 dBm -> LQI 100 to 149
+    // Fair: -91 to -110 dBm -> LQI 50 to 99
+    // Poor: -111 to -120 dBm -> LQI 1 to 49
+    if (rssi >= -70) {
+      const pct = Math.min(1, Math.max(0, (rssi - (-70)) / (-30 - (-70))));
+      return Math.round(150 + pct * (254 - 150));
+    } else if (rssi >= -90) {
+      const pct = Math.min(1, Math.max(0, (rssi - (-90)) / (-71 - (-90))));
+      return Math.round(100 + pct * (149 - 100));
+    } else if (rssi >= -110) {
+      const pct = Math.min(1, Math.max(0, (rssi - (-110)) / (-91 - (-110))));
+      return Math.round(50 + pct * (99 - 50));
+    } else {
+      const pct = Math.min(1, Math.max(0, (rssi - (-120)) / (-111 - (-120))));
+      return Math.round(1 + pct * (49 - 1));
+    }
   }
 }

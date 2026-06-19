@@ -99,8 +99,8 @@ import { TranslationService } from '../../../revelton-tb-extension-dashboard/cor
         display: flex;
         flex-direction: column;
         gap: 4px;
-        .label { font-size: 8px; font-weight: 800; color: #6B7280; letter-spacing: 0.5px; }
-        .value { font-size: 14px; font-weight: 800; color: #fff; }
+        .label { font-size: 8px; font-weight: 800; color: var(--text-muted, #6B7280); letter-spacing: 0.5px; }
+        .value { font-size: 14px; font-weight: 800; color: var(--text, #fff); }
       }
     }
     .timeline-visual {
@@ -122,7 +122,7 @@ import { TranslationService } from '../../../revelton-tb-extension-dashboard/cor
       .timeline-meta {
         display: flex;
         justify-content: space-between;
-        span { font-size: 9px; font-weight: 700; color: #6B7280; }
+        span { font-size: 9px; font-weight: 700; color: var(--text-muted, #6B7280); }
       }
     }
     .events-log-modern {
@@ -130,7 +130,7 @@ import { TranslationService } from '../../../revelton-tb-extension-dashboard/cor
       flex-direction: column;
       flex: 1;
       min-height: 0;
-      h4 { font-size: 9px; font-weight: 800; color: #6B7280; margin: 0 0 12px; letter-spacing: 1px; }
+      h4 { font-size: 9px; font-weight: 800; color: var(--text-muted, #6B7280); margin: 0 0 12px; letter-spacing: 1px; }
       .events-scroll {
         flex: 1;
         overflow-y: auto;
@@ -143,27 +143,27 @@ import { TranslationService } from '../../../revelton-tb-extension-dashboard/cor
         justify-content: space-between;
         align-items: center;
         padding: 8px 12px;
-        background: rgba(255,255,255,0.02);
+        background: var(--bg, rgba(255,255,255,0.02));
         border-radius: 8px;
         .event-info {
           display: flex;
           flex-direction: column;
           gap: 2px;
-          .name { font-size: 11px; font-weight: 700; color: #fff; }
-          .time { font-size: 10px; color: #6B7280; }
+          .name { font-size: 11px; font-weight: 700; color: var(--text, #fff); }
+          .time { font-size: 10px; color: var(--text-muted, #6B7280); }
         }
         .event-status-badge {
           padding: 4px 8px;
           border-radius: 4px;
           font-size: 9px;
           font-weight: 800;
-          background: rgba(255,255,255,0.05);
-          color: #6B7280;
+          background: var(--bg, rgba(255,255,255,0.05));
+          color: var(--text-secondary, #6B7280);
           &.open { background: rgba(249, 115, 22, 0.1); color: #F97316; }
         }
       }
     }
-
+ 
     /* Compact mode overrides */
     .window-panel.compact {
       gap: 8px;
@@ -179,7 +179,7 @@ import { TranslationService } from '../../../revelton-tb-extension-dashboard/cor
         align-items: center;
         gap: 8px;
         padding: 4px 8px;
-        background: rgba(255,255,255,0.02);
+        background: var(--bg, rgba(255,255,255,0.02));
         border-radius: 6px;
         font-size: 10px;
         .dot {
@@ -187,7 +187,7 @@ import { TranslationService } from '../../../revelton-tb-extension-dashboard/cor
           background: #22C55E; flex-shrink: 0;
           &.open { background: #F97316; }
         }
-        .compact-event-time { color: #6B7280; font-weight: 600; }
+        .compact-event-time { color: var(--text-muted, #6B7280); font-weight: 600; }
         .compact-event-status {
           font-weight: 700; color: #22C55E; margin-left: auto;
           &.open { color: #F97316; }

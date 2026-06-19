@@ -120,7 +120,9 @@ function createEmptyRoomData(): RoomData {
     deviceMeta: {},
     leakDevices: {},
     noiseDevices: {},
+    occupancyDevices: {},
     activeDevices: {},
+    plugDevices: {},
     deviceEntityIdMap: {},
   };
 }
@@ -611,6 +613,13 @@ export class HotelStateService implements OnDestroy {
         room.mockCtx,
         room.roomData
       );
+
+      // Check if there is an ASSET datasource with a custom label (e.g., "The Shambles" or "Oslo Gate")
+      const datasources = room.mockCtx?.datasources || [];
+      const assetDs = datasources.find((ds: any) => ds && ds.entityType === "ASSET");
+      if (assetDs && assetDs.entityLabel && assetDs.entityLabel !== assetDs.entityName) {
+        room.roomData.sensorData.roomTitle = assetDs.entityLabel;
+      }
     }
     this.updateHotelStats(rooms, stats);
 

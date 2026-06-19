@@ -9,12 +9,19 @@ import { TranslationService } from '../../../core/services/translation.service';
 })
 export class AlertsPanelComponent {
   @Input() alerts: any[] = [];
+  @Input() archivedAlerts: any[] = [];
   @Output() acknowledge = new EventEmitter<any>();
+
+  activeTab: 'active' | 'archive' = 'active';
 
   constructor(private translationService: TranslationService) {}
 
   get t() {
     return this.translationService.t;
+  }
+
+  get activeLang(): string {
+    return this.translationService.activeLangCode;
   }
 
   trackById(index: number, item: any): any {

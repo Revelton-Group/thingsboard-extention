@@ -18,6 +18,7 @@
                     <div class="header-right-info">
                         <button class="icon-btn hist-btn" (click)="openHistoricalData()" title="Historical Data">
                             <i class="material-icons" style="font-size: 16px;">timeline</i>
+                            <span class="btn-text">{{ t.history }}</span>
                         </button>
                         <div class="reservation-status" *ngIf="statusSummary">
                             <i class="material-icons" style="font-size: 13px; margin-right: 4px;">schedule</i>
@@ -77,10 +78,10 @@
     </div>
 
     <div class="main-content">
-        <!-- ROW 1: Thermostats + Air Quality -->
-        <div class="row-1">
-            <!-- Thermostats Section -->
-            <div class="section-container thermostats-wrapper" *ngIf="thermostats.length > 0"
+        <div class="panel-grid">
+
+            <!-- TOP-LEFT: Thermostats -->
+            <div class="grid-thermostats section-container thermostats-wrapper" *ngIf="thermostats.length > 0"
                  [style.backgroundColor]="getThermostatSectionColor() + '1A'"
                  [style.borderColor]="getThermostatSectionColor() + '40'">
                 <div class="section-label">
@@ -94,8 +95,9 @@
                     </tb-thermostat-card>
                 </div>
             </div>
-            <!-- Air Quality Section -->
-            <div class="section-container aq-section" *ngIf="aqSensors.length > 0">
+
+            <!-- TOP-MIDDLE: Air Quality -->
+            <div class="grid-airquality section-container aq-section" *ngIf="aqSensors.length > 0">
                 <div class="section-label">
                     <i class="material-icons" style="font-size: 12px">air</i>
                     INDOOR CLIMATE ({{ aqSensors.length }})
@@ -105,34 +107,91 @@
                         [sensor]="aq"></tb-air-quality-sensor>
                 </div>
             </div>
-        </div>
 
-        <!-- ROW 2: Sensors + (Alerts & Logs) -->
-        <div class="row-2">
-            <!-- Sensors Section -->
-            <div class="section-container">
+            <!-- RIGHT: Smart Sockets (spans both rows) -->
+            <div class="grid-sockets section-container sockets-section">
+                <div class="section-label">
+                    <i class="material-icons" style="font-size: 12px">power</i>
+                    {{ t.smartSockets | uppercase }} ({{ smartSockets.length }})
+                </div>
+                <div class="sockets-grid">
+                    <div class="socket-card" *ngFor="let socket of smartSockets; trackBy: trackByEntityName" [class.socket-on]="isSocketOn(socket)">
+                        <div class="socket-top">
+                            <div class="socket-left">
+                                <div class="socket-icon-box" [class.on]="isSocketOn(socket)">
+                                    <i class="material-icons">power</i>
+                                </div>
+                                <div class="socket-info">
+                                    <div class="socket-name-row">
+                                        <span class="socket-name" [title]="socket.displayName">{{ socket.displayName }}</span>
+                                        <span class="socket-power-badge" *ngIf="isSocketOn(socket) && socket.power !== null">
+                                            {{ socket.power }}W
+                                        </span>
+                                    </div>
+                                    <div class="socket-model">{{ socket.model || 'Smart Plug' }}</div>
+                                </div>
+                            </div>
+                            <div class="socket-control">
+                                <button class="socket-toggle-btn" [class.on]="isSocketOn(socket)" (click)="toggleSocket(socket)">
+                                    <div class="toggle-thumb"></div>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="socket-meta">
+                            <div class="socket-meta-left">
+                                <span *ngIf="socket.offline" class="meta-item-red">
+                                    <i class="material-icons">wifi_off</i>Offline
+                                </span>
+                                <span *ngIf="!socket.offline && socket.linkquality !== null" [ngClass]="getLinkQualityClass(socket.linkquality)">
+                                    <i class="material-icons">wifi</i>{{ getLinkQualityText(socket.linkquality) }}
+                                </span>
+                            </div>
+                            <div class="socket-meta-right" *ngIf="socket.lastSeen">
+                                <span class="socket-timestamp">
+                                    <i class="material-icons">schedule</i>{{ timeAgo(socket.lastSeen) }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    <div *ngIf="smartSockets.length === 0" class="empty-state">{{ t.noSockets }}</div>
+                </div>
+            </div>
+
+            <!-- BOTTOM-LEFT: Sensors -->
+            <div class="grid-sensors section-container sensors-section">
                 <div class="section-label">
                     <i class="material-icons" style="font-size: 12px">sensors</i>
                     {{ t.sensors | uppercase }} ({{ allSensors.length }})
                 </div>
                 <div class="sensor-grid">
-                    <ng-container *ngFor="let s of allSensors; trackBy: trackByEntityName">
-                        <tb-window-sensor *ngIf="s.type === 'window'" [sensor]="s"></tb-window-sensor>
-                        <tb-water-leak-sensor *ngIf="s.type === 'water'" [sensor]="s"></tb-water-leak-sensor>
-                        <tb-noise-sensor *ngIf="s.type === 'noise'" [sensor]="s"></tb-noise-sensor>
-                        <tb-occupancy-sensor *ngIf="s.type === 'occupancy'" [sensor]="s"></tb-occupancy-sensor>
-                        <tb-sensor-tile
-                            *ngIf="s.type !== 'window' && s.type !== 'water' && s.type !== 'noise' && s.type !== 'occupancy'"
-                            [sensor]="s"></tb-sensor-tile>
-                    </ng-container>
+                    <div class="sensor-column">
+                        <ng-container *ngFor="let s of leftSensors; trackBy: trackByEntityName">
+                            <tb-noise-sensor *ngIf="s.type === 'noise'" [sensor]="s"></tb-noise-sensor>
+                            <tb-occupancy-sensor *ngIf="s.type === 'occupancy'" [sensor]="s"></tb-occupancy-sensor>
+                        </ng-container>
+                    </div>
+                    <div class="sensor-column">
+                        <ng-container *ngFor="let s of rightSensors; trackBy: trackByEntityName">
+                            <tb-window-sensor *ngIf="s.type === 'window'" [sensor]="s"></tb-window-sensor>
+                            <tb-water-leak-sensor *ngIf="s.type === 'water'" [sensor]="s"></tb-water-leak-sensor>
+                            <tb-sensor-tile
+                                *ngIf="s.type !== 'window' && s.type !== 'water' && s.type !== 'noise' && s.type !== 'occupancy'"
+                                [sensor]="s"></tb-sensor-tile>
+                        </ng-container>
+                    </div>
                     <div *ngIf="allSensors.length === 0" class="empty-state">{{ t.loading }}</div>
                 </div>
             </div>
 
-            <!-- Right column: Alerts -->
-            <div class="right-col">
-                <tb-alerts-panel [alerts]="alerts" (acknowledge)="acknowledgeAlert($event)"></tb-alerts-panel>
+            <!-- BOTTOM-MIDDLE: Alerts -->
+            <div class="grid-alerts alerts-wrapper">
+                <tb-alerts-panel 
+                    [alerts]="alerts" 
+                    [archivedAlerts]="archivedAlerts" 
+                    (acknowledge)="acknowledgeAlert($event)">
+                </tb-alerts-panel>
             </div>
+
         </div>
     </div>
 

@@ -11,16 +11,20 @@ export interface ControlPanelSection {
 }
 
 export type ControlPanelSectionId =
+  | 'air_quality'
   | 'thermostat'
+  | 'noise'
   | 'window'
   | 'mews'
   | 'telegram';
 
 export const CONTROL_PANEL_SECTIONS: ControlPanelSection[] = [
-  { id: 'thermostat', label: 'Thermostat',    icon: 'thermostat' },
-  { id: 'window',     label: 'Window Alert',  icon: 'window' },
-  { id: 'mews',       label: 'Mews Sync',     icon: 'sync' },
-  { id: 'telegram',   label: 'Telegram',      icon: 'send' },
+  { id: 'air_quality', label: 'Air Quality', icon: 'air' },
+  { id: 'thermostat',  label: 'Thermostat',  icon: 'thermostat' },
+  { id: 'noise',       label: 'Noise Sensor',icon: 'volume_up' },
+  { id: 'window',      label: 'Window Alert',icon: 'window' },
+  { id: 'mews',        label: 'Mews Sync',   icon: 'sync' },
+  { id: 'telegram',    label: 'Telegram',    icon: 'send' },
 ];
 
 /** Day of week */
@@ -68,9 +72,32 @@ export interface TelegramConfig {
   alertLevel: TelegramAlertLevel;
 }
 
+/** ── Air Quality Thresholds ── */
+export interface AirQualityThresholdConfig {
+  enabled: boolean;
+  co2Max: number;
+  pm25Max: number;
+  pm10Max: number;
+  tvocMax: number;
+  tempMax: number;
+  humMax: number;
+  pressMax: number;
+}
+
+/** ── Noise Thresholds ── */
+export interface NoiseThresholdConfig {
+  enabled: boolean;
+  noiseMax: number;
+  laeqMax: number;
+  laiMax: number;
+  laimaxMax: number;
+}
+
 /** ── Top-level config envelope ── */
 export interface ControlPanelConfig {
+  airQuality: AirQualityThresholdConfig;
   thermostat: ThermostatAutomationConfig;
+  noise: NoiseThresholdConfig;
   window: WindowAlertConfig;
   mews: MewsSyncConfig;
   telegram: TelegramConfig;
@@ -78,12 +105,29 @@ export interface ControlPanelConfig {
 
 /** Default values */
 export const DEFAULT_CONTROL_PANEL_CONFIG: ControlPanelConfig = {
+  airQuality: {
+    enabled: true,
+    co2Max: 1000,
+    pm25Max: 35,
+    pm10Max: 150,
+    tvocMax: 600,
+    tempMax: 28,
+    humMax: 65,
+    pressMax: 1100,
+  },
   thermostat: {
     enabled: false,
     activeDays: ['Mon', 'Wed', 'Fri'],
     startTime: '02:00',
     endTime: '04:00',
     exerciseTemp: 30,
+  },
+  noise: {
+    enabled: true,
+    noiseMax: 65,
+    laeqMax: 60,
+    laiMax: 65,
+    laimaxMax: 70,
   },
   window: {
     enabled: true,

@@ -80,15 +80,15 @@ import { TranslationService } from '../../../revelton-tb-extension-dashboard/cor
         display: flex;
         flex-direction: column;
         gap: 4px;
-        .label { font-size: 8px; font-weight: 800; color: #6B7280; letter-spacing: 0.5px; }
-        .value { font-size: 14px; font-weight: 800; color: #fff; }
+        .label { font-size: 8px; font-weight: 800; color: var(--text-muted, #6B7280); letter-spacing: 0.5px; }
+        .value { font-size: 14px; font-weight: 800; color: var(--text, #fff); }
       }
     }
     .events-log-modern {
       flex: 1;
       display: flex;
       flex-direction: column;
-      h4 { font-size: 9px; font-weight: 800; color: #6B7280; margin: 0 0 12px; letter-spacing: 1px; }
+      h4 { font-size: 9px; font-weight: 800; color: var(--text-muted, #6B7280); margin: 0 0 12px; letter-spacing: 1px; }
       .log-body {
         flex: 1;
         display: flex;
@@ -102,7 +102,7 @@ import { TranslationService } from '../../../revelton-tb-extension-dashboard/cor
         padding: 20px 0;
         gap: 8px;
         mat-icon { font-size: 32px; width: 32px; height: 32px; color: #22C55E; opacity: 0.5; }
-        p { font-size: 11px; color: #6B7280; margin: 0; }
+        p { font-size: 11px; color: var(--text-muted, #6B7280); margin: 0; }
       }
       .leak-event-row {
         display: flex;
@@ -125,11 +125,11 @@ import { TranslationService } from '../../../revelton-tb-extension-dashboard/cor
           display: flex;
           flex-direction: column;
           .title { font-size: 12px; font-weight: 700; color: #EF4444; }
-          .meta { font-size: 10px; color: #6B7280; }
+          .meta { font-size: 10px; color: var(--text-secondary, #6B7280); }
         }
       }
     }
-
+ 
     /* Compact mode overrides */
     .water-leak-panel.compact {
       gap: 8px;
@@ -141,7 +141,7 @@ import { TranslationService } from '../../../revelton-tb-extension-dashboard/cor
         padding: 4px 0;
         mat-icon { font-size: 18px; width: 18px; height: 18px; color: #22C55E; }
         &.leak mat-icon { color: #EF4444; }
-        span { font-size: 10px; font-weight: 600; color: #6B7280; }
+        span { font-size: 10px; font-weight: 600; color: var(--text-secondary, #6B7280); }
       }
     }
   `]

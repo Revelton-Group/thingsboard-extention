@@ -1418,10 +1418,11 @@
 
 /* ===== Header ===== */
 .custom-room-widget .room-header {
+    position: relative;
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
     align-items: center;
-    padding: 2px 4px 4px 6px;
+    padding: 14px 4px 6px 6px;
     margin-bottom: 4px;
     border-bottom: 2px solid var(--color-border);
     flex-shrink: 0;
@@ -1430,10 +1431,11 @@
 .custom-room-widget .room-title {
     display: flex;
     align-items: center;
-    gap: 4px;
+    justify-content: center;
+    gap: 6px;
     min-width: 0;
-    flex: 1;
-    margin-right: 4px;
+    max-width: calc(100% - 64px);
+    margin: 0 auto;
 
     h3 {
         margin: 0;
@@ -1446,6 +1448,16 @@
         text-overflow: ellipsis;
         min-width: 0;
     }
+}
+
+.custom-room-widget .room-notifications-group {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    gap: 4px;
+    z-index: 10;
 }
 
 
@@ -1640,36 +1652,33 @@
         transform: scale(1);
     }
 }.hist-modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.7); /* Slightly darker backdrop */
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  z-index: 11000; /* Extremely high to stay on top */
+  z-index: 11000;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 40px;
+  padding: 24px;
   animation: fadeIn 0.3s ease;
 }
 
 .hist-modal {
-  width: 90%;
-  max-width: 1650px;
-  height: auto;
-  max-height: 95vh;
+  width: 100%;
+  max-height: 100%;
+  min-width: 0;
+  min-height: 0;
+  max-width: 1440px;
+  margin: 0 auto;
   display: flex;
   flex-direction: column;
-  background: var(--bg-main, #0B0E14); /* Dark theme priority */
-  border-radius: 28px;
-  display: flex;
-  flex-direction: column;
+  background: var(--bg, #0B0E14);
+  border-radius: 24px;
   overflow: hidden;
-  box-shadow: 0 40px 100px rgba(0, 0, 0, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 40px 100px rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
   position: relative;
   animation: modalSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -1684,8 +1693,8 @@
   align-items: center;
   justify-content: space-between;
   padding: 20px 32px;
-  background: rgba(255, 255, 255, 0.02);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  background: var(--panel, rgba(255, 255, 255, 0.02));
+  border-bottom: 1px solid var(--border, rgba(255, 255, 255, 0.05));
   z-index: 10;
   
   .hist-title {
@@ -1694,12 +1703,12 @@
     gap: 14px;
     font-size: 20px;
     font-weight: 800;
-    color: #FFFFFF;
+    color: var(--text, #FFFFFF);
     font-family: 'Outfit', sans-serif;
     
     i { 
-      color: #818CF8; 
-      background: rgba(129, 140, 248, 0.15);
+      color: var(--accent, #818CF8); 
+      background: var(--accent-muted, rgba(129, 140, 248, 0.15));
       padding: 8px;
       border-radius: 10px;
     }
@@ -1714,23 +1723,28 @@
   .time-toggles-header {
     display: flex;
     gap: 6px;
-    background: rgba(255, 255, 255, 0.03);
+    background: var(--bg, rgba(255, 255, 255, 0.03));
     padding: 4px;
     border-radius: 20px;
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--border, rgba(255, 255, 255, 0.06));
 
     button {
       background: transparent;
       border: none;
-      color: #6B7280;
+      color: var(--text-secondary, #6B7280);
       padding: 6px 14px;
       border-radius: 16px;
       font-size: 11px;
       font-weight: 800;
       cursor: pointer;
       transition: all 0.2s;
-      &:hover { color: #fff; }
-      &.active { background: #3b82f6; color: #fff; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3); }
+      &:hover { color: var(--text, #fff); }
+      &.active { 
+        background: #3b82f6; 
+        color: #fff; 
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3); 
+        &:hover { color: #fff; }
+      }
     }
   }
   
@@ -1738,18 +1752,19 @@
     width: 36px;
     height: 36px;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--bg, rgba(255, 255, 255, 0.05));
+    border: 1px solid var(--border, rgba(255, 255, 255, 0.1));
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
     transition: all 0.2s;
-    color: #FFFFFF;
+    color: var(--text, #FFFFFF);
     
     &:hover {
       background: #FF3B30;
       border-color: #FF3B30;
+      color: #FFFFFF;
       transform: scale(1.1);
     }
     
@@ -1759,8 +1774,20 @@
 
 .hist-modal-body {
   flex: 1;
+  min-height: 0;
   overflow: hidden;
   position: relative;
+  display: flex;
+  flex-direction: column;
+
+  tb-room-historical-data {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+  }
+
+
 }
 
 @keyframes pulse-slow {

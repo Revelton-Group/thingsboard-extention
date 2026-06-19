@@ -3,6 +3,7 @@ import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { RoomDataService } from '../../core/services/room-data.service';
 import { TranslationService } from '../../core/services/translation.service';
 import { HotelStateService, InlineRoom } from '../../core/services/hotel-state.service';
+import { ControlPanelService } from '../control-panel/services/control-panel.service';
 
 /** Set to true to enable verbose console logging during development */
 const DEBUG = false;
@@ -72,8 +73,15 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
   thermostats: any[] = [];
   aqSensors: any[] = [];
   allSensors: any[] = [];
+  leftSensors: any[] = [];
+  rightSensors: any[] = [];
+  smartSockets: any[] = [];
   alerts: any[] = [];
+  alertTimestamps: Map<string, number> = new Map();
+  archivedAlerts: any[] = [];
+  acknowledgedAlertIds: Set<string> = new Set();
   logs: any[] = [];
+  private archiveLoaded = false;
 
   // Preset temperature memory: { 'trv_room_1': { 'manual': 22, 'eco': 15, 'comfort': 20 } }
   private presetMemory: Record<string, Record<string, number>> = {};
@@ -82,6 +90,7 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
   deviceEntityIdMap: { [entityName: string]: string } = {};
 
   private refreshInterval: any;
+  private configSub: any;
 
   // History Modal
   showHistoricalData = false;
@@ -92,7 +101,8 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
     private cdr: ChangeDetectorRef,
     private roomDataService: RoomDataService,
     private translationService: TranslationService,
-    private hotelStateService: HotelStateService
+    private hotelStateService: HotelStateService,
+    private controlPanelService: ControlPanelService
   ) {}
 
   openHistoricalData(): void {
@@ -125,6 +135,10 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
     this.refreshInterval = setInterval(() => {
       this.updateData();
     }, 10000);
+
+    this.configSub = this.controlPanelService.config$.subscribe(() => {
+      this.updateData();
+    });
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -142,6 +156,7 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
 
   ngOnDestroy(): void {
     if (this.refreshInterval) clearInterval(this.refreshInterval);
+    if (this.configSub) this.configSub.unsubscribe();
   }
 
   private attributesInitialized = false;
@@ -189,16 +204,24 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
     if (!this.data) return;
 
     const prevThermostats = this.thermostats;
+    const prevSockets = this.smartSockets;
     this.thermostats = [];
+    this.smartSockets = [];
     this.aqSensors = [];
     this.allSensors = [];
-    this.alerts = [];
+    this.leftSensors = [];
+    this.rightSensors = [];
     this.logs = [];
 
     const sd = this.data.sensorData || {};
     const hd = this.data.hasData || {};
 
     this.roomNumber = sd.roomNumber || '--';
+    if (!this.archiveLoaded && this.roomNumber !== '--') {
+      this.loadArchive();
+      this.archiveLoaded = true;
+    }
+    this.cleanExpiredArchivedAlerts();
     this.roomTitleLabel = sd.roomTitle || this.t.room;
     this.avgTemp = hd.temperature ? sd.temperature : null;
     this.avgHum = hd.humidity ? sd.humidity : null;
@@ -288,35 +311,93 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
     // Water Leak Sensors
     const leakDevices = this.data.leakDevices || {};
     for (const [name, data] of Object.entries(leakDevices) as any) {
+      const isWS303 = name.toUpperCase().includes('WS303') || name.toUpperCase().startsWith('RST-KLV-WS303') || name.toUpperCase().includes('WL') || name.toUpperCase().includes('LEAK') || name.toLowerCase() === 'bathroom';
+      if (!isWS303) continue;
+
+      // Filter by room number
+      const cleanRoom = this.roomNumber ? this.roomNumber.trim() : '';
+      if (cleanRoom && cleanRoom !== '--' && cleanRoom !== '---') {
+        const belongsToRoom = 
+          new RegExp(`_room_${cleanRoom}(_|$)`, 'i').test(name) ||
+          new RegExp(`_${cleanRoom}(_|$)`, 'i').test(name) ||
+          new RegExp(`-${cleanRoom}(-|$)`, 'i').test(name) ||
+          name.includes(cleanRoom);
+        if (!belongsToRoom) continue;
+      }
+
       const isLeak = !!data.leak;
+      let displayName = this.data.deviceMeta?.[name]?.location || 'Water Leak';
+      if (displayName) {
+        displayName = displayName.charAt(0).toUpperCase() + displayName.slice(1);
+      }
       this.allSensors.push({
         type: 'water',
         entityName: name,
-        displayName: this.data.deviceMeta?.[name]?.location || this.formatDeviceName(name, 'Water Leak'),
+        displayName: displayName,
         isLeak: isLeak,
         statusLabel: isLeak ? this.t.leakDetected : this.t.noLeak,
         statusColor: isLeak ? '#FF3B30' : '#34C759',
-        icon: 'water_damage',
+        icon: 'water_drop',
         iconColor: isLeak ? '#FF3B30' : '#34C759',
         iconBg: isLeak ? 'rgba(255,59,48,0.08)' : 'rgba(52,199,89,0.08)',
         battery: this.data.batteryDevices?.[name] ?? null,
         linkquality: this.data.linkQualityDevices?.[name] ?? null,
-        model: this.data.deviceMeta?.[name]?.model ?? 'Tuya TS0207',
+        model: 'WS303',
         lastSeen: this.data.lastSeenDevices?.[name] ?? null,
-        offline: this.data.offlineDevices?.[name] ?? false
+        offline: this.data.offlineDevices?.[name] ?? false,
+        snr: data.snr ?? null,
+        rssi: data.rssi ?? null,
+        fCnt: data.fCnt ?? null,
+        fPort: data.fPort ?? null,
+        dr: data.dr ?? null,
+        deviceStatus: data.deviceStatus ?? null,
+        lorawanClass: data.lorawanClass ?? null,
+        sn: data.sn ?? null,
+        firmwareVersion: data.firmwareVersion ?? null,
+        hardwareVersion: data.hardwareVersion ?? null,
+        ipsoVersion: data.ipsoVersion ?? null
       });
     }
 
     // Noise Sensors
     const noiseDevices = this.data.noiseDevices || {};
     for (const [name, data] of Object.entries(noiseDevices) as any) {
-      const currentLevel = data.level ?? data.laeq ?? data.lai ?? 0;
-      const quiet = currentLevel <= 55;
       const isWS302 = name.toUpperCase().includes('WS302') || name.toUpperCase().startsWith('RST-KLV-WS');
+      if (!isWS302) continue;
+
+      // Filter by room number
+      const cleanRoom = this.roomNumber ? this.roomNumber.trim() : '';
+      if (cleanRoom && cleanRoom !== '--' && cleanRoom !== '---') {
+        const belongsToRoom = 
+          new RegExp(`_room_${cleanRoom}(_|$)`, 'i').test(name) ||
+          new RegExp(`_${cleanRoom}(_|$)`, 'i').test(name) ||
+          new RegExp(`-${cleanRoom}(-|$)`, 'i').test(name) ||
+          name.includes(cleanRoom);
+        if (!belongsToRoom) continue;
+      }
+
+      const currentLevel = data.level ?? data.laeq ?? data.lai ?? 0;
+      const config = this.controlPanelService?.config;
+      let isLoud = false;
+      if (config && config.noise && config.noise.enabled) {
+        const laeq = data.laeq ?? 0;
+        const lai = data.lai ?? 0;
+        const laimax = data.laimax ?? 0;
+        isLoud = (data.laeq != null && laeq >= config.noise.laeqMax) ||
+                 (data.lai != null && lai >= config.noise.laiMax) ||
+                 (data.laimax != null && laimax >= config.noise.laimaxMax);
+      } else {
+        isLoud = currentLevel > 55;
+      }
+      const quiet = !isLoud;
+      let displayName = this.data.deviceMeta?.[name]?.location || 'Noise Sensor';
+      if (displayName) {
+        displayName = displayName.charAt(0).toUpperCase() + displayName.slice(1);
+      }
       this.allSensors.push({
         type: 'noise',
         entityName: name,
-        displayName: this.data.deviceMeta?.[name]?.location || (isWS302 ? 'Noise Sensor' : this.formatDeviceName(name, 'Noise')),
+        displayName: displayName,
         statusLabel: Math.round(currentLevel) + ' dB – ' + (quiet ? this.t.normal : this.t.loud),
         levelVal: Math.round(currentLevel) + ' dB',
         levelText: quiet ? this.t.normal : this.t.loud,
@@ -326,13 +407,71 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
         iconBg: quiet ? 'rgba(52,199,89,0.08)' : 'rgba(255,149,0,0.08)',
         battery: this.data.batteryDevices?.[name] ?? null,
         linkquality: this.data.linkQualityDevices?.[name] ?? null,
-        model: isWS302 ? 'WS302' : (this.data.deviceMeta?.[name]?.model ?? 'Noise Sensor'),
+        model: 'WS302',
         lastSeen: this.data.lastSeenDevices?.[name] ?? null,
         offline: this.data.offlineDevices?.[name] ?? false,
         laeq: data.laeq ?? null,
         lai: data.lai ?? null,
         laimax: data.laimax ?? null,
         isLoud: !quiet
+      });
+    }
+
+    // Occupancy Sensors
+    const occupancyDevices = this.data.occupancyDevices || {};
+    for (const [name, data] of Object.entries(occupancyDevices) as any) {
+      const isWS301 = name.toUpperCase().includes('WS301') || name.toUpperCase().includes('VS370') || name.toUpperCase().includes('VS3') || name.toUpperCase().includes('370') || name.toUpperCase().includes('OCC') || name.toUpperCase().includes('PRESENCE') || name.toUpperCase().includes('RADAR') || name.toUpperCase().includes('MOTION');
+      if (!isWS301) continue;
+
+      // Filter by room number
+      const cleanRoom = this.roomNumber ? this.roomNumber.trim() : '';
+      if (cleanRoom && cleanRoom !== '--' && cleanRoom !== '---') {
+        const belongsToRoom = 
+          new RegExp(`_room_${cleanRoom}(_|$)`, 'i').test(name) ||
+          new RegExp(`_${cleanRoom}(_|$)`, 'i').test(name) ||
+          new RegExp(`-${cleanRoom}(-|$)`, 'i').test(name) ||
+          name.includes(cleanRoom);
+        if (!belongsToRoom) continue;
+      }
+
+      let displayName = this.data.deviceMeta?.[name]?.location || 'Presence Sensor';
+      if (displayName) {
+        displayName = displayName.charAt(0).toUpperCase() + displayName.slice(1);
+      }
+
+      const rawOccupancy = data.occupancy || 'vacant';
+      const isOccupied = rawOccupancy.toLowerCase() === 'occupied' || rawOccupancy.toLowerCase() === 'true' || rawOccupancy === '1';
+
+      this.allSensors.push({
+        type: 'occupancy',
+        entityName: name,
+        displayName: displayName,
+        occupancy: rawOccupancy,
+        isOccupied: isOccupied,
+        illuminance: data.illuminance || null,
+        statusLabel: isOccupied ? this.t.occupied : this.t.vacant,
+        statusColor: isOccupied ? '#3B82F6' : '#34C759',
+        icon: 'radar',
+        iconColor: isOccupied ? '#3B82F6' : '#34C759',
+        iconBg: isOccupied ? 'rgba(59,130,246,0.08)' : 'rgba(52,199,89,0.08)',
+        battery: this.data.batteryDevices?.[name] ?? null,
+        batteryLow: this.data.batteryLowDevices?.[name] ?? null,
+        linkquality: this.data.linkQualityDevices?.[name] ?? null,
+        model: name.toUpperCase().includes('VS370') ? 'VS370' : (name.toUpperCase().includes('WS301') ? 'WS301' : (this.data.deviceMeta?.[name]?.model || 'WS301')),
+        lastSeen: this.data.lastSeenDevices?.[name] ?? null,
+        offline: this.data.offlineDevices?.[name] ?? false,
+        snr: data.snr ?? null,
+        rssi: data.rssi ?? null,
+        fCnt: data.fCnt ?? null,
+        fPort: data.fPort ?? null,
+        dr: data.dr ?? null,
+        deviceStatus: data.deviceStatus ?? null,
+        lorawanClass: data.lorawanClass ?? null,
+        sn: data.sn ?? null,
+        firmwareVersion: data.firmwareVersion ?? null,
+        hardwareVersion: data.hardwareVersion ?? null,
+        ipsoVersion: data.ipsoVersion ?? null,
+        tslVersion: data.tslVersion ?? null
       });
     }
 
@@ -343,9 +482,13 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
         aqData.co2 ?? null, aqData.tvoc ?? aqData.iaq ?? null, aqData.pm25 ?? null, aqData.pm10 ?? null,
         aqData.hum ?? null, aqData.temp ?? null, aqData.light ?? null, aqData.pressure ?? null
       );
+      let aqDisplayName = this.data.deviceMeta?.[name]?.location || this.formatDeviceName(name, 'Air Monitor');
+      if (aqDisplayName) {
+        aqDisplayName = aqDisplayName.charAt(0).toUpperCase() + aqDisplayName.slice(1);
+      }
       this.aqSensors.push({
         entityName: name,
-        displayName: this.data.deviceMeta?.[name]?.location || this.formatDeviceName(name, 'Air Monitor'),
+        displayName: aqDisplayName,
         overall: aqResult.label,
         overallColor: aqResult.color,
         aqiScore: aqResult.aqi,
@@ -367,10 +510,282 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
       });
     }
 
+    // Smart Sockets
+    const plugData = this.data.plugDevices || {};
+    for (const [name, data] of Object.entries(plugData) as any) {
+      let socket = prevSockets.find(s => s.entityName === name);
+      const now = Date.now();
+      const serverState = data.state ?? 'OFF';
+      const finalState = socket && now < (socket.stateLockUntil || 0) ? socket.state : serverState;
+
+      this.smartSockets.push({
+        entityName: name,
+        displayName: this.data.deviceMeta?.[name]?.location || this.formatDeviceName(name, 'Smart Plug'),
+        state: finalState,
+        power: data.power ?? null,
+        voltage: data.voltage ?? null,
+        current: data.current ?? null,
+        battery: this.data.batteryDevices?.[name] ?? null,
+        linkquality: this.data.linkQualityDevices?.[name] ?? null,
+        model: this.data.deviceMeta?.[name]?.model ?? 'Smart Plug',
+        lastSeen: this.data.lastSeenDevices?.[name] ?? null,
+        offline: this.data.offlineDevices?.[name] ?? false,
+        controlKey: data.controlKey || 'state',
+        stateLockUntil: socket ? socket.stateLockUntil : 0
+      });
+    }
+
     // Sorting
     this.thermostats.sort((a, b) => this.extractDeviceNumber(a.displayName) - this.extractDeviceNumber(b.displayName));
     this.aqSensors.sort((a, b) => this.extractDeviceNumber(a.displayName) - this.extractDeviceNumber(b.displayName));
-    this.allSensors.sort((a, b) => a.type.localeCompare(b.type) || this.extractDeviceNumber(a.displayName) - this.extractDeviceNumber(b.displayName));
+    this.smartSockets.sort((a, b) => this.extractDeviceNumber(a.displayName) - this.extractDeviceNumber(b.displayName));
+    this.allSensors.sort((a, b) => {
+      if (a.type === 'occupancy' && b.type !== 'occupancy') return -1;
+      if (a.type !== 'occupancy' && b.type === 'occupancy') return 1;
+      return a.type.localeCompare(b.type) || this.extractDeviceNumber(a.displayName) - this.extractDeviceNumber(b.displayName);
+    });
+
+    // Partition allSensors into left and right columns
+    this.leftSensors = this.allSensors.filter(s => s.type === 'occupancy' || s.type === 'noise');
+    this.rightSensors = this.allSensors.filter(s => s.type !== 'occupancy' && s.type !== 'noise');
+
+    // Keep presence first, noise second in leftSensors
+    this.leftSensors.sort((a, b) => {
+      if (a.type === 'occupancy' && b.type !== 'occupancy') return -1;
+      if (a.type !== 'occupancy' && b.type === 'occupancy') return 1;
+      return this.extractDeviceNumber(a.displayName) - this.extractDeviceNumber(b.displayName);
+    });
+
+    // Sort rightSensors consistently
+    this.rightSensors.sort((a, b) => {
+      return a.type.localeCompare(b.type) || this.extractDeviceNumber(a.displayName) - this.extractDeviceNumber(b.displayName);
+    });
+
+    // Populate alerts dynamically based on custom thresholds from Control Config
+    const previousAlerts = [...this.alerts];
+    const triggeredAlerts: any[] = [];
+    const config = this.controlPanelService.config;
+
+    const hasAQ = config.airQuality && config.airQuality.enabled && this.aqSensors.length > 0;
+
+    if (this.avgTemp !== null && !hasAQ) {
+      const tempStatus = this.data.tempStatus;
+      if (tempStatus === 'danger' || tempStatus === 'warning') {
+        triggeredAlerts.push({
+          id: 'temp-alert',
+          title: this.t.temperature,
+          message: `${this.t.temperature} is ${this.avgTemp}°C (${tempStatus === 'danger' ? this.t.cpCritAlert : 'Warning'})`,
+          time: this.t.justNow || 'Just now',
+          severity: 'warning'
+        });
+      }
+    }
+
+    if (this.avgHum !== null && !hasAQ) {
+      const humStatus = this.data.humStatus;
+      if (humStatus === 'danger' || humStatus === 'warning') {
+        triggeredAlerts.push({
+          id: 'hum-alert',
+          title: this.t.humidity,
+          message: `${this.t.humidity} is ${this.avgHum}% (${humStatus === 'danger' ? this.t.cpCritAlert : 'Warning'})`,
+          time: this.t.justNow || 'Just now',
+          severity: 'warning'
+        });
+      }
+    }
+
+    if (config.airQuality && config.airQuality.enabled) {
+      for (const aq of this.aqSensors) {
+        if (aq.co2 !== null && aq.co2 >= config.airQuality.co2Max) {
+          triggeredAlerts.push({
+            id: `co2-${aq.entityName}`,
+            title: `CO₂`,
+            message: `CO₂ level is high: ${aq.co2} ppm (Max: ${config.airQuality.co2Max} ppm)`,
+            time: this.t.justNow || 'Just now',
+            severity: 'warning'
+          });
+        }
+        if (aq.pm25 !== null && aq.pm25 >= config.airQuality.pm25Max) {
+          triggeredAlerts.push({
+            id: `pm25-${aq.entityName}`,
+            title: `PM2.5`,
+            message: `PM2.5 level is high: ${aq.pm25} µg/m³ (Max: ${config.airQuality.pm25Max} µg/m³)`,
+            time: this.t.justNow || 'Just now',
+            severity: 'warning'
+          });
+        }
+        if (aq.pm10 !== null && aq.pm10 >= config.airQuality.pm10Max) {
+          triggeredAlerts.push({
+            id: `pm10-${aq.entityName}`,
+            title: `PM10`,
+            message: `PM10 level is high: ${aq.pm10} µg/m³ (Max: ${config.airQuality.pm10Max} µg/m³)`,
+            time: this.t.justNow || 'Just now',
+            severity: 'warning'
+          });
+        }
+        if (aq.tvoc !== null && aq.tvoc >= config.airQuality.tvocMax) {
+          triggeredAlerts.push({
+            id: `tvoc-${aq.entityName}`,
+            title: `TVOC`,
+            message: `TVOC level is high: ${aq.tvoc} ppb (Max: ${config.airQuality.tvocMax} ppb)`,
+            time: this.t.justNow || 'Just now',
+            severity: 'warning'
+          });
+        }
+        if (aq.temperature !== null && aq.temperature >= config.airQuality.tempMax) {
+          triggeredAlerts.push({
+            id: `temp-aq-${aq.entityName}`,
+            title: `${this.t.temperature}`,
+            message: `Temperature is high: ${aq.temperature}°C (Max: ${config.airQuality.tempMax}°C)`,
+            time: this.t.justNow || 'Just now',
+            severity: 'warning'
+          });
+        }
+        if (aq.humidity !== null && aq.humidity >= config.airQuality.humMax) {
+          triggeredAlerts.push({
+            id: `hum-aq-${aq.entityName}`,
+            title: `${this.t.humidity}`,
+            message: `Humidity is high: ${aq.humidity}% (Max: ${config.airQuality.humMax}%)`,
+            time: this.t.justNow || 'Just now',
+            severity: 'warning'
+          });
+        }
+        if (aq.pressure !== null && aq.pressure >= config.airQuality.pressMax) {
+          triggeredAlerts.push({
+            id: `press-aq-${aq.entityName}`,
+            title: `Pressure`,
+            message: `Pressure is high: ${aq.pressure} hPa (Max: ${config.airQuality.pressMax} hPa)`,
+            time: this.t.justNow || 'Just now',
+            severity: 'warning'
+          });
+        }
+      }
+    }
+
+    if (config.noise && config.noise.enabled) {
+      for (const s of this.allSensors) {
+        if (s.type === 'noise') {
+          const laeq = s.laeq ?? 0;
+          const lai = s.lai ?? 0;
+          const laimax = s.laimax ?? 0;
+          
+          if (laeq >= config.noise.laeqMax) {
+            triggeredAlerts.push({
+              id: `noise-laeq-${s.entityName}`,
+              title: `Noise LAeq`,
+              message: `Noise level (LAeq) exceeded: ${Math.round(laeq)} dBA (Max: ${config.noise.laeqMax} dBA)`,
+              time: this.t.justNow || 'Just now',
+              severity: 'warning'
+            });
+          }
+          if (lai >= config.noise.laiMax) {
+            triggeredAlerts.push({
+              id: `noise-lai-${s.entityName}`,
+              title: `Noise LAI`,
+              message: `Noise level (LAI) exceeded: ${Math.round(lai)} dBA (Max: ${config.noise.laiMax} dBA)`,
+              time: this.t.justNow || 'Just now',
+              severity: 'warning'
+            });
+          }
+          if (laimax >= config.noise.laimaxMax) {
+            triggeredAlerts.push({
+              id: `noise-laimax-${s.entityName}`,
+              title: `Noise LAImax`,
+              message: `Noise level (LAImax) exceeded: ${Math.round(laimax)} dBA (Max: ${config.noise.laimaxMax} dBA)`,
+              time: this.t.justNow || 'Just now',
+              severity: 'warning'
+            });
+          }
+        }
+      }
+    }
+
+    for (const s of this.allSensors) {
+      if (s.type === 'water' && s.isLeak) {
+        triggeredAlerts.push({
+          id: `leak-${s.entityName}`,
+          title: `${this.t.waterLeak}`,
+          message: `${this.t.leakDetected}!`,
+          time: this.t.justNow || 'Just now',
+          severity: 'critical'
+        });
+      }
+    }
+
+    if (config.window && config.window.enabled) {
+      for (const s of this.allSensors) {
+        if (s.type === 'window' && s.isOpen) {
+          triggeredAlerts.push({
+            id: `window-${s.entityName}`,
+            title: `${this.t.windows}`,
+            message: `${s.displayName} is open`,
+            time: this.t.justNow || 'Just now',
+            severity: 'warning'
+          });
+        }
+      }
+    }
+
+    // Sync acknowledgedAlertIds: remove those that are no longer triggered (returned to normal)
+    const triggeredIds = new Set(triggeredAlerts.map(a => a.id));
+    let ackChanged = false;
+    for (const ackId of Array.from(this.acknowledgedAlertIds)) {
+      if (!triggeredIds.has(ackId)) {
+        this.acknowledgedAlertIds.delete(ackId);
+        ackChanged = true;
+      }
+    }
+    if (ackChanged) {
+      this.saveArchive();
+    }
+
+    // Populate active alerts (skip those that are acknowledged)
+    this.alerts = [];
+    for (const alert of triggeredAlerts) {
+      if (!this.acknowledgedAlertIds.has(alert.id)) {
+        this.alerts.push(alert);
+      }
+    }
+
+    // Assign timestamps to active alerts and track when they first occurred
+    const now = Date.now();
+    for (const alert of this.alerts) {
+      if (!this.alertTimestamps.has(alert.id)) {
+        this.alertTimestamps.set(alert.id, now);
+      }
+      alert.timestamp = this.alertTimestamps.get(alert.id);
+      alert.time = this.timeAgo(alert.timestamp);
+    }
+
+    // Clean up stale alerts from the tracking map
+    const activeIds = new Set(this.alerts.map(a => a.id));
+    for (const key of Array.from(this.alertTimestamps.keys())) {
+      if (!activeIds.has(key)) {
+        this.alertTimestamps.delete(key);
+      }
+    }
+
+    // Sort by timestamp DESC (most recent alerts at the top)
+    this.alerts.sort((a, b) => b.timestamp - a.timestamp);
+
+    // Check if any previous alert is no longer active (returned to normal)
+    for (const prev of previousAlerts) {
+      if (!activeIds.has(prev.id)) {
+        if (!this.archivedAlerts.some(x => x.id === prev.id)) {
+          this.archivedAlerts.unshift({
+            ...prev,
+            resolvedAt: Date.now(),
+            time: this.t.justNow || 'Just now',
+            resolved: true
+          });
+        }
+      }
+    }
+
+    // Keep only last 50 archived alerts
+    if (this.archivedAlerts.length > 50) {
+      this.archivedAlerts = this.archivedAlerts.slice(0, 50);
+    }
   }
 
   private extractDeviceNumber(displayName: string): number {
@@ -518,8 +933,136 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
     }
   }
 
+  isSocketOn(socket: any): boolean {
+    if (!socket?.state) return false;
+    const state = String(socket.state).toLowerCase();
+    return state === 'on' || state === 'true' || state === '1';
+  }
+
+  toggleSocket(socket: any): void {
+    const ctx = this.data?.ctx;
+    if (!ctx?.http) return;
+
+    const deviceId = this.deviceEntityIdMap[socket.entityName];
+    if (!deviceId) return;
+
+    const isCurrentlyOn = this.isSocketOn(socket);
+    const nextState = isCurrentlyOn ? 'OFF' : 'ON';
+
+    // Lock local UI state for 10 seconds to prevent flickering
+    socket.state = nextState;
+    socket.stateLockUntil = Date.now() + 10000;
+    this.cdr.detectChanges();
+
+    const controlKey = socket.controlKey || 'state';
+    
+    // Determine type
+    const isBool = typeof socket.state === 'boolean' || socket.state === 'true' || socket.state === 'false';
+    const valueToSend = isBool ? (nextState === 'ON') : nextState;
+
+    ctx.http.post(`/api/plugins/telemetry/DEVICE/${deviceId}/SHARED_SCOPE`, { [controlKey]: valueToSend }).subscribe(
+      () => { this.cdr.detectChanges(); },
+      (err) => {
+        socket.state = isCurrentlyOn ? 'ON' : 'OFF';
+        socket.stateLockUntil = 0;
+        this.cdr.detectChanges();
+        console.error('Failed to toggle socket state', err);
+      }
+    );
+
+    ctx.http.post(`/api/rpc/oneway/${deviceId}`, { method: 'set_state', params: valueToSend }).subscribe(
+      () => {},
+      () => {}
+    );
+  }
+
+  timeAgo(ts: number): string {
+    return this.roomDataService.timeAgo(ts);
+  }
+
+  getLinkQualityText(lqi: number | null): string {
+    if (lqi == null) return '--';
+    if (lqi >= 150) return this.t.excellent;
+    if (lqi >= 100) return this.t.good;
+    if (lqi >= 50) return this.t.fair;
+    return this.t.poor;
+  }
+
+  getLinkQualityClass(lqi: number | null): string {
+    if (lqi == null) return 'meta-item-gray';
+    if (lqi >= 100) return 'meta-item-green';
+    if (lqi >= 50) return 'meta-item-orange';
+    return 'meta-item-gray';
+  }
+
+  loadArchive(): void {
+    const key = `revelton_alerts_archive_${this.roomNumber}`;
+    const ackKey = `revelton_alerts_ack_${this.roomNumber}`;
+    try {
+      const dataStr = localStorage.getItem(key);
+      if (dataStr) {
+        const parsed = JSON.parse(dataStr) as any[];
+        const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
+        this.archivedAlerts = parsed.filter(a => {
+          const timestamp = a.resolvedAt || a.timestamp || Date.now();
+          return timestamp > oneDayAgo;
+        });
+      } else {
+        this.archivedAlerts = [];
+      }
+
+      const ackStr = localStorage.getItem(ackKey);
+      if (ackStr) {
+        this.acknowledgedAlertIds = new Set(JSON.parse(ackStr));
+      } else {
+        this.acknowledgedAlertIds = new Set();
+      }
+    } catch (e) {
+      console.error('Failed to load archived/acknowledged alerts', e);
+      this.archivedAlerts = [];
+      this.acknowledgedAlertIds = new Set();
+    }
+  }
+
+  saveArchive(): void {
+    const key = `revelton_alerts_archive_${this.roomNumber}`;
+    const ackKey = `revelton_alerts_ack_${this.roomNumber}`;
+    try {
+      localStorage.setItem(key, JSON.stringify(this.archivedAlerts));
+      localStorage.setItem(ackKey, JSON.stringify(Array.from(this.acknowledgedAlertIds)));
+    } catch (e) {
+      console.error('Failed to save archived/acknowledged alerts', e);
+    }
+  }
+
+  cleanExpiredArchivedAlerts(): void {
+    const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
+    const initialLength = this.archivedAlerts.length;
+    this.archivedAlerts = this.archivedAlerts.filter(a => {
+      const timestamp = a.resolvedAt || a.timestamp || Date.now();
+      return timestamp > oneDayAgo;
+    });
+    if (this.archivedAlerts.length !== initialLength) {
+      this.saveArchive();
+    }
+  }
+
   acknowledgeAlert(alert: any): void {
     this.alerts = this.alerts.filter(a => a.id !== alert.id);
+    this.alertTimestamps.delete(alert.id);
+    this.acknowledgedAlertIds.add(alert.id);
+    if (!this.archivedAlerts.some(x => x.id === alert.id)) {
+      this.archivedAlerts.unshift({
+        ...alert,
+        resolvedAt: Date.now(),
+        time: this.t.justNow || 'Just now',
+        resolved: true
+      });
+    }
+    if (this.archivedAlerts.length > 50) {
+      this.archivedAlerts = this.archivedAlerts.slice(0, 50);
+    }
+    this.saveArchive();
   }
 
   trackByEntityName(index: number, item: any): string {

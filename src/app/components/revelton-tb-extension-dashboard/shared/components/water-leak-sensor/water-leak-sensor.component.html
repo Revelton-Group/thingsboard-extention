@@ -7,11 +7,14 @@
             </div>
             <div>
                 <div class="sensor-name">
-                    {{ sensor.displayName }} · <span [style.color]="sensor.statusColor">{{ sensor.statusLabel
-                        }}</span>
+                    {{ sensor.displayName }}
                 </div>
                 <div class="sensor-model">{{ sensor.model || sensor.entityName }}</div>
             </div>
+        </div>
+        <div class="sensor-middle">
+            <div class="sensor-status-text" [style.color]="sensor.statusColor">{{ sensor.statusLabel }}</div>
+            <div class="sensor-status-val">{{ sensor.deviceStatus || 'on' }}</div>
         </div>
         <div class="sensor-right">
             <div class="sensor-meta-row"
@@ -35,6 +38,7 @@
                 sensor.lastSeen }}</div>
         </div>
     </div>
+
     <div class="sensor-tamper" *ngIf="sensor.tamper">
         <i class="material-icons">warning_amber</i>TAMPER DETECTED
     </div>

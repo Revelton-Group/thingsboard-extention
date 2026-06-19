@@ -5,11 +5,11 @@
 
 /* ── CSS Variables ───────────────────────────────────────── */
 .room-hist-container {
-  --bg-main:   #0D0F14;
-  --bg-panel:  #13161E;
-  --border:    rgba(255, 255, 255, 0.06);
-  --text:      #F3F4F6;
-  --muted:     #6B7280;
+  --rhd-bg-main:   var(--bg, #0D0F14);
+  --rhd-bg-panel:  var(--panel, #13161E);
+  --rhd-border:    var(--border, rgba(255, 255, 255, 0.06));
+  --rhd-text:      var(--text, #F3F4F6);
+  --rhd-muted:     var(--text-secondary, #6B7280);
   --green:     #22C55E;
   --blue:      #3B82F6;
   --cyan:      #06B6D4;
@@ -18,18 +18,30 @@
   --yellow:    #EAB308;
   --red:       #EF4444;
 
+  :host-context([data-mode="light"]) &,
+  :host-context(.light-theme) &,
+  :host-context(.light-mode) & {
+    --rhd-bg-main:   #f4f7fa;
+    --rhd-bg-panel:  #ffffff;
+    --rhd-border:    #cbd5e1;
+    --rhd-text:      #0f172a;
+    --rhd-muted:     #64748b;
+  }
+
   display: flex;
   flex-direction: column;
+  flex: 1;
+  min-height: 0;
   height: 100%;
-  background: var(--bg-main);
-  color: var(--text);
+  background: var(--rhd-bg-main);
+  color: var(--rhd-text);
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   font-size: 13px;
   overflow-y: auto;
   * { box-sizing: border-box; }
 
   &::-webkit-scrollbar { width: 6px; }
-  &::-webkit-scrollbar-track { background: var(--bg-main); }
+  &::-webkit-scrollbar-track { background: var(--rhd-bg-main); }
   &::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 10px; }
   &::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.2); }
 }
@@ -52,7 +64,7 @@
   justify-content: center;
   flex: 1;
   gap: 16px;
-  background: var(--bg-main);
+  background: var(--rhd-bg-main);
 }
 
 .modern-loader {
@@ -90,7 +102,7 @@
 .loading-text {
   font-size: 11px;
   font-weight: 700;
-  color: var(--muted);
+  color: var(--rhd-muted);
   letter-spacing: 1.5px;
   text-transform: uppercase;
   animation: rhd-pulse 1.5s ease infinite;
@@ -107,9 +119,9 @@
   gap: 12px;
   text-align: center;
   padding: 24px;
-  background: var(--bg-main);
+  background: var(--rhd-bg-main);
   i { font-size: 42px; color: var(--red); opacity: 0.8; }
-  p { font-size: 14px; font-weight: 500; color: var(--text); margin: 0; }
+  p { font-size: 14px; font-weight: 500; color: var(--rhd-text); margin: 0; }
 }
 
 .retry-btn {
@@ -135,73 +147,62 @@
    GRID LAYOUT — 2-column top section + 3-column bottom row
    ═══════════════════════════════════════════════════════════ */
 
-.hist-main-grid {
+.hist-row {
   display: grid;
-  grid-template-columns: 2fr 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr)); /* Force 3 equal columns */
   padding: 8px 24px;
-  gap: 12px;
-  flex: 1;
+  gap: 16px;
   min-height: 0;
 
-  .left-col {
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-    .panel { flex: 1; }
+  &.top-row {
+    flex: 0 0 320px;
+    height: 320px;
+    overflow: visible;
   }
 
-  .right-col {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    overflow: hidden;
-    min-height: 0;
-
-    .aq-metrics-panel { flex: 1.1; }
-    revelton-acoustics-panel { flex: 0.9; }
+  &.bottom-row {
+    flex: 0 0 auto;
+    padding-bottom: 24px;
   }
+
+  ::ng-deep .panel { padding: 16px; }
 
   @media (max-width: 1200px) {
-    grid-template-columns: 1fr;
-    flex: none; 
-    .left-col { min-height: 400px; flex: none; }
-    .right-col { 
-      flex-direction: row; 
-      min-height: 250px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    &.top-row {
       flex: none;
-      .aq-metrics-panel, revelton-acoustics-panel { flex: 1; min-height: auto; }
+      height: auto;
+      min-height: 280px;
+      overflow: visible;
+    }
+    &.bottom-row {
+      flex: none;
+      height: auto;
     }
   }
-
-  @media (max-width: 800px) {
+  @media (max-width: 768px) {
+    grid-template-columns: minmax(0, 1fr);
     padding: 8px 12px;
-    .right-col { 
-      flex-direction: column; 
+    gap: 12px;
+    &.top-row {
+      flex: none;
+      height: auto;
       min-height: auto;
-      .aq-metrics-panel { min-height: 250px; }
-      revelton-acoustics-panel { min-height: 200px; }
+      overflow: visible;
+    }
+    &.bottom-row {
+      flex: none;
+      height: auto;
     }
   }
-}
-
-.hist-row.bottom-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr; /* Strictly 3 equal columns */
-  padding: 0 24px 24px;
-  gap: 16px;
-
-  ::ng-deep .panel { padding: 12px; }
-
-  @media (max-width: 1100px) { grid-template-columns: 1fr 1fr; }
-  @media (max-width: 700px) { grid-template-columns: 1fr; }
 }
 
 /* ═══════════════════════════════════════════════════════════
    LOCAL PANEL CARD STYLES
    ═══════════════════════════════════════════════════════════ */
 .panel {
-  background: var(--bg-panel);
-  border: 1px solid var(--border);
+  background: var(--rhd-bg-panel);
+  border: 1px solid var(--rhd-border);
   border-radius: 16px;
   padding: 20px;
   display: flex;
@@ -231,8 +232,8 @@
     gap: 12px;
     mat-icon { font-size: 20px; width: 20px; height: 20px; color: var(--blue); }
     .titles {
-      h3 { margin: 0; font-size: 14px; font-weight: 700; color: var(--text); letter-spacing: 0.5px; }
-      p  { margin: 2px 0 0; font-size: 9px; font-weight: 700; text-transform: uppercase; color: var(--muted); letter-spacing: 1px; }
+      h3 { margin: 0; font-size: 14px; font-weight: 700; color: var(--rhd-text); letter-spacing: 0.5px; }
+      p  { margin: 2px 0 0; font-size: 9px; font-weight: 700; text-transform: uppercase; color: var(--rhd-muted); letter-spacing: 1px; }
     }
   }
 }
@@ -250,7 +251,7 @@
   align-items: center;
   padding: 12px 20px;
   background: rgba(255, 255, 255, 0.03);
-  border: 1px solid var(--border);
+  border: 1px solid var(--rhd-border);
   border-radius: 32px;
 
   .live-dot {
@@ -280,20 +281,26 @@
 /* ── Chart wrapper ───────────────────────────────────────── */
 .chart-wrapper {
   flex: 1;
-  min-height: 140px; 
+  min-height: 110px; 
   position: relative;
   overflow: hidden;
   border-radius: 8px;
   background: rgba(0, 0, 0, 0.1);
   margin-bottom: 8px;
   ::ng-deep revelton-historical-chart { display: block; width: 100%; height: 100%; }
+
+  @media (max-width: 1200px) {
+    min-height: 180px;
+    height: 180px;
+    flex: none;
+  }
 }
 
 .chart-time-labels {
   display: flex;
   justify-content: space-between;
   padding: 12px 30px 0;
-  span { font-size: 10px; font-weight: 700; color: var(--muted); letter-spacing: 0.5px; }
+  span { font-size: 10px; font-weight: 700; color: var(--rhd-muted); letter-spacing: 0.5px; }
 }
 
 /* ── AQ Pills Horizontal (New) ───────────────────────────── */
@@ -306,7 +313,7 @@
   flex-direction: column;
   align-items: flex-end;
   justify-content: center;
-  .label { font-size: 8px; font-weight: 800; color: var(--muted); letter-spacing: 0.8px; margin-bottom: 1px; }
+  .label { font-size: 8px; font-weight: 800; color: var(--rhd-muted); letter-spacing: 0.8px; margin-bottom: 1px; }
   .val { font-size: 14px; font-weight: 800; }
   &.temp .val { color: var(--orange); }
   &.hum .val { color: var(--cyan); }
@@ -333,8 +340,8 @@
   .val-group {
     display: flex;
     flex-direction: column;
-    .val { font-size: 36px; font-weight: 800; line-height: 1; letter-spacing: -1.5px; color: var(--purple); }
-    .unit { font-size: 10px; font-weight: 800; color: var(--muted); text-transform: uppercase; margin-top: 2px; }
+    .val { font-size: 20px; font-weight: 800; line-height: 1; letter-spacing: normal; color: var(--purple); }
+    .unit { font-size: 10px; font-weight: 800; color: var(--rhd-muted); text-transform: uppercase; margin-top: 2px; }
   }
 }
 
@@ -356,12 +363,12 @@
   .donut-inner {
     width: 80%;
     height: 80%;
-    background: var(--bg-panel);
+    background: var(--rhd-bg-panel);
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    .pct { font-size: 12px; font-weight: 800; color: #fff; }
+    .pct { font-size: 12px; font-weight: 800; color: var(--rhd-text, #fff); }
   }
 }
 
@@ -390,49 +397,64 @@
   .label {
     font-size: 9px;
     font-weight: 700;
-    color: #fff;
     text-transform: uppercase;
     letter-spacing: 0.5px;
   }
 
   &.good {
-    background: rgba(34, 197, 94, 0.08);
-    border-color: rgba(34, 197, 94, 0.15);
+    background: rgba(34, 197, 94, 0.1);
+    border-color: rgba(34, 197, 94, 0.2);
     .dot { background: #22C55E; box-shadow: 0 0 8px #22C55E; }
+    .label { color: #22C55E; }
   }
 
   &.moderate {
-    background: rgba(249, 115, 22, 0.08);
-    border-color: rgba(249, 115, 22, 0.15);
+    background: rgba(249, 115, 22, 0.1);
+    border-color: rgba(249, 115, 22, 0.2);
     .dot { background: #F97316; box-shadow: 0 0 8px #F97316; }
+    .label { color: #F97316; }
   }
 
   &.bad {
-    background: rgba(239, 68, 68, 0.08);
-    border-color: rgba(239, 68, 68, 0.15);
+    background: rgba(239, 68, 68, 0.1);
+    border-color: rgba(239, 68, 68, 0.2);
     .dot { background: #EF4444; box-shadow: 0 0 8px #EF4444; }
+    .label { color: #EF4444; }
+  }
+
+  &.pressure {
+    background: rgba(59, 130, 246, 0.1);
+    border-color: rgba(59, 130, 246, 0.2);
+    .dot { background: #3B82F6; box-shadow: 0 0 8px #3B82F6; }
+    .label { color: #3B82F6; }
   }
 }
 
 .sparkline-wrapper {
   flex: 1;
-  min-height: 40px;
+  min-height: 90px;
   background: rgba(0, 0, 0, 0.1);
-  border-radius: 4px;
+  border-radius: 8px;
   overflow: hidden;
   ::ng-deep revelton-historical-chart { height: 100%; }
+
+  @media (max-width: 1200px) {
+    min-height: 160px;
+    height: 160px;
+    flex: none;
+  }
 }
 
 .metric-tabs-minimal {
   display: flex;
   gap: 6px;
   button {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid var(--border);
+    background: var(--rhd-bg-main);
+    border: 1px solid var(--rhd-border);
     border-radius: 12px;
     font-size: 9px;
     font-weight: 800;
-    color: var(--muted);
+    color: var(--rhd-muted);
     cursor: pointer;
     padding: 4px 10px;
     text-transform: uppercase;
@@ -441,8 +463,17 @@
     user-select: none;
     -webkit-tap-highlight-color: transparent;
 
-    &:hover { background: rgba(255, 255, 255, 0.08); color: #fff; }
-    &.active { background: var(--purple); border-color: var(--purple); color: #fff; }
+    &:hover { background: rgba(255, 255, 255, 0.08); color: var(--rhd-text, #fff); }
+    &.active { 
+      background: var(--purple); 
+      border-color: var(--purple); 
+      color: #fff; 
+      &:hover {
+        background: var(--purple);
+        border-color: var(--purple);
+        color: #fff;
+      }
+    }
     &:focus { outline: none; }
     &:active { transform: scale(0.95); }
   }
@@ -467,8 +498,8 @@ revelton-occupancy-panel {
 /* Base .panel card styling for child component panels
    (parent .panel class does not pierce Angular view encapsulation) */
 ::ng-deep .panel {
-  background: var(--bg-panel);
-  border: 1px solid var(--border);
+  background: var(--rhd-bg-panel);
+  border: 1px solid var(--rhd-border);
   border-radius: 16px;
   padding: 20px;
   display: flex;
@@ -531,7 +562,7 @@ revelton-occupancy-panel ::ng-deep .panel:hover {
       margin: 0;
       font-size: 14px;
       font-weight: 700;
-      color: var(--text);
+      color: var(--rhd-text);
     }
 
     p {
@@ -539,7 +570,7 @@ revelton-occupancy-panel ::ng-deep .panel:hover {
       font-size: 9px;
       font-weight: 700;
       text-transform: uppercase;
-      color: var(--muted);
+      color: var(--rhd-muted);
       letter-spacing: 1px;
     }
   }
@@ -591,4 +622,30 @@ revelton-occupancy-panel ::ng-deep .panel:hover {
 ::ng-deep .water-leak-panel,
 ::ng-deep .occupancy-panel {
   flex: 1;
+}
+
+.no-data-msg {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--rhd-muted);
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 8px;
+  z-index: 5;
+
+  i {
+    font-size: 32px;
+    color: var(--rhd-muted);
+    opacity: 0.6;
+  }
+
+  span {
+    font-size: 12px;
+    font-weight: 500;
+    opacity: 0.8;
+  }
 }

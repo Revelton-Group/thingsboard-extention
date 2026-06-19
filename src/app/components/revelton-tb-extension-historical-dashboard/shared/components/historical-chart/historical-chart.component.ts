@@ -9,6 +9,8 @@ import {
   OnDestroy,
 } from "@angular/core";
 import * as echarts from "echarts";
+import { Subscription } from "rxjs";
+import { ThemeService } from "../../../../revelton-tb-extension-dashboard/core/services/theme.service";
 
 /**
  * HistoricalChartComponent
@@ -125,12 +127,22 @@ export class HistoricalChartComponent implements OnInit, OnChanges, OnDestroy {
 
   private chart: echarts.ECharts;
   private resizeObserver: ResizeObserver;
+  private sub = new Subscription();
 
-  constructor() {}
+  constructor(private themeService: ThemeService) {}
 
   ngOnInit(): void {
     this.initChart();
     this.setupResizeObserver();
+
+    // Listen to theme mode changes to repaint chart colors
+    this.sub.add(
+      this.themeService.mode$.subscribe(() => {
+        if (this.chart) {
+          this.updateChart();
+        }
+      })
+    );
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -140,6 +152,7 @@ export class HistoricalChartComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.sub.unsubscribe();
     if (this.resizeObserver) {
       this.resizeObserver.disconnect();
     }
@@ -165,12 +178,14 @@ export class HistoricalChartComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   private updateChart(): void {
-    const container = this.chartContainer?.nativeElement?.closest(
+    const hotelContainer = this.chartContainer?.nativeElement?.closest(
+      ".revelton-hotel-container"
+    ) || this.chartContainer?.nativeElement?.closest(
       ".revelton-dashboard-container"
     );
-    const isDark = container
-      ? !container.classList.contains("light-mode")
-      : document.body.classList.contains("tb-dark");
+    const isDark = hotelContainer
+      ? hotelContainer.getAttribute("data-mode") !== "light"
+      : document.documentElement.getAttribute("data-mode") !== "light";
 
     const textColor = isDark ? "#6a7b87" : "#64748b";
     const splitLineColor = isDark ? "#252836" : "#e2e8f0";

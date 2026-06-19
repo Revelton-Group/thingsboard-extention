@@ -163,6 +163,21 @@ export interface TranslationSet {
   cpHigh: string;
   cpCheckAC: string;
   cpOpenFor2Hours: string;
+  smartSockets: string;
+  noSockets: string;
+
+  cpCo2Limit: string;
+  cpPmbLimit: string;
+  cpPm10Limit: string;
+  cpTvocLimit: string;
+  cpNoiseLimit: string;
+  cpTempMaxLimit: string;
+  cpHumMaxLimit: string;
+  cpPressMaxLimit: string;
+  cpAirQualityThresholds: string;
+  cpAirQualityDesc: string;
+  cpNoiseThresholds: string;
+  cpNoiseDesc: string;
 
   histSyncing: string;
   histRetry: string;
@@ -203,6 +218,7 @@ export interface TranslationSet {
   histUnitPpm: string;
   histUnitPpb: string;
   histUnitUgM3: string;
+  histUnitHpa: string;
   histUnoccupied: string;
   noDatasource: string;
 }
@@ -319,7 +335,7 @@ export class TranslationService {
       in: "in",
       at: "at",
       checkout: "checkout",
-      controlConfig: "Control Config",
+      controlConfig: "Control Settings",
 
       clear: "Clear",
       partlyCloudy: "Partly cloudy",
@@ -372,6 +388,21 @@ export class TranslationService {
       cpHigh: "High",
       cpCheckAC: "Please check AC unit.",
       cpOpenFor2Hours: "Open for > 2 hours.",
+      smartSockets: "Smart Sockets",
+      noSockets: "No smart sockets in this room",
+
+      cpCo2Limit: "CO₂ Limit (ppm)",
+      cpPmbLimit: "PM2.5 Limit (µg/m³)",
+      cpPm10Limit: "PM10 Limit (µg/m³)",
+      cpTvocLimit: "TVOC Limit (ppb)",
+      cpNoiseLimit: "Noise Limit (dB)",
+      cpTempMaxLimit: "Temp Max Limit (°C)",
+      cpHumMaxLimit: "Humidity Max Limit (%)",
+      cpPressMaxLimit: "Pressure Max Limit (hPa)",
+      cpAirQualityThresholds: "Air Quality Thresholds",
+      cpAirQualityDesc: "Configure alert limits for room environment pollutants.",
+      cpNoiseThresholds: "Noise Thresholds",
+      cpNoiseDesc: "Configure maximum acoustic noise thresholds.",
 
       histSyncing: "Syncing sensors...",
       histRetry: "Retry",
@@ -412,6 +443,7 @@ export class TranslationService {
       histUnitPpm: "ppm",
       histUnitPpb: "ppb",
       histUnitUgM3: "µg/m³",
+      histUnitHpa: "hPa",
       histUnoccupied: "Unoccupied",
       noDatasource: "No data source",
     },
@@ -517,7 +549,7 @@ export class TranslationService {
       in: "через",
       at: "в",
       checkout: "выезд",
-      controlConfig: "Конфигурация",
+      controlConfig: "Настройки управления",
 
       clear: "Ясно",
       partlyCloudy: "Переменная облачность",
@@ -570,6 +602,21 @@ export class TranslationService {
       cpHigh: "Высокое",
       cpCheckAC: "Пожалуйста, проверьте кондиционер.",
       cpOpenFor2Hours: "Открыто > 2 часов.",
+      smartSockets: "Умные розетки",
+      noSockets: "В этой комнате нет умных розеток",
+
+      cpCo2Limit: "Лимит CO₂ (ppm)",
+      cpPmbLimit: "Лимит PM2.5 (мкг/м³)",
+      cpPm10Limit: "Лимит PM10 (мкг/м³)",
+      cpTvocLimit: "Лимит TVOC (ppb)",
+      cpNoiseLimit: "Лимит шума (дБ)",
+      cpTempMaxLimit: "Макс. лимит темп. (°C)",
+      cpHumMaxLimit: "Макс. лимит влажн. (%)",
+      cpPressMaxLimit: "Макс. лимит давл. (гПа)",
+      cpAirQualityThresholds: "Пороги качества воздуха",
+      cpAirQualityDesc: "Настройте лимиты оповещений для загрязняющих веществ в комнатах.",
+      cpNoiseThresholds: "Пороги уровня шума",
+      cpNoiseDesc: "Настройте максимальные пороги акустического шума.",
 
       histSyncing: "Синхронизация...",
       histRetry: "Повторить",
@@ -610,6 +657,7 @@ export class TranslationService {
       histUnitPpm: "ppm",
       histUnitPpb: "ppb",
       histUnitUgM3: "µg/m³",
+      histUnitHpa: "гПа",
       histUnoccupied: "Свободно",
       noDatasource: "Источник данных не найден",
     },

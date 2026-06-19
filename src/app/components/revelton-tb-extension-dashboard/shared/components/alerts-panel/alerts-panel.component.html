@@ -1,28 +1,63 @@
 <div class="section-container">
-    <div class="section-label">
-        <i class="material-icons" style="font-size: 12px">notifications</i>
-        {{ t.activeAlerts | uppercase }} ({{ alerts.length }})
+    <!-- Tabs Header -->
+    <div class="tabs-header">
+        <button class="tab-btn" [class.active]="activeTab === 'active'" (click)="activeTab = 'active'">
+            <i class="material-icons">notifications_active</i>
+            <span>{{ t.activeAlerts || 'Active' }} ({{ alerts.length }})</span>
+        </button>
+        <button class="tab-btn" [class.active]="activeTab === 'archive'" (click)="activeTab = 'archive'">
+            <i class="material-icons">archive</i>
+            <span>{{ activeLang === 'RU' ? 'Архив' : 'Archive' }} ({{ archivedAlerts.length }})</span>
+        </button>
     </div>
-    <div class="alerts-scroll">
+
+    <!-- Active Tab Scroll -->
+    <div class="alerts-scroll" *ngIf="activeTab === 'active'">
         <div class="alert-item" *ngFor="let a of alerts; trackBy: trackById" [ngClass]="a.severity">
-            <div class="alert-header">
-                <i class="material-icons alert-icon"
-                    [style.color]="a.severity === 'critical' ? '#FF3B30' : '#FF9500'">
-                    {{ a.severity === 'critical' ? 'error' : 'warning' }}
-                </i>
-                <div>
-                    <div class="alert-title">{{ a.title }}</div>
-                    <div class="alert-message">{{ a.message }}</div>
-                    <div class="alert-time">{{ a.time }}</div>
+        <div class="alert-header">
+            <i class="material-icons alert-icon"
+                [style.color]="a.severity === 'critical' ? '#FF3B30' : '#FF9500'">
+                {{ a.severity === 'critical' ? 'error' : 'warning' }}
+            </i>
+            <div style="flex: 1; min-width: 0;">
+                <div class="alert-title-row">
+                    <span class="alert-title">{{ a.title }}</span>
+                    <span class="alert-time">{{ a.time }}</span>
                 </div>
+                <div class="alert-message">{{ a.message }}</div>
             </div>
+        </div>
+            <!-- Acknowledge Button -->
             <button class="ack-btn" (click)="onAcknowledge(a)">
-                <i class="material-icons" style="font-size: 10px">check</i> {{ t.details }}
+                <i class="material-icons" style="font-size: 11px">check</i>
+                <span>{{ activeLang === 'RU' ? 'Подтвердить' : 'Acknowledge' }}</span>
             </button>
         </div>
         <div class="all-clear" *ngIf="alerts.length === 0">
             <i class="material-icons">check_circle</i>
-            <span>{{ t.noLeak }}</span>
+            <span>{{ t.noLeak || 'No active alerts' }}</span>
+        </div>
+    </div>
+
+    <!-- Archive Tab Scroll -->
+    <div class="alerts-scroll" *ngIf="activeTab === 'archive'">
+        <div class="alert-item resolved" *ngFor="let a of archivedAlerts; trackBy: trackById">
+            <div class="alert-header">
+                <i class="material-icons alert-icon" style="color: #10B981;">check_circle</i>
+                <div style="flex: 1; min-width: 0;">
+                    <div class="alert-title-row">
+                        <span class="alert-title" style="text-decoration: line-through; opacity: 0.7;">{{ a.title }}</span>
+                        <span class="alert-time">
+                            {{ activeLang === 'RU' ? 'Решено:' : 'Resolved:' }} {{ a.time }}
+                        </span>
+                    </div>
+                    <div class="alert-message" style="opacity: 0.8;">{{ a.message }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="all-clear" *ngIf="archivedAlerts.length === 0">
+            <i class="material-icons">archive</i>
+            <span>{{ activeLang === 'RU' ? 'Архив пуст' : 'Archive is empty' }}</span>
         </div>
     </div>
 </div>

@@ -18,111 +18,97 @@
     <button class="retry-btn" (click)="fetchData()">{{ t.retry || 'Retry Sync' }}</button>
   </div>
 
-  <!-- ── Main Grid: 2-column top section ──────────────────── -->
-  <div class="hist-main-grid" *ngIf="!loading && !error">
+  <!-- ── Top Row: 3 equal columns ─────────────────────── -->
+  <div class="hist-row top-row" *ngIf="!loading && !error">
 
-    <!-- Left Column: Air Quality Monitor (Large Chart) -->
-    <div class="left-col">
-      <div class="panel aq-combined-panel full-height">
-        <div class="panel-header">
-          <div class="title-area">
-            <mat-icon>air</mat-icon>
-            <div class="titles">
-              <h3>{{ t.histAirQuality || 'Environment' }}</h3>
-              <p>{{ t.histTempHum || 'Thermal Comfort History' }}</p>
-            </div>
+    <!-- 1. Air Quality Monitor (Environment) -->
+    <div class="panel aq-combined-panel">
+      <div class="panel-header">
+        <div class="title-area">
+          <mat-icon>air</mat-icon>
+          <div class="titles">
+            <h3>{{ t.histAirQuality || 'Environment' }}</h3>
+            <p>{{ t.histTempHum || 'Thermal Comfort History' }}</p>
           </div>
-          
-          <div class="aq-pills-horizontal">
-            <div class="aq-pill-compact temp">
-              <span class="label">TEMP</span>
-              <span class="val">{{ stats['temperature'] ?? '--' }}°C</span>
-            </div>
-            <div class="aq-pill-compact hum">
-              <span class="label">HUM</span>
-              <span class="val">{{ stats['humidity'] ?? '--' }}%</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="chart-wrapper large">
-          <div class="no-data-msg" *ngIf="combinedChartData.length === 0">
-            <i class="material-icons">insights</i>
-            <span>No historical data found</span>
-          </div>
-          <revelton-historical-chart
-            [data]="combinedChartData"
-            [colors]="['#F97316', '#06B6D4']"
-            type="line"
-            [area]="true"
-            [showLegend]="false"
-            [dualAxis]="combinedChartData.length > 1">
-          </revelton-historical-chart>
         </div>
         
-      </div>
-    </div>
-
-    <!-- Right Column: Stacked Vertically -->
-    <div class="right-col">
-      
-      <!-- 2. Pollutants & Metrics -->
-      <div class="panel aq-metrics-panel compact">
-        <div class="panel-header">
-          <div class="title-area">
-            <mat-icon>science</mat-icon>
-            <div class="titles">
-              <h3>{{ t.histPollutants || 'Atmosphere' }}</h3>
-              <p>{{ activeTab?.label }} Analysis</p>
-            </div>
+        <div class="aq-pills-horizontal">
+          <div class="aq-pill-compact temp">
+            <span class="label">TEMP</span>
+            <span class="val">{{ stats['temperature'] ?? '--' }}°C</span>
           </div>
-
-          <div class="metric-tabs-minimal">
-            <button *ngFor="let tab of allTabs; trackBy: trackByTab"
-                    [class.active]="selectedKey === tab.key"
-                    (click)="selectTab(tab.key)">
-              {{ tab.key.toUpperCase() }}
-            </button>
+          <div class="aq-pill-compact hum">
+            <span class="label">HUM</span>
+            <span class="val">{{ stats['humidity'] ?? '--' }}%</span>
           </div>
-        </div>
-
-        <div class="pollutant-main">
-          <div class="val-group">
-            <span class="val purple-text">{{ currentValue }}</span>
-            <span class="unit">{{ activeTab?.unit || 'PPM' }}</span>
-          </div>
-
-          <div class="status-bar-modern" [ngClass]="statusLabel.cssClass">
-            <span class="dot"></span>
-            <span class="label">{{ statusLabel.text }}</span>
-          </div>
-          
-          <div class="donut-wrapper">
-            <div class="donut-chart" [style.--percent]="gaugePercent" [style.--color]="gaugeColor">
-              <div class="donut-inner">
-                <span class="pct">{{ gaugePercent }}%</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="sparkline-wrapper">
-          <revelton-historical-chart
-            [data]="activeChartData"
-            [colors]="['var(--purple)']"
-            [sparkline]="true"
-            [area]="true">
-          </revelton-historical-chart>
         </div>
       </div>
 
-      <!-- 3. Acoustics Panel -->
-      <revelton-acoustics-panel
-        [stats]="noiseStats"
-        [chartData]="noiseChartData">
-      </revelton-acoustics-panel>
-
+      <div class="chart-wrapper">
+        <div class="no-data-msg" *ngIf="combinedChartData.length === 0">
+          <i class="material-icons">insights</i>
+          <span>No historical data found</span>
+        </div>
+        <revelton-historical-chart
+          [data]="combinedChartData"
+          [colors]="['#F97316', '#06B6D4']"
+          type="line"
+          [area]="true"
+          [showLegend]="false"
+          [dualAxis]="combinedChartData.length > 1">
+        </revelton-historical-chart>
+      </div>
     </div>
+
+    <!-- 2. Pollutants & Metrics -->
+    <div class="panel aq-metrics-panel">
+      <div class="panel-header">
+        <div class="title-area">
+          <mat-icon>science</mat-icon>
+          <div class="titles">
+            <h3>{{ t.histPollutants || 'Atmosphere' }}</h3>
+            <p>{{ activeTab?.label }} Analysis</p>
+          </div>
+        </div>
+
+        <div class="metric-tabs-minimal">
+          <button *ngFor="let tab of allTabs; trackBy: trackByTab"
+                  [class.active]="selectedKey === tab.key"
+                  (click)="selectTab(tab.key)">
+            {{ tab.key.toUpperCase() }}
+          </button>
+        </div>
+      </div>
+
+      <div class="pollutant-main">
+        <div class="val-group">
+          <span class="val" [style.color]="activeTab?.color || 'var(--purple)'">{{ currentValue }}</span>
+          <span class="unit">{{ activeTab?.unit || 'PPM' }}</span>
+        </div>
+
+        <div class="status-bar-modern" [ngClass]="statusLabel.cssClass">
+          <span class="dot"></span>
+          <span class="label">{{ statusLabel.text }}</span>
+        </div>
+      </div>
+
+      <div class="sparkline-wrapper">
+        <revelton-historical-chart
+          [data]="activeChartData"
+          [colors]="[activeTab?.hexColor || '#A855F7']"
+          [sparkline]="false"
+          [area]="true"
+          [showLegend]="false">
+        </revelton-historical-chart>
+      </div>
+    </div>
+
+    <!-- 3. Acoustics Panel -->
+    <revelton-acoustics-panel
+      [stats]="noiseStats"
+      [chartData]="noiseChartData">
+    </revelton-acoustics-panel>
+
   </div>
 
   <!-- ── Bottom Row: 3 equal columns ─────────────────────── -->

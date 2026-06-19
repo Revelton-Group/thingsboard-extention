@@ -1,41 +1,72 @@
-<div class="sensor-tile" *ngIf="sensor" [ngClass]="{'occupied': sensor.isOccupied}">
-    <div class="sensor-top">
-        <div class="sensor-left">
-            <div class="sensor-icon-box" [style.background]="sensor.iconBg">
-                <i class="material-icons" [style.color]="sensor.iconColor" style="font-size: 16px">{{
-                    sensor.icon || 'directions_walk' }}</i>
+<div class="radar-card" *ngIf="sensor" [ngClass]="{'occupied': isOccupied, 'vacant': !isOccupied}">
+
+    <!-- Header row: icon + name + meta badges -->
+    <div class="radar-header">
+        <div class="radar-header-left">
+            <div class="radar-icon-box" [style.background]="occupancyColor + '18'">
+                <i class="material-icons" [style.color]="occupancyColor">radar</i>
             </div>
             <div>
-                <div class="sensor-name">
-                    {{ sensor.displayName }} · <span [style.color]="sensor.statusColor">{{ sensor.statusLabel
-                        }}</span>
-                </div>
-                <div class="sensor-model">{{ sensor.model || sensor.entityName }}</div>
+                <div class="radar-name">{{ sensor.displayName }}</div>
+                <div class="radar-model">{{ sensor.model || 'WS301' }}</div>
             </div>
         </div>
-        <div class="sensor-right">
-            <div class="sensor-meta-row"
-                *ngIf="sensor.battery != null || sensor.batteryLow != null || sensor.linkquality != null">
-                <span *ngIf="sensor.batteryLow" class="meta-item-orange">
+        <div class="radar-header-right">
+            <div class="radar-meta-row">
+                <!-- Battery low -->
+                <span class="meta-item meta-item-orange" *ngIf="sensor.batteryLow">
                     <i class="material-icons">battery_alert</i>Low
                 </span>
-                <span *ngIf="!sensor.batteryLow && sensor.battery != null"
-                    [ngClass]="sensor.battery <= 20 ? 'meta-item-orange' : 'meta-item-green'"><i
-                        class="material-icons">{{ sensor.battery <= 20 ? 'battery_alert' : 'battery_std'
-                            }}</i>{{ sensor.battery }}%</span>
-                <span *ngIf="sensor.batteryLow === false && sensor.battery == null"
-                    class="meta-item-green"><i class="material-icons">battery_std</i>Good</span>
-                <span *ngIf="sensor.offline" class="meta-item-red"><i
-                        class="material-icons">wifi_off</i>Offline</span>
-                <span *ngIf="!sensor.offline && sensor.linkquality != null"
-                    [ngClass]="getLinkQualityClass(sensor.linkquality)"><i class="material-icons">wifi</i>{{
-                    getLinkQualityText(sensor.linkquality) }}</span>
+                <!-- Battery percent -->
+                <span class="meta-item" *ngIf="!sensor.batteryLow && sensor.battery != null"
+                    [ngClass]="sensor.battery <= 20 ? 'meta-item-orange' : 'meta-item-green'">
+                    <i class="material-icons">{{ sensor.battery <= 20 ? 'battery_alert' : 'battery_std' }}</i>{{ sensor.battery }}%
+                </span>
+                <!-- Battery good fallback -->
+                <span class="meta-item meta-item-green" *ngIf="sensor.batteryLow === false && sensor.battery == null">
+                    <i class="material-icons">battery_std</i>Good
+                </span>
+                <!-- Offline -->
+                <span class="meta-item meta-item-red" *ngIf="sensor.offline">
+                    <i class="material-icons">wifi_off</i>Offline
+                </span>
+                <!-- Signal strength -->
+                <span class="meta-item" *ngIf="!sensor.offline && sensor.linkquality != null"
+                    [ngClass]="getLinkQualityClass(sensor.linkquality)">
+                    <i class="material-icons">wifi</i>{{ getLinkQualityText(sensor.linkquality) }}
+                </span>
             </div>
-            <div class="sensor-timestamp" *ngIf="sensor.lastSeen"><i class="material-icons">schedule</i>{{
-                sensor.lastSeen }}</div>
+            <div class="radar-timestamp" *ngIf="sensor.lastSeen">
+                <i class="material-icons">schedule</i>{{ sensor.lastSeen }}
+            </div>
         </div>
     </div>
-    <div class="sensor-tamper" *ngIf="sensor.tamper">
-        <i class="material-icons">warning_amber</i>TAMPER DETECTED
+
+    <!-- Main presence display -->
+    <div class="radar-main">
+        <!-- Animated radar rings -->
+        <div class="radar-visual" [ngClass]="{'radar-active': isOccupied}">
+            <div class="radar-ring ring-3" [style.borderColor]="occupancyColor + '20'"></div>
+            <div class="radar-ring ring-2" [style.borderColor]="occupancyColor + '35'"></div>
+            <div class="radar-ring ring-1" [style.borderColor]="occupancyColor + '55'"></div>
+            <div class="radar-center" [style.background]="occupancyColor + '18'" [style.borderColor]="occupancyColor + '40'">
+                <i class="material-icons" [style.color]="occupancyColor">
+                    {{ isOccupied ? 'person' : 'person_off' }}
+                </i>
+            </div>
+        </div>
+
+        <!-- Status info -->
+        <div class="radar-status">
+            <div class="radar-status-label" [style.color]="occupancyColor">{{ occupancyLabel }}</div>
+            <div class="radar-status-sub">Human Presence Radar</div>
+
+            <!-- Illuminance chip -->
+            <div class="radar-illum-chip" *ngIf="sensor.illuminance">
+                <i class="material-icons" [style.color]="illuminanceColor">{{ illuminanceIcon }}</i>
+                <span [style.color]="illuminanceColor">{{ illuminanceLabel }}</span>
+            </div>
+        </div>
     </div>
+
 </div>

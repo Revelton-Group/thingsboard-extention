@@ -16,18 +16,22 @@
             </div>
             <div class="aq-header-right">
                 <div class="aq-status-row">
-                    <span class="meta-item" *ngIf="sensor.battery != null" [ngClass]="{'meta-item-orange': sensor.battery <= 20, 'meta-item-green': sensor.battery > 20}">
+                    <span class="meta-item meta-item-orange" *ngIf="sensor.batteryLow">
+                        <i class="material-icons">battery_alert</i>Low
+                    </span>
+                    <span class="meta-item" *ngIf="!sensor.batteryLow && sensor.battery != null"
+                        [ngClass]="sensor.battery <= 20 ? 'meta-item-orange' : 'meta-item-green'">
                         <i class="material-icons">{{ sensor.battery <= 20 ? 'battery_alert' : 'battery_std' }}</i>{{ sensor.battery }}%
                     </span>
-                    <span class="meta-item meta-item-green" *ngIf="sensor.linkquality != null">
+                    <span class="meta-item meta-item-green" *ngIf="sensor.batteryLow === false && sensor.battery == null">
+                        <i class="material-icons">battery_std</i>Good
+                    </span>
+                    <span class="meta-item meta-item-red" *ngIf="sensor.offline">
+                        <i class="material-icons">wifi_off</i>Offline
+                    </span>
+                    <span class="meta-item" *ngIf="!sensor.offline && sensor.linkquality != null" [ngClass]="getLinkQualityClass(sensor.linkquality)">
                         <i class="material-icons">wifi</i>{{ getLinkQualityText(sensor.linkquality) }}
                     </span>
-                    <div class="aq-state-badge"
-                        [style.background]="sensor.overallColor ? (sensor.overallColor + '15') : '#34C75915'"
-                        [style.color]="sensor.overallColor || '#34C759'">
-                        <span class="state-dot" [style.background]="sensor.overallColor || '#34C759'"></span>
-                        <span>{{ sensor.overall || t.good }}</span>
-                    </div>
                 </div>
                 <div class="aq-timestamp" *ngIf="sensor.lastSeen">
                     <i class="material-icons">schedule</i>{{ sensor.lastSeen }}

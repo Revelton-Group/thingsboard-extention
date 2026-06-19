@@ -8,7 +8,7 @@
 .aq-card {
   width: 100%;
   max-width: 290px;
-  min-width: 250px;
+  min-width: 200px;
   background: var(--card, #FFFFFF);
   border-radius: var(--radius, 16px);
   border: 1px solid var(--border, rgba(0, 0, 0, 0.04));
@@ -79,21 +79,6 @@
   gap: 4px;
 }
 
-.aq-state-badge {
-  display: flex;
-  align-items: center;
-  padding: 5px 12px;
-  border-radius: 12px;
-  font-size: 11px;
-  font-weight: 700;
-}
-
-.state-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  margin-right: 6px;
-}
 
 /* ═══════ Status row (battery / signal / status badge) ═══════ */
 .aq-status-row {
@@ -104,16 +89,38 @@
 }
 
 .meta-item {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 4px;
-  font-size: 11px;
-  font-weight: 600;
-  i { font-size: 14px; }
+  gap: 3px;
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-size: 9px;
+  line-height: 1.2;
+  height: 18px;
+  box-sizing: border-box;
+  font-weight: 700;
+
+  i {
+    font-size: 11px !important;
+  }
 }
 
-.meta-item-green { color: var(--success, #2F8A6B); }
-.meta-item-orange { color: var(--warning, #F59E0B); }
+.meta-item-green {
+  color: var(--success, #34C759);
+  background: var(--success-bg, rgba(52, 199, 89, 0.08));
+}
+.meta-item-orange {
+  color: var(--warning, #FF9500);
+  background: var(--warning-bg, rgba(255, 149, 0, 0.08));
+}
+.meta-item-red {
+  color: var(--danger, #FF3B30);
+  background: var(--danger-bg, rgba(255, 59, 48, 0.08));
+}
+.meta-item-gray {
+  color: var(--text-muted, #8E8E93);
+  background: var(--border, rgba(0, 0, 0, 0.05));
+}
 
 .aq-timestamp {
   display: flex;

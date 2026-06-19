@@ -94,7 +94,9 @@ export class RoomCardComponent implements OnInit, OnDestroy {
     deviceMeta: {},
     leakDevices: {},
     noiseDevices: {},
+    occupancyDevices: {},
     activeDevices: {},
+    plugDevices: {},
     deviceEntityIdMap: {},
   };
 

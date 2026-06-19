@@ -14,30 +14,29 @@ import { TranslationService } from '../../../revelton-tb-extension-dashboard/cor
           <mat-icon>person</mat-icon>
           <h3>{{ t.histRoomOccupancy || 'Room Occupancy' }}</h3>
         </div>
+        <div class="status-badge-modern" [class.occupied]="stats.current === 'Occupied' || stats.current === t.occupied">
+           {{ stats.current }}
+        </div>
       </div>
 
-      <div class="occupancy-main">
-        <div class="donut-wrapper-large" [class.compact]="compact">
-           <div class="donut-chart" [style.--percent]="stats.avg" [style.--color]="'var(--purple)'">
-              <div class="donut-inner">
-                <div class="donut-content">
-                  <span class="val">{{ stats.avg }}%</span>
-                  <span class="label">OCCUPIED</span>
-                </div>
-              </div>
-           </div>
+      <div class="stats-row-grid">
+        <div class="stat-col">
+          <span class="label">OCC. RATE</span>
+          <span class="value">{{ stats.avg }}%</span>
         </div>
+        <div class="stat-col">
+          <span class="label">CHECK-IN</span>
+          <span class="value">{{ stats.checkedIn }}</span>
+        </div>
+      </div>
 
-        <div class="stats-side">
-          <div class="stat-box">
-            <span class="label">OCC. RATE</span>
-            <span class="value">{{ stats.avg }}%</span>
-          </div>
-          <div class="stat-box">
-            <span class="label">CHECK-IN</span>
-            <span class="value">{{ stats.checkedIn }}</span>
-          </div>
-        </div>
+      <div class="sparkline-wrapper">
+        <revelton-historical-chart
+          [data]="chartData"
+          [colors]="['#A855F7']"
+          [sparkline]="false"
+          [area]="true">
+        </revelton-historical-chart>
       </div>
 
       <div class="stay-log" *ngIf="!compact">
@@ -67,61 +66,41 @@ import { TranslationService } from '../../../revelton-tb-extension-dashboard/cor
       flex-direction: column;
       gap: 16px;
     }
-    .occupancy-main {
-      display: flex;
-      align-items: center;
-      gap: 24px;
-      margin-bottom: 8px;
+    .status-badge-modern {
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 9px;
+      font-weight: 800;
+      background: var(--bg, rgba(255, 255, 255, 0.05));
+      color: var(--text-secondary, rgba(255, 255, 255, 0.5));
+      text-transform: uppercase;
+      transition: all 0.3s ease;
+      &.occupied { background: rgba(168, 85, 247, 0.1); color: #A855F7; }
     }
-    .donut-wrapper-large {
-      width: 100px;
-      height: 100px;
-    }
-    .donut-chart {
-      width: 100%;
-      height: 100%;
-      border-radius: 50%;
-      background: conic-gradient(var(--color) calc(var(--percent) * 1%), rgba(255, 255, 255, 0.05) 0);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      position: relative;
-      .donut-inner {
-        width: 80%;
-        height: 80%;
-        background: var(--bg-panel);
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        .donut-content {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          .val { font-size: 16px; font-weight: 800; color: #fff; }
-          .label { font-size: 7px; font-weight: 800; color: #6B7280; letter-spacing: 0.5px; }
-        }
-      }
-    }
-    .stats-side {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
+    .stats-row-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
       gap: 12px;
-      .stat-box {
+      .stat-col {
         display: flex;
         flex-direction: column;
-        gap: 2px;
-        .label { font-size: 8px; font-weight: 800; color: #6B7280; letter-spacing: 0.5px; }
-        .value { font-size: 14px; font-weight: 800; color: #fff; }
+        gap: 4px;
+        .label { font-size: 8px; font-weight: 800; color: var(--text-muted, #6B7280); letter-spacing: 0.5px; }
+        .value { font-size: 14px; font-weight: 800; color: var(--text, #fff); }
       }
+    }
+    .sparkline-wrapper {
+      width: 100%;
+      height: 80px;
+      margin-top: 4px;
+      ::ng-deep revelton-historical-chart { height: 100%; display: block; }
     }
     .stay-log {
       flex: 1;
       display: flex;
       flex-direction: column;
       min-height: 0;
-      h4 { font-size: 9px; font-weight: 800; color: #6B7280; margin: 0 0 12px; letter-spacing: 1px; }
+      h4 { font-size: 9px; font-weight: 800; color: var(--text-muted, #6B7280); margin: 0 0 12px; letter-spacing: 1px; }
       .log-table {
         display: flex;
         flex-direction: column;
@@ -129,35 +108,29 @@ import { TranslationService } from '../../../revelton-tb-extension-dashboard/cor
           display: flex;
           justify-content: space-between;
           padding-bottom: 8px;
-          border-bottom: 1px solid rgba(255,255,255,0.05);
-          span { font-size: 8px; font-weight: 800; color: #6B7280; letter-spacing: 0.5px; }
+          border-bottom: 1px solid var(--border, rgba(255,255,255,0.05));
+          span { font-size: 8px; font-weight: 800; color: var(--text-muted, #6B7280); letter-spacing: 0.5px; }
         }
         .log-row {
           display: flex;
           justify-content: space-between;
           padding: 10px 0;
-          border-bottom: 1px solid rgba(255,255,255,0.03);
-          .date { font-size: 11px; font-weight: 700; color: #fff; }
+          border-bottom: 1px solid var(--border, rgba(255,255,255,0.03));
+          .date { font-size: 11px; font-weight: 700; color: var(--text, #fff); }
           .duration { font-size: 11px; font-weight: 700; }
           .purple-text { color: var(--purple); }
-          &.empty { justify-content: center; .empty-msg { font-size: 10px; color: #6B7280; font-style: italic; } }
+          &.empty { justify-content: center; .empty-msg { font-size: 10px; color: var(--text-muted, #6B7280); font-style: italic; } }
         }
       }
     }
-
+ 
     /* Compact mode overrides */
     .occupancy-panel.compact {
       gap: 8px;
       .panel-header { margin-bottom: 4px; }
-      .occupancy-main { gap: 12px; margin-bottom: 0; }
-      .stats-side { gap: 6px; }
-      .stat-box .value { font-size: 12px; }
-    }
-    .donut-wrapper-large.compact {
-      width: 60px;
-      height: 60px;
-      .donut-inner .donut-content .val { font-size: 12px; }
-      .donut-inner .donut-content .label { font-size: 6px; }
+      .sparkline-wrapper { height: 50px; }
+      .stats-row-grid { gap: 6px; }
+      .stat-col .value { font-size: 12px; }
     }
   `]
 })

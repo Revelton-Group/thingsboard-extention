@@ -6,6 +6,7 @@ interface MetricTab {
   label: string;
   unit: string;
   color: string;
+  hexColor: string;
   icon: string;
 }
 
@@ -35,14 +36,14 @@ export class RoomHistoricalDataComponent implements OnInit, OnChanges {
   stats: Record<string, any> = {};
   
   // Custom stats for the new panels
-  noiseStats: any = { current: 0, min: 0, avg: 0, peak: 0 };
+  noiseStats: any = { laeq: null, lai: null, laimax: null };
   windowStats: any = { current: 'Closed', avgOpen: 0, tamper: 'None', eventCount: 0, avgDuration: '0m', events: [], devices: [] };
   waterLeakStats: any = { current: 'No Leak', events: 0 };
   occupancyStats: any = { current: 'Unoccupied', avg: 0, checkedIn: 'No' };
 
   // Chart data per metric key
   chartDataMap: Record<string, [number, number][]> = {};
-  noiseChartData: any[] = [];
+  noiseChartData: any = { laeq: [], lai: [], laimax: [] };
   waterLeakChartData: any[] = [];
   occupancyChartData: any[] = [];
 
@@ -65,10 +66,11 @@ export class RoomHistoricalDataComponent implements OnInit, OnChanges {
 
   private initTabs() {
     this.allTabs = [
-      { key: 'co2',         label: 'CO₂',          unit: this.t.histUnitPpm,   color: 'var(--purple)', icon: 'co2'        },
-      { key: 'tvoc',        label: 'TVOC',         unit: this.t.histUnitPpb,   color: 'var(--green)', icon: 'science'    },
-      { key: 'pm25',        label: 'PM2.5',        unit: this.t.histUnitUgM3, color: 'var(--orange)', icon: 'grain'      },
-      { key: 'iaq',         label: 'AQI',          unit: '',      color: 'var(--yellow)', icon: 'air'        },
+      { key: 'co2',         label: 'CO₂',          unit: this.t.histUnitPpm,   color: 'var(--purple)', hexColor: '#A855F7', icon: 'co2'        },
+      { key: 'tvoc',        label: 'TVOC',         unit: this.t.histUnitPpb,   color: 'var(--green)',  hexColor: '#22C55E', icon: 'science'    },
+      { key: 'pm25',        label: 'PM2.5',        unit: this.t.histUnitUgM3,  color: 'var(--orange)', hexColor: '#F97316', icon: 'grain'      },
+      { key: 'pm10',        label: 'PM10',         unit: this.t.histUnitUgM3,  color: 'var(--cyan)',   hexColor: '#06B6D4', icon: 'blur_on'    },
+      { key: 'pressure',    label: 'Pressure',     unit: this.t.histUnitHpa,   color: 'var(--blue)',   hexColor: '#3B82F6', icon: 'compress'   },
     ];
   }
 
@@ -137,26 +139,40 @@ export class RoomHistoricalDataComponent implements OnInit, OnChanges {
 
   get safeMax(): { value: number; label: string } {
     switch (this.selectedKey) {
-      case 'co2':  return { value: 1000, label: 'Safe max: 1000ppm' };
-      case 'tvoc': return { value: 500,  label: 'Safe max: 500ppb' };
-      case 'pm25': return { value: 25,   label: 'Safe max: 25µg/m³' };
-      case 'iaq':  return { value: 100,  label: 'Safe max: AQI 100' };
-      default:     return { value: 1000, label: 'Safe max: 1000ppm' };
+      case 'co2':      return { value: 1000, label: 'Safe max: 1000ppm' };
+      case 'tvoc':     return { value: 500,  label: 'Safe max: 500ppb' };
+      case 'pm25':     return { value: 25,   label: 'Safe max: 25µg/m³' };
+      case 'pm10':     return { value: 50,   label: 'Safe max: 50µg/m³' };
+      case 'pressure': return { value: 1100, label: 'Normal: 1013 hPa' };
+      case 'iaq':      return { value: 100,  label: 'Safe max: AQI 100' };
+      default:         return { value: 1000, label: 'Safe max: 1000ppm' };
     }
   }
 
   get gaugePercent(): number {
+    if (this.selectedKey === 'pressure') {
+      const val = this.currentValueNum || 1013;
+      if (val < 900) return 0;
+      if (val > 1100) return 100;
+      return Math.round(((val - 900) / 200) * 100);
+    }
     if (this.safeMax.value <= 0) return 0;
     return Math.min(100, Math.round((this.currentValueNum / this.safeMax.value) * 100));
   }
 
   get gaugeColor(): string {
+    if (this.selectedKey === 'pressure') {
+      return '#3B82F6';
+    }
     if (this.gaugePercent <= 30) return '#22C55E';
     if (this.gaugePercent <= 60) return '#F97316';
     return '#EF4444';
   }
 
   get statusLabel(): { text: string; cssClass: string } {
+    if (this.selectedKey === 'pressure') {
+      return { text: 'NORMAL — atmospheric pressure', cssClass: 'pressure' };
+    }
     if (this.gaugePercent <= 30) return { text: 'GOOD — within safe limits', cssClass: 'good' };
     if (this.gaugePercent <= 60) return { text: 'MODERATE — approaching limits', cssClass: 'moderate' };
     return { text: 'POOR — exceeds safe limits', cssClass: 'bad' };
@@ -218,7 +234,7 @@ export class RoomHistoricalDataComponent implements OnInit, OnChanges {
 
       // ── Step 2: Fetch telemetry for all devices concurrently ───────
       const fetchPromises: Promise<any>[] = [];
-      const keysToFetch = 'temperature,humidity,co2,tvoc,iaq,pm25,pm10,pressure,temp,hum,noise,data_LAeq,contact,waterLeak,occupancy,presence,motion,pir';
+      const keysToFetch = 'temperature,humidity,co2,tvoc,iaq,pm25,pm10,pressure,temp,hum,noise,data_LAeq,LAeq,data_LAI,LAI,lai,data_LAImax,LAImax,laimax,contact,data_contact,waterLeak,data_leakage_status,occupancy,data_occupancy,presence,motion,pir,data_temperature,data_humidity,data_co2,data_tvoc,data_iaq,data_pm25,data_pm2_5,data_pm10,data_pressure';
       
       // We wrap the requests in a try/catch so if one fails it doesn't break the others
       const safeFetch = async (id: string | null) => {
@@ -233,7 +249,7 @@ export class RoomHistoricalDataComponent implements OnInit, OnChanges {
       const results = await Promise.all(uniqueIds.map(id => safeFetch(id)));
 
       // ── Step 3: Process and merge data ──────────────────────────────
-      const normalized: Record<string, any[]> = { temperature: [], humidity: [], co2: [], tvoc: [], iaq: [], pm25: [], pressure: [], noise: [], contact: [], waterLeak: [], occupancy: [] };
+      const normalized: Record<string, any[]> = { temperature: [], humidity: [], co2: [], tvoc: [], iaq: [], pm25: [], pm10: [], pressure: [], laeq: [], lai: [], laimax: [], contact: [], waterLeak: [], occupancy: [] };
 
       // Map device results back to their roles
       uniqueIds.forEach((id, index) => {
@@ -244,51 +260,78 @@ export class RoomHistoricalDataComponent implements OnInit, OnChanges {
         if (id === tempDeviceId || (!tempDeviceId && id === aqDeviceId)) {
           if (data['temperature']?.length) normalized['temperature'] = data['temperature'];
           else if (data['temp']?.length) normalized['temperature'] = data['temp'];
+          else if (data['data_temperature']?.length) normalized['temperature'] = data['data_temperature'];
+          else if (data['data_temp']?.length) normalized['temperature'] = data['data_temp'];
         }
 
         // If this is the humidity device, grab its humidity
         if (id === humDeviceId || (!humDeviceId && id === aqDeviceId)) {
           if (data['humidity']?.length) normalized['humidity'] = data['humidity'];
           else if (data['hum']?.length) normalized['humidity'] = data['hum'];
+          else if (data['data_humidity']?.length) normalized['humidity'] = data['data_humidity'];
+          else if (data['data_hum']?.length) normalized['humidity'] = data['data_hum'];
         }
 
         // If this is the AQ device, grab the pollutants
         if (id === aqDeviceId) {
           if (data['co2']?.length) normalized['co2'] = data['co2'];
+          else if (data['data_co2']?.length) normalized['co2'] = data['data_co2'];
+
           if (data['tvoc']?.length) normalized['tvoc'] = data['tvoc'];
+          else if (data['data_tvoc']?.length) normalized['tvoc'] = data['data_tvoc'];
+
           if (data['iaq']?.length) normalized['iaq'] = data['iaq'];
+          else if (data['data_iaq']?.length) normalized['iaq'] = data['data_iaq'];
+
           if (data['pm25']?.length) normalized['pm25'] = data['pm25'];
+          else if (data['data_pm25']?.length) normalized['pm25'] = data['data_pm25'];
+          else if (data['pm2_5']?.length) normalized['pm25'] = data['pm2_5'];
+          else if (data['data_pm2_5']?.length) normalized['pm25'] = data['data_pm2_5'];
+
+          if (data['pm10']?.length) normalized['pm10'] = data['pm10'];
+          else if (data['data_pm10']?.length) normalized['pm10'] = data['data_pm10'];
+
           if (data['pressure']?.length) normalized['pressure'] = data['pressure'];
+          else if (data['data_pressure']?.length) normalized['pressure'] = data['data_pressure'];
         }
 
         // Noise
         if (id === noiseDeviceId) {
-          if (data['noise']?.length) {
-            normalized['noise'] = data['noise'];
-          } else if (data['data_LAeq']?.length) {
-            normalized['noise'] = data['data_LAeq'];
-          }
+          const laeqData = data['noise'] || data['data_LAeq'] || data['LAeq'] || data['laeq'];
+          if (laeqData?.length) normalized['laeq'] = laeqData;
+
+          const laiData = data['data_LAI'] || data['LAI'] || data['lai'];
+          if (laiData?.length) normalized['lai'] = laiData;
+
+          const laimaxData = data['data_LAImax'] || data['LAImax'] || data['laimax'];
+          if (laimaxData?.length) normalized['laimax'] = laimaxData;
         }
 
         // Window
-        if (id === windowDeviceId && data['contact']?.length) {
-          normalized['contact'] = data['contact'];
+        if (id === windowDeviceId) {
+          if (data['contact']?.length) normalized['contact'] = data['contact'];
+          else if (data['data_contact']?.length) normalized['contact'] = data['data_contact'];
         }
 
         // Leak
-        if (id === leakDeviceId && data['waterLeak']?.length) {
-          normalized['waterLeak'] = data['waterLeak'];
+        if (id === leakDeviceId) {
+          if (data['waterLeak']?.length) normalized['waterLeak'] = data['waterLeak'];
+          else if (data['data_leakage_status']?.length) normalized['waterLeak'] = data['data_leakage_status'];
         }
 
         // Occupancy
-        if (id === occDeviceId) {
-          const occKey = ['occupancy', 'presence', 'motion', 'pir'].find(k => data[k]?.length);
-          if (occKey) normalized['occupancy'] = data[occKey];
+        if (id === occDeviceId || id === aqDeviceId) {
+          const occKey = ['occupancy', 'data_occupancy', 'presence', 'motion', 'pir'].find(k => data[k]?.length);
+          if (occKey) {
+            if (id === occDeviceId || !normalized['occupancy']?.length) {
+              normalized['occupancy'] = data[occKey];
+            }
+          }
         }
       });
 
       // Update Chart Data Map
-      for (const key of ['temperature', 'humidity', 'co2', 'tvoc', 'iaq', 'pm25', 'pressure']) {
+      for (const key of ['temperature', 'humidity', 'co2', 'tvoc', 'iaq', 'pm25', 'pm10', 'pressure']) {
         if (normalized[key]?.length) {
           this.chartDataMap[key] = this.toSeries(normalized[key]);
         }
@@ -304,23 +347,44 @@ export class RoomHistoricalDataComponent implements OnInit, OnChanges {
       this.stats['humidity']    = this.latest(normalized['humidity']);
       this.stats['co2']         = this.latest(normalized['co2']);
       this.stats['iaq']         = this.latest(normalized['iaq'] || normalized['tvoc']);
+      this.stats['pm10']        = this.latest(normalized['pm10']);
+      this.stats['pressure']    = this.latest(normalized['pressure']);
 
-      // ── Process new panel stats ──
-      // Noise
-      if (normalized['noise'].length) {
-        this.noiseChartData = [{ name: this.t.histAcoustics, values: this.toSeries(normalized['noise']) }];
-        const vals = normalized['noise'].map(d => parseFloat(d.value)).filter(v => !isNaN(v));
-        if (vals.length) {
-          this.noiseStats.current = Math.round(vals[vals.length - 1]);
-          this.noiseStats.min = Math.round(Math.min(...vals));
-          this.noiseStats.peak = Math.round(Math.max(...vals));
-          this.noiseStats.avg = Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
+      // Noise (LAeq, LAI, LAImax)
+      this.noiseStats = {};
+      this.noiseChartData = {};
+
+      const noiseTypes = [
+        { key: 'laeq', label: 'LAeq' },
+        { key: 'lai', label: 'LAI' },
+        { key: 'laimax', label: 'LAImax' }
+      ];
+
+      noiseTypes.forEach(t => {
+        const telemetry = normalized[t.key]?.length ? normalized[t.key] : normalized['laeq'];
+        if (telemetry && telemetry.length) {
+          this.noiseChartData[t.key] = [{ name: t.label, values: this.toSeries(telemetry) }];
+          const vals = telemetry.map(d => parseFloat(d.value)).filter(v => !isNaN(v));
+          if (vals.length) {
+            this.noiseStats[t.key] = {
+              current: Math.round(vals[vals.length - 1]),
+              min: Math.round(Math.min(...vals)),
+              peak: Math.round(Math.max(...vals)),
+              avg: Math.round(vals.reduce((a, b) => a + b, 0) / vals.length)
+            };
+          }
+        } else {
+          this.noiseChartData[t.key] = [];
+          this.noiseStats[t.key] = { current: 0, min: 0, peak: 0, avg: 0 };
         }
-      }
+      });
 
       // Water Leak
       if (normalized['waterLeak'].length) {
-        const series = normalized['waterLeak'].map(d => [d.ts, d.value === 'true' || d.value === true ? 1 : 0] as [number, number]);
+        const series = normalized['waterLeak'].map(d => {
+          const isLeak = d.value === 'true' || d.value === true || d.value === 1 || d.value === '1' || (typeof d.value === 'string' && d.value.toLowerCase() !== 'normal');
+          return [d.ts, isLeak ? 1 : 0] as [number, number];
+        });
         this.waterLeakChartData = [{ name: this.t.histLeakDetected, values: series }];
         this.waterLeakStats.current = series[series.length - 1][1] === 1 ? this.t.histLeakDetected : this.t.noLeak;
         this.waterLeakStats.events = series.filter(s => s[1] === 1).length;
@@ -432,9 +496,29 @@ export class RoomHistoricalDataComponent implements OnInit, OnChanges {
 
   private toSeries(points: any[]): [number, number][] {
     if (!points?.length) return [];
-    return points
+    const mapped = points
       .map(p => [p.ts, parseFloat(p.value)] as [number, number])
       .filter(([_, v]) => !isNaN(v));
+
+    let intervalMs = 15 * 60 * 1000; // 15m avg for 24h default
+    if (this.timeRangeHours > 168) {
+      intervalMs = 6 * 60 * 60 * 1000; // 6h avg for 30d
+    } else if (this.timeRangeHours > 24) {
+      intervalMs = 1 * 60 * 60 * 1000; // 1h avg for 7d
+    }
+
+    if (mapped.length <= 1) return mapped;
+
+    const buckets = new Map<number, number[]>();
+    for (const [ts, val] of mapped) {
+      const bucketTs = Math.floor(ts / intervalMs) * intervalMs;
+      if (!buckets.has(bucketTs)) buckets.set(bucketTs, []);
+      buckets.get(bucketTs)!.push(val);
+    }
+
+    return Array.from(buckets.entries())
+      .map(([ts, vals]) => [ts, Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 10) / 10] as [number, number])
+      .sort((a, b) => a[0] - b[0]);
   }
 
   private latest(points: any[]): number | null {

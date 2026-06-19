@@ -238,7 +238,7 @@ export class HistoricalStateService implements OnDestroy {
           return of([]);
         }
 
-        // For each device: discover keys → pick processor → fetch & process
+        // For each device: discover keys → pick processor(s) → fetch & process
         const deviceFetches = devices.map(device =>
           this.telemetry.getDeviceKeys(device.id).pipe(
             switchMap(lowerKeys => {
@@ -247,19 +247,22 @@ export class HistoricalStateService implements OnDestroy {
                 this.thermostatProc, this.airQualityProc, this.windowProc,
                 this.waterLeakProc, this.noiseProc, this.occupancyProc,
               ];
-              const processor = processors.find(p => p.canHandle(lowerKeys, device.name));
-              if (!processor) {
+              const matchedProcessors = processors.filter(p => p.canHandle(lowerKeys, device.name));
+              if (matchedProcessors.length === 0) {
                 console.warn(`[HistoricalState] ⚠️ Unrecognized sensor: ${device.name}`, lowerKeys);
-                return of(null);
+                return of([]);
               }
-              return processor.process(device, rawKeys, tw);
+              const obs = matchedProcessors.map(p => p.process(device, rawKeys, tw));
+              return forkJoin(obs);
             }),
+            catchError(() => of([]))
           )
         );
 
         return forkJoin(deviceFetches).pipe(
           tap(results => {
-            for (const result of results) {
+            const flatResults = (results || []).reduce((acc, val) => acc.concat(val || []), []);
+            for (const result of flatResults) {
               if (result) this.applyResult(result as SensorPanelResult);
             }
             this.injectRoomTempIntoThermostatIfNeeded();

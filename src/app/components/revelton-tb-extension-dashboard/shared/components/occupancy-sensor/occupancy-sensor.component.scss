@@ -1,53 +1,63 @@
-.sensor-tile {
+.radar-card {
   background: var(--card, #FFFFFF);
-  border-radius: var(--radius-sm, 12px);
-  border: 1px solid var(--border, rgba(0, 0, 0, 0.04));
-  padding: 12px;
+  border-radius: var(--radius-sm, 14px);
+  border: 1px solid var(--border, rgba(0, 0, 0, 0.06));
+  padding: 14px;
   display: flex;
   flex-direction: column;
-  transition: all 0.2s;
-  min-width: 0;
+  gap: 12px;
+  transition: all 0.25s ease;
+  width: 100%;
+  min-width: 200px;
+  max-width: 310px;
 
   &:hover {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+    transform: translateY(-1px);
+  }
+
+  &.occupied {
+    background: rgba(59, 130, 246, 0.03);
+    border-color: rgba(59, 130, 246, 0.14);
+  }
+
+  &.vacant {
+    background: rgba(52, 199, 89, 0.03);
+    border-color: rgba(52, 199, 89, 0.10);
   }
 }
 
-.sensor-top {
+/* ═══ Header ═══ */
+.radar-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  width: 100%;
-  gap: 12px;
+  gap: 8px;
 }
 
-.sensor-left {
+.radar-header-left {
   display: flex;
   align-items: center;
   gap: 10px;
   min-width: 0;
-  flex: 1;
 }
 
-.sensor-icon-box {
-  width: 32px;
-  height: 32px;
-  min-width: 32px;
-  border-radius: 8px;
+.radar-icon-box {
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  border-radius: 9px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 16px;
   flex-shrink: 0;
+
+  i {
+    font-size: 18px;
+  }
 }
 
-.sensor-info {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
-.sensor-name {
+.radar-name {
   font-size: 12px;
   font-weight: 700;
   color: var(--text, #1C1C1E);
@@ -57,87 +67,188 @@
   text-overflow: ellipsis;
 }
 
-.sensor-model {
+.radar-model {
   font-size: 10px;
   color: var(--text-muted, #8E8E93);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
-.sensor-right {
+.radar-header-right {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
   gap: 4px;
   flex-shrink: 0;
+}
+
+/* ═══ Meta badges (pill style, same as other sensors) ═══ */
+.radar-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1.2;
+  height: 18px;
+  box-sizing: border-box;
 
   i {
-    font-size: 12px;
-    vertical-align: middle;
-    margin-right: 2px;
+    font-size: 11px !important;
   }
 }
 
-.sensor-timestamp {
+.meta-item-green {
+  color: var(--success, #34C759);
+  background: rgba(52, 199, 89, 0.08);
+}
+.meta-item-orange {
+  color: var(--warning, #FF9500);
+  background: rgba(255, 149, 0, 0.08);
+}
+.meta-item-red {
+  color: var(--danger, #FF3B30);
+  background: rgba(255, 59, 48, 0.08);
+}
+.meta-item-gray {
+  color: var(--text-muted, #8E8E93);
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.radar-timestamp {
   display: flex;
   align-items: center;
-  gap: 4px;
-  font-size: 11px;
-  color: var(--text-muted, #A0AEC0);
+  gap: 3px;
+  font-size: 10px;
+  color: var(--text-muted, #8E8E93);
   white-space: nowrap;
 
   i {
-    font-size: 12px;
+    font-size: 11px;
   }
 }
 
-.sensor-tamper {
+/* ═══ Main presence display ═══ */
+.radar-main {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 4px 0 2px;
+}
+
+/* ═══ Animated radar rings ═══ */
+.radar-visual {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  color: var(--warning, #FF9500);
-  background: var(--warning-bg, rgba(255, 149, 0, 0.1));
-  border: 1px solid var(--warning, rgba(255, 149, 0, 0.3));
-  padding: 6px 12px;
-  border-radius: 6px;
-  width: 100%;
-  margin-top: 10px;
-
-  i {
-    font-size: 14px;
-  }
 }
 
-.sensor-meta-row {
+.radar-ring {
+  position: absolute;
+  border-radius: 50%;
+  border: 1.5px solid transparent;
+  transition: border-color 0.4s ease;
+}
+
+.ring-3 {
+  width: 72px;
+  height: 72px;
+}
+
+.ring-2 {
+  width: 52px;
+  height: 52px;
+}
+
+.ring-1 {
+  width: 34px;
+  height: 34px;
+}
+
+.radar-center {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1.5px solid;
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 11px;
-  font-weight: 600;
-
-  span {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-  }
+  justify-content: center;
+  transition: all 0.4s ease;
 
   i {
-    font-size: 14px;
+    font-size: 15px;
   }
 }
 
-/* Occupied highlight */
-.sensor-tile.occupied {
-  background: var(--info-bg, rgba(44, 123, 229, 0.04));
-  border-color: var(--info, rgba(44, 123, 229, 0.12));
+/* Pulse animation when occupied */
+.radar-active .ring-3 {
+  animation: radar-pulse 2.2s ease-out infinite;
 }
 
-.meta-item-green { color: var(--success, #34C759); }
-.meta-item-red { color: var(--danger, #FF3B30); }
-.meta-item-orange { color: var(--warning, #FF9500); }
-.meta-item-gray { color: var(--text-muted, #8E8E93); }
+.radar-active .ring-2 {
+  animation: radar-pulse 2.2s ease-out 0.5s infinite;
+}
+
+.radar-active .ring-1 {
+  animation: radar-pulse 2.2s ease-out 1s infinite;
+}
+
+@keyframes radar-pulse {
+  0% { transform: scale(0.88); opacity: 0.9; }
+  60% { transform: scale(1.05); opacity: 0.5; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* ═══ Status text ═══ */
+.radar-status {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.radar-status-label {
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.1;
+  transition: color 0.3s;
+}
+
+.radar-status-sub {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--text-muted, #8E8E93);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* Illuminance chip */
+.radar-illum-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.04);
+  margin-top: 2px;
+  width: fit-content;
+
+  i {
+    font-size: 12px;
+  }
+
+  span {
+    font-size: 10px;
+    font-weight: 600;
+  }
+}
