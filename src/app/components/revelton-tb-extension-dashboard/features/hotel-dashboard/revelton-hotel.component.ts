@@ -247,6 +247,10 @@ export class ReveltonDashboardComponent implements OnInit, OnDestroy {
     if (this.ctx) {
       this.ctx.$scope.reveltonHotelComponent = this;
 
+      // Provide widget context to ControlPanelService for ThingsBoard REST API access
+      this.controlPanelService.setCtx(this.ctx);
+      this.controlPanelService.loadFromThingsBoard();
+
       // Trigger backend device discovery (relation-based)
       this.hotelState.discoverDevices(this.ctx);
 

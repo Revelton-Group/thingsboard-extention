@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { ControlPanelService } from './services/control-panel.service';
 import { TranslationService } from '../../core/services/translation.service';
@@ -16,11 +16,11 @@ import {
 @Component({
   selector: 'tb-control-panel',
   template: `
-    <!-- Backdrop -->
-    <div class="cp-backdrop" *ngIf="isOpen" (click)="close()"></div>
+    <!-- Main Overlay Container (Backdrop & Centering wrapper) -->
+    <div class="cp-overlay" [class.cp-overlay--open]="isOpen" (click)="close()">
 
-    <!-- Sliding panel -->
-    <div class="cp-panel" [class.cp-panel--open]="isOpen">
+      <!-- Sliding panel -->
+      <div class="cp-panel" [class.cp-panel--open]="isOpen" (click)="$event.stopPropagation()">
 
       <!-- Header -->
       <div class="cp-header">
@@ -584,6 +584,7 @@ import {
       </div>
 
     </div>
+  </div>
   `,
   styleUrls: ['./control-panel.component.scss'],
   standalone: false,
@@ -605,7 +606,8 @@ export class ControlPanelComponent implements OnInit, OnDestroy {
   constructor(
     private controlPanelService: ControlPanelService,
     private translationService: TranslationService,
-    private hotelStateService: HotelStateService
+    private hotelStateService: HotelStateService,
+    private cdr: ChangeDetectorRef
   ) {}
 
   get t() {
@@ -632,8 +634,14 @@ export class ControlPanelComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.sections = this.controlPanelService.sections;
-    this._subs.add(this.controlPanelService.isOpen$.subscribe(v => (this.isOpen = v)));
-    this._subs.add(this.controlPanelService.activeSection$.subscribe(v => (this.activeSection = v)));
+    this._subs.add(this.controlPanelService.isOpen$.subscribe(v => {
+      this.isOpen = v;
+      this.cdr.detectChanges();
+    }));
+    this._subs.add(this.controlPanelService.activeSection$.subscribe(v => {
+      this.activeSection = v;
+      this.cdr.detectChanges();
+    }));
     this._subs.add(this.controlPanelService.config$.subscribe(c => {
       this.config = JSON.parse(JSON.stringify(c));
       if (!this.config.telegram) this.config.telegram = { enabled: false, botToken: '', chatId: '', topicId: '' };
@@ -656,8 +664,12 @@ export class ControlPanelComponent implements OnInit, OnDestroy {
         if (this.originalConfig.noise.laimaxMax == null) this.originalConfig.noise.laimaxMax = 70;
       }
       this.checkPresetMatch();
+      this.cdr.detectChanges();
     }));
-    this._subs.add(this.hotelStateService.rooms$.subscribe(r => (this.rooms = r)));
+    this._subs.add(this.hotelStateService.rooms$.subscribe(r => {
+      this.rooms = r;
+      this.cdr.detectChanges();
+    }));
   }
 
   ngOnDestroy(): void {
@@ -868,3 +880,5 @@ export class ControlPanelComponent implements OnInit, OnDestroy {
 
 
 }
+
+// Trigger watch rebuild

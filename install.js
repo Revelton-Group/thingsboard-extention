@@ -7,25 +7,25 @@ const path = require('path');
 let _projectRoot = null;
 
 (async () => {
-  // Move the JavaScript file and its associated source map
-  await moveFileWithSourceMap(sourcePackage(), targetPackage());
+  // Copy the JavaScript file and its associated source map
+  await copyFileWithSourceMap(sourcePackage(), targetPackage());
 })();
 
-// Function to move the main package and its source map
-async function moveFileWithSourceMap(sourceFilePath, targetFilePath) {
+// Function to copy the main package and its source map
+async function copyFileWithSourceMap(sourceFilePath, targetFilePath) {
   try {
-    // Move the main JavaScript file
-    await fse.move(sourceFilePath, targetFilePath, { overwrite: true });
+    // Copy the main JavaScript file
+    await fse.copy(sourceFilePath, targetFilePath, { overwrite: true });
 
-    // Check if a source map exists and move it if found
+    // Check if a source map exists and copy it if found
     const sourceMapPath = `${sourceFilePath}.map`;
     const targetMapPath = `${targetFilePath}.map`;
 
     if (fse.pathExists(sourceMapPath)) {
-      await fse.move(sourceMapPath, targetMapPath, { overwrite: true });
+      await fse.copy(sourceMapPath, targetMapPath, { overwrite: true });
     }
   } catch (err) {
-    console.error(`Error moving files: ${err.message}`);
+    console.error(`Error copying files: ${err.message}`);
   }
 }
 
