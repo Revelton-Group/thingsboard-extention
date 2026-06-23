@@ -1589,7 +1589,7 @@
     width: 96%;
     max-width: 1440px;
     height: auto;
-    max-height: 92vh;
+    max-height: calc(100% - 80px);
     display: flex;
     flex-direction: column;
     background: var(--bg);
@@ -1600,7 +1600,7 @@
     border: 1px solid var(--border);
 
     /* Modal Position Adjustment Variable */
-    --modal-offset-y: -40px;
+    --modal-offset-y: 0px;
     margin-top: var(--modal-offset-y);
 
     animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;

@@ -3,6 +3,7 @@ import { Subscription } from 'rxjs';
 import { ControlPanelService } from './services/control-panel.service';
 import { TranslationService } from '../../core/services/translation.service';
 import { HotelStateService } from '../../core/services/hotel-state.service';
+import { ThemeService } from '../../core/services/theme.service';
 import {
   ControlPanelSection,
   ControlPanelSectionId,
@@ -50,7 +51,7 @@ import {
         </nav>
 
         <!-- Content -->
-        <div class="cp-content cp-content--dark">
+        <div class="cp-content" [class.cp-content--dark]="isDark">
 
           <!-- ── AIR QUALITY THRESHOLDS (AirGuard Design) ── -->
           <ng-container *ngIf="activeSection === 'air_quality'">
@@ -68,14 +69,23 @@ import {
                   </div>
                 </div>
                 
-                <!-- Status Counters -->
-                <div class="cp-aq-counters">
-                  <span class="cp-aq-counter-badge cp-aq-counter-badge--normal">
-                    <span class="cp-aq-badge-val">{{ countNormal }}</span> Normal
-                  </span>
-                  <span class="cp-aq-counter-badge cp-aq-counter-badge--warning">
-                    <span class="cp-aq-badge-val">{{ countWarning }}</span> Warning
-                  </span>
+                <!-- Right side: counters + toggle -->
+                <div class="cp-aq-header-right">
+                  <div class="cp-aq-counters">
+                    <span class="cp-aq-counter-badge cp-aq-counter-badge--normal">
+                      <span class="cp-aq-badge-val">{{ countNormal }}</span> Normal
+                    </span>
+                    <span class="cp-aq-counter-badge cp-aq-counter-badge--warning">
+                      <span class="cp-aq-badge-val">{{ countWarning }}</span> Warning
+                    </span>
+                  </div>
+                  <div class="cp-aq-monitor-toggle">
+                    <span class="cp-aq-toggle-label">Monitor</span>
+                    <label class="cp-toggle" style="margin: 0;">
+                      <input type="checkbox" [(ngModel)]="config.airQuality.enabled">
+                      <span class="cp-toggle-track"></span>
+                    </label>
+                  </div>
                 </div>
               </div>
 
@@ -319,14 +329,23 @@ import {
                   </div>
                 </div>
                 
-                <!-- Status Counters -->
-                <div class="cp-aq-counters">
-                  <span class="cp-aq-counter-badge cp-aq-counter-badge--normal">
-                    <span class="cp-aq-badge-val">{{ countNoiseNormal }}</span> Normal
-                  </span>
-                  <span class="cp-aq-counter-badge cp-aq-counter-badge--warning">
-                    <span class="cp-aq-badge-val">{{ countNoiseWarning }}</span> Warning
-                  </span>
+                <!-- Right side: counters + toggle -->
+                <div class="cp-aq-header-right">
+                  <div class="cp-aq-counters">
+                    <span class="cp-aq-counter-badge cp-aq-counter-badge--normal">
+                      <span class="cp-aq-badge-val">{{ countNoiseNormal }}</span> Normal
+                    </span>
+                    <span class="cp-aq-counter-badge cp-aq-counter-badge--warning">
+                      <span class="cp-aq-badge-val">{{ countNoiseWarning }}</span> Warning
+                    </span>
+                  </div>
+                  <div class="cp-aq-monitor-toggle">
+                    <span class="cp-aq-toggle-label">Monitor</span>
+                    <label class="cp-toggle" style="margin: 0;">
+                      <input type="checkbox" [(ngModel)]="config.noise.enabled">
+                      <span class="cp-toggle-track"></span>
+                    </label>
+                  </div>
                 </div>
               </div>
 
@@ -450,7 +469,7 @@ import {
                     <i class="material-icons">sync</i>
                   </div>
                   <div>
-                    <h2>{{ t.cpMewsSync }}</h2>
+                    <h2>{{ t.mewsBridge || 'Mews Bridge' }}</h2>
                     <p class="cp-aq-subtitle">{{ t.cpMewsSyncDesc }}</p>
                   </div>
                 </div>
@@ -499,7 +518,7 @@ import {
                 </label>
               </div>
 
-              <div class="cp-card" style="gap: 24px; padding: 16px; flex-direction: row; display: flex; align-items: stretch;" [class.cp-disabled]="!config.telegram.enabled">
+              <div class="cp-card cp-telegram-layout" [class.cp-disabled]="!config.telegram.enabled">
 
                 <!-- LEFT COLUMN -->
                 <div style="flex: 1; display: flex; flex-direction: column; gap: 20px;">
@@ -522,7 +541,7 @@ import {
                 </div>
 
                 <!-- RIGHT COLUMN -->
-                <div style="flex: 1; display: flex; flex-direction: column; gap: 20px; border-left: 1px solid rgba(255, 255, 255, 0.05); padding-left: 24px;">
+                <div class="cp-telegram-divider">
                   <!-- Bot Token -->
                   <div class="cp-field">
                     <label class="cp-label">Main Bot Token</label>
@@ -554,27 +573,7 @@ import {
 
       <!-- Footer -->
       <div class="cp-footer">
-        <div style="display: flex; align-items: center; gap: 12px; margin-right: auto;">
-          <!-- Reset button removed -->
-          
-          <div *ngIf="activeSection === 'air_quality'" style="display: flex; align-items: center; gap: 8px; border-left: 1.5px solid rgba(255, 255, 255, 0.08); padding-left: 12px;">
-            <span style="font-size: 11px; color: #94a3b8; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em;">Monitor Enabled</span>
-            <label class="cp-toggle" style="margin: 0;">
-              <input type="checkbox" [(ngModel)]="config.airQuality.enabled">
-              <span class="cp-toggle-track"></span>
-            </label>
-          </div>
-          
-          <div *ngIf="activeSection === 'noise'" style="display: flex; align-items: center; gap: 8px; border-left: 1.5px solid rgba(255, 255, 255, 0.08); padding-left: 12px;">
-            <span style="font-size: 11px; color: #94a3b8; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em;">Monitor Enabled</span>
-            <label class="cp-toggle" style="margin: 0;">
-              <input type="checkbox" [(ngModel)]="config.noise.enabled">
-              <span class="cp-toggle-track"></span>
-            </label>
-          </div>
-        </div>
-
-        <span class="cp-unsaved-changes" style="margin-right: 12px; margin-left: 0;" *ngIf="hasUnsavedChanges">
+        <span class="cp-unsaved-changes" style="margin-right: 12px;" *ngIf="hasUnsavedChanges">
           <span class="cp-unsaved-dot"></span> Unsaved changes
         </span>
         <button class="cp-btn cp-btn--primary" (click)="save()">
@@ -607,8 +606,13 @@ export class ControlPanelComponent implements OnInit, OnDestroy {
     private controlPanelService: ControlPanelService,
     private translationService: TranslationService,
     private hotelStateService: HotelStateService,
+    private themeService: ThemeService,
     private cdr: ChangeDetectorRef
   ) {}
+
+  get isDark(): boolean {
+    return this.themeService.activeMode === 'dark';
+  }
 
   get t() {
     return this.translationService.t;
@@ -618,7 +622,7 @@ export class ControlPanelComponent implements OnInit, OnDestroy {
     switch(id) {
       case 'air_quality': return this.t.airQuality || 'Air Quality';
       case 'thermostat': return this.t.thermostats || 'Thermostats';
-      case 'noise': return this.t.histNoiseLevels || 'Noise Sensor';
+      case 'noise': return this.t.histNoiseLevels || 'Acoustic Noise';
       case 'window': return this.t.cpWindowAlert || 'Window Alert';
       case 'mews': return this.t.mewsBridge || 'Mews Bridge';
       case 'telegram': return this.t.cpTelegramTitle || 'Telegram Notifications';
@@ -664,6 +668,9 @@ export class ControlPanelComponent implements OnInit, OnDestroy {
         if (this.originalConfig.noise.laimaxMax == null) this.originalConfig.noise.laimaxMax = 70;
       }
       this.checkPresetMatch();
+      this.cdr.detectChanges();
+    }));
+    this._subs.add(this.themeService.mode$.subscribe(() => {
       this.cdr.detectChanges();
     }));
     this._subs.add(this.hotelStateService.rooms$.subscribe(r => {

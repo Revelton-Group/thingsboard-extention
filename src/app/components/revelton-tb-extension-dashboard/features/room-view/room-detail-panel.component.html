@@ -60,15 +60,15 @@
                                 bookingDisplay }}</span>
                         </div>
                     </div>
-                    <div class="qstat" *ngIf="guestName">
+                    <div class="qstat qstat-wide" *ngIf="guestName">
                         <span class="qstat-label">{{ t.guest | uppercase }}</span>
                         <span class="qstat-value" style="font-size: 13px;">{{ guestName }}</span>
                     </div>
-                    <div class="qstat" *ngIf="checkInDisplay">
+                    <div class="qstat qstat-wide" *ngIf="checkInDisplay">
                         <span class="qstat-label">{{ t.checkIn | uppercase }}</span>
                         <span class="qstat-value" style="font-size: 12px;">{{ checkInDisplay }}</span>
                     </div>
-                    <div class="qstat" *ngIf="checkOutDisplay">
+                    <div class="qstat qstat-wide" *ngIf="checkOutDisplay">
                         <span class="qstat-label">{{ t.checkOut | uppercase }}</span>
                         <span class="qstat-value" style="font-size: 12px;">{{ checkOutDisplay }}</span>
                     </div>
@@ -78,7 +78,7 @@
     </div>
 
     <div class="main-content">
-        <div class="panel-grid">
+        <div class="panel-grid" [class.no-thermostats]="thermostats.length === 0" [class.no-airquality]="aqSensors.length === 0">
 
             <!-- TOP-LEFT: Thermostats -->
             <div class="grid-thermostats section-container thermostats-wrapper" *ngIf="thermostats.length > 0"
@@ -164,21 +164,15 @@
                     {{ t.sensors | uppercase }} ({{ allSensors.length }})
                 </div>
                 <div class="sensor-grid">
-                    <div class="sensor-column">
-                        <ng-container *ngFor="let s of leftSensors; trackBy: trackByEntityName">
-                            <tb-noise-sensor *ngIf="s.type === 'noise'" [sensor]="s"></tb-noise-sensor>
-                            <tb-occupancy-sensor *ngIf="s.type === 'occupancy'" [sensor]="s"></tb-occupancy-sensor>
-                        </ng-container>
-                    </div>
-                    <div class="sensor-column">
-                        <ng-container *ngFor="let s of rightSensors; trackBy: trackByEntityName">
-                            <tb-window-sensor *ngIf="s.type === 'window'" [sensor]="s"></tb-window-sensor>
-                            <tb-water-leak-sensor *ngIf="s.type === 'water'" [sensor]="s"></tb-water-leak-sensor>
-                            <tb-sensor-tile
-                                *ngIf="s.type !== 'window' && s.type !== 'water' && s.type !== 'noise' && s.type !== 'occupancy'"
-                                [sensor]="s"></tb-sensor-tile>
-                        </ng-container>
-                    </div>
+                    <ng-container *ngFor="let s of allSensors; trackBy: trackByEntityName">
+                        <tb-noise-sensor *ngIf="s.type === 'noise'" [sensor]="s"></tb-noise-sensor>
+                        <tb-occupancy-sensor *ngIf="s.type === 'occupancy'" [sensor]="s"></tb-occupancy-sensor>
+                        <tb-window-sensor *ngIf="s.type === 'window'" [sensor]="s"></tb-window-sensor>
+                        <tb-water-leak-sensor *ngIf="s.type === 'water'" [sensor]="s"></tb-water-leak-sensor>
+                        <tb-sensor-tile
+                            *ngIf="s.type !== 'window' && s.type !== 'water' && s.type !== 'noise' && s.type !== 'occupancy'"
+                            [sensor]="s"></tb-sensor-tile>
+                    </ng-container>
                     <div *ngIf="allSensors.length === 0" class="empty-state">{{ t.loading }}</div>
                 </div>
             </div>

@@ -539,12 +539,6 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
     this.thermostats.sort((a, b) => this.extractDeviceNumber(a.displayName) - this.extractDeviceNumber(b.displayName));
     this.aqSensors.sort((a, b) => this.extractDeviceNumber(a.displayName) - this.extractDeviceNumber(b.displayName));
     this.smartSockets.sort((a, b) => this.extractDeviceNumber(a.displayName) - this.extractDeviceNumber(b.displayName));
-    this.allSensors.sort((a, b) => {
-      if (a.type === 'occupancy' && b.type !== 'occupancy') return -1;
-      if (a.type !== 'occupancy' && b.type === 'occupancy') return 1;
-      return a.type.localeCompare(b.type) || this.extractDeviceNumber(a.displayName) - this.extractDeviceNumber(b.displayName);
-    });
-
     // Partition allSensors into left and right columns
     this.leftSensors = this.allSensors.filter(s => s.type === 'occupancy' || s.type === 'noise');
     this.rightSensors = this.allSensors.filter(s => s.type !== 'occupancy' && s.type !== 'noise');
@@ -560,6 +554,21 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
     this.rightSensors.sort((a, b) => {
       return a.type.localeCompare(b.type) || this.extractDeviceNumber(a.displayName) - this.extractDeviceNumber(b.displayName);
     });
+
+    // Interleave left and right sensors for row-major order:
+    // Row 1: Left[0] (Presence), Right[0] (Bathroom/Water)
+    // Row 2: Left[1] (Noise), Right[1] (Kitchen/Window)
+    const interleaved: any[] = [];
+    const maxLen = Math.max(this.leftSensors.length, this.rightSensors.length);
+    for (let i = 0; i < maxLen; i++) {
+      if (i < this.leftSensors.length) {
+        interleaved.push(this.leftSensors[i]);
+      }
+      if (i < this.rightSensors.length) {
+        interleaved.push(this.rightSensors[i]);
+      }
+    }
+    this.allSensors = interleaved;
 
     // Populate alerts dynamically based on custom thresholds from Control Config
     const previousAlerts = [...this.alerts];
