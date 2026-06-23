@@ -36,12 +36,20 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
+  gap: 6px;
 }
 
 .aq-header-left {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+.aq-header-left > div {
+  min-width: 0;
+  flex: 1;
 }
 
 .aq-icon-box {
@@ -51,6 +59,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
   i { font-size: 20px; }
 }
 
@@ -63,13 +72,15 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 140px;
 }
 
 .aq-model {
   font-family: 'Manrope', sans-serif;
   font-size: 11px;
   color: var(--text-muted, #8E8E93);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .aq-header-right {
@@ -77,6 +88,8 @@
   flex-direction: column;
   align-items: flex-end;
   gap: 4px;
+  flex-shrink: 1;
+  min-width: 0;
 }
 
 
@@ -84,7 +97,9 @@
 .aq-status-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 4px;
   margin-top: 2px;
 }
 
@@ -126,7 +141,7 @@
   display: flex;
   align-items: center;
   gap: 3px;
-  font-size: 10px;
+  font-size: 9px;
   color: var(--text-muted, #A0AEC0);
   white-space: nowrap;
   margin-top: 2px;
@@ -253,15 +268,16 @@
 /* ═══════ Environment strip (Light · Pressure · Motion) ═══════ */
 .aq-env-row {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
 }
 
 .aq-env-chip {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 5px 6px;
+  justify-content: center;
+  gap: 3px;
+  padding: 5px 4px;
   background: var(--bg, #F9FAFB);
   border-radius: 8px;
   min-width: 0;
@@ -279,10 +295,13 @@
 
 .env-val {
   font-family: 'Outfit', sans-serif;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 700;
   color: var(--text, #1a202c);
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
 }
 
 .env-unit {
@@ -290,4 +309,5 @@
   font-weight: 400;
   color: var(--text-muted, #A0AEC0);
   white-space: nowrap;
+  flex-shrink: 0;
 }

@@ -16,12 +16,36 @@
         "configurationVersion": 0,
         "configuration": {
           "scriptLang": "JS",
-          "jsScript": "if (metadata.entityType && metadata.entityType !== 'DEVICE') {\n  return false;\n}\nvar profile = metadata.deviceType || '';\nreturn profile === 'milesight-am308' || profile === 'milesight-ws302';",
+          "jsScript": "if (metadata.entityType && metadata.entityType !== 'DEVICE') {\n  return false;\n}\nvar profile = metadata.deviceType || '';\nreturn profile === 'milesight-am308' || profile === 'milesight-ws302' || profile === 'milesight-ws303';",
           "tbelScript": ""
         },
         "additionalInfo": {
           "description": "Filters out non-room devices.",
           "layoutX": 50,
+          "layoutY": 200
+        }
+      },
+      {
+        "type": "org.thingsboard.rule.engine.metadata.TbGetAttributesNode",
+        "name": "Fetch Device Attributes",
+        "debugMode": true,
+        "singletonMode": false,
+        "configurationVersion": 0,
+        "configuration": {
+          "clientAttributeNames": [
+            "location"
+          ],
+          "sharedAttributeNames": [
+            "location"
+          ],
+          "serverAttributeNames": [
+            "location"
+          ],
+          "latestTsKeyNames": []
+        },
+        "additionalInfo": {
+          "description": "Fetches device attributes like location.",
+          "layoutX": 200,
           "layoutY": 200
         }
       },
@@ -66,7 +90,7 @@
         },
         "additionalInfo": {
           "description": "Fetches flat threshold keys and Telegram settings from the parent Room Asset.",
-          "layoutX": 300,
+          "layoutX": 380,
           "layoutY": 200
         }
       },
@@ -78,12 +102,12 @@
         "configurationVersion": 0,
         "configuration": {
           "scriptLang": "JS",
-          "jsScript": "var tgEnabled = (metadata.telegram_enabled === 'true');\nif (!tgEnabled) return false;\nif (!metadata.telegram_botToken || !metadata.telegram_chatId) return false;\n\n// Helper: get first defined value from msg using multiple possible key names\nfunction val(keys) {\n  for (var i = 0; i < keys.length; i++) {\n    if (msg[keys[i]] !== undefined) return Number(msg[keys[i]]);\n  }\n  return undefined;\n}\n\nvar aqEnabled = (metadata.airQuality_enabled === 'true');\nif (aqEnabled) {\n  var co2 = val(['co2', 'data_CO2', 'data_co2', 'CO2']);\n  if (co2 !== undefined && metadata.co2Max && co2 >= Number(metadata.co2Max)) return true;\n  var pm25 = val(['pm25', 'data_PM25', 'data_pm25', 'PM25', 'data_PM2_5', 'pm2_5']);\n  if (pm25 !== undefined && metadata.pm25Max && pm25 >= Number(metadata.pm25Max)) return true;\n  var pm10 = val(['pm10', 'data_PM10', 'data_pm10', 'PM10']);\n  if (pm10 !== undefined && metadata.pm10Max && pm10 >= Number(metadata.pm10Max)) return true;\n  var tvoc = val(['tvoc', 'data_TVOC', 'data_tvoc', 'TVOC']);\n  if (tvoc !== undefined && metadata.tvocMax && tvoc >= Number(metadata.tvocMax)) return true;\n  var temp = val(['temperature', 'temp', 'data_temperature', 'data_temp', 'data_Temperature']);\n  if (temp !== undefined && metadata.tempMax && temp >= Number(metadata.tempMax)) return true;\n  var hum = val(['humidity', 'hum', 'data_humidity', 'data_hum', 'data_Humidity']);\n  if (hum !== undefined && metadata.humMax && hum >= Number(metadata.humMax)) return true;\n  var press = val(['pressure', 'data_pressure', 'data_Pressure', 'barometric_pressure']);\n  if (press !== undefined && metadata.pressMax && press >= Number(metadata.pressMax)) return true;\n}\n\nvar noiseEnabled = (metadata.noise_enabled === 'true');\nif (noiseEnabled) {\n  var laeq = val(['laeq', 'data_LAeq', 'data_laeq', 'LAeq']);\n  if (laeq !== undefined && metadata.laeqMax && laeq >= Number(metadata.laeqMax)) return true;\n  var lai = val(['lai', 'data_LAI', 'data_lai', 'LAI']);\n  if (lai !== undefined && metadata.laiMax && lai >= Number(metadata.laiMax)) return true;\n  var laimax = val(['laimax', 'data_LAImax', 'data_laimax', 'LAImax']);\n  if (laimax !== undefined && metadata.laimaxMax && laimax >= Number(metadata.laimaxMax)) return true;\n}\n\nvar leak = val(['waterLeak', 'leak', 'data_leak', 'water_leak']);\nif (leak === 1) return true;\n\nreturn false;",
+          "jsScript": "var tgEnabled = (metadata.telegram_enabled === 'true');\nif (!tgEnabled) return false;\nif (!metadata.telegram_botToken || !metadata.telegram_chatId) return false;\n\n// Helper: get first defined value from msg using multiple possible key names\nfunction val(keys) {\n  for (var i = 0; i < keys.length; i++) {\n    if (msg[keys[i]] !== undefined) return Number(msg[keys[i]]);\n  }\n  return undefined;\n}\n\nvar aqEnabled = (metadata.airQuality_enabled === 'true');\nif (aqEnabled) {\n  var co2 = val(['co2', 'data_CO2', 'data_co2', 'CO2']);\n  if (co2 !== undefined && metadata.co2Max && co2 >= Number(metadata.co2Max)) return true;\n  var pm25 = val(['pm25', 'data_PM25', 'data_pm25', 'PM25', 'data_PM2_5', 'pm2_5']);\n  if (pm25 !== undefined && metadata.pm25Max && pm25 >= Number(metadata.pm25Max)) return true;\n  var pm10 = val(['pm10', 'data_PM10', 'data_pm10', 'PM10']);\n  if (pm10 !== undefined && metadata.pm10Max && pm10 >= Number(metadata.pm10Max)) return true;\n  var tvoc = val(['tvoc', 'data_TVOC', 'data_tvoc', 'TVOC']);\n  if (tvoc !== undefined && metadata.tvocMax && tvoc >= Number(metadata.tvocMax)) return true;\n  var temp = val(['temperature', 'temp', 'data_temperature', 'data_temp', 'data_Temperature']);\n  if (temp !== undefined && metadata.tempMax && temp >= Number(metadata.tempMax)) return true;\n  var hum = val(['humidity', 'hum', 'data_humidity', 'data_hum', 'data_Humidity']);\n  if (hum !== undefined && metadata.humMax && hum >= Number(metadata.humMax)) return true;\n  var press = val(['pressure', 'data_pressure', 'data_Pressure', 'barometric_pressure']);\n  if (press !== undefined && metadata.pressMax && press >= Number(metadata.pressMax)) return true;\n}\n\nvar noiseEnabled = (metadata.noise_enabled === 'true');\nif (noiseEnabled) {\n  var laeq = val(['laeq', 'data_LAeq', 'data_laeq', 'LAeq']);\n  if (laeq !== undefined && metadata.laeqMax && laeq >= Number(metadata.laeqMax)) return true;\n  var lai = val(['lai', 'data_LAI', 'data_lai', 'LAI']);\n  if (lai !== undefined && metadata.laiMax && lai >= Number(metadata.laiMax)) return true;\n  var laimax = val(['laimax', 'data_LAImax', 'data_laimax', 'LAImax']);\n  if (laimax !== undefined && metadata.laimaxMax && laimax >= Number(metadata.laimaxMax)) return true;\n}\n\nvar hasLeak = false;\nvar leakKeys = ['waterLeak', 'leak', 'data_leak', 'water_leak', 'data_leakage_status', 'leakage_status'];\nfor (var i = 0; i < leakKeys.length; i++) {\n  var k = leakKeys[i];\n  if (msg[k] !== undefined) {\n    var v = msg[k];\n    if (v === true || v === 1 || String(v).toLowerCase() === 'true' || String(v).toLowerCase() === 'leak' || String(v).toLowerCase() === 'leakage') {\n      hasLeak = true;\n      break;\n    }\n    if ((k === 'data_leakage_status' || k === 'leakage_status') && String(v).toLowerCase() !== 'normal') {\n      hasLeak = true;\n      break;\n    }\n  }\n}\nif (hasLeak) return true;\n\nreturn false;",
           "tbelScript": ""
         },
         "additionalInfo": {
           "description": "Compares telemetry data directly with the flat asset thresholds. Handles multiple key name formats (data_LAeq, laeq, LAeq, etc.).",
-          "layoutX": 550,
+          "layoutX": 600,
           "layoutY": 200
         }
       },
@@ -106,7 +130,7 @@
         },
         "additionalInfo": {
           "description": "Creates alarm on FIRST threshold breach. Deduplicates — won't re-fire until the alarm clears.",
-          "layoutX": 800,
+          "layoutX": 820,
           "layoutY": 200
         }
       },
@@ -118,7 +142,7 @@
         "configurationVersion": 0,
         "configuration": {
           "scriptLang": "JS",
-          "jsScript": "var tg = {\n  botToken: metadata.telegram_botToken,\n  chatId: metadata.telegram_chatId,\n  topicId: metadata.telegram_topicId\n};\nvar rawDeviceName = metadata.deviceName || 'Unknown Device';\nvar deviceName = rawDeviceName;\nvar parts = rawDeviceName.split('-');\nif (parts.length >= 5) {\n  var model = parts[2];\n  var seq = parts[3];\n  var room = parts[4];\n  var sensorType = model;\n  if (model.indexOf('AM308') !== -1) {\n    sensorType = 'Indoor Ambience Sensor';\n  } else if (model.indexOf('WS302') !== -1) {\n    sensorType = 'Sound Level Sensor';\n  }\n  deviceName = sensorType + ' (Room ' + room + ')';\n}\n\nfunction val(keys) {\n  for (var i = 0; i < keys.length; i++) {\n    if (msg[keys[i]] !== undefined) return Number(msg[keys[i]]);\n    if (msg.details && msg.details[keys[i]] !== undefined) return Number(msg.details[keys[i]]);\n  }\n  return undefined;\n}\n\nvar alerts = [];\nvar aqEnabled = (metadata.airQuality_enabled === 'true');\nvar noiseEnabled = (metadata.noise_enabled === 'true');\n\nif (aqEnabled) {\n  var co2 = val(['co2', 'data_CO2', 'data_co2', 'CO2']);\n  if (co2 !== undefined && metadata.co2Max && co2 >= Number(metadata.co2Max)) alerts.push('• <b>CO₂:</b> ' + co2 + ' ppm (limit: ' + metadata.co2Max + ' ppm)');\n  var pm25 = val(['pm25', 'data_PM25', 'data_pm25', 'PM25', 'data_PM2_5', 'pm2_5']);\n  if (pm25 !== undefined && metadata.pm25Max && pm25 >= Number(metadata.pm25Max)) alerts.push('• <b>PM2.5:</b> ' + pm25 + ' ug/m3 (limit: ' + metadata.pm25Max + ' ug/m3)');\n  var pm10 = val(['pm10', 'data_PM10', 'data_pm10', 'PM10']);\n  if (pm10 !== undefined && metadata.pm10Max && pm10 >= Number(metadata.pm10Max)) alerts.push('• <b>PM10:</b> ' + pm10 + ' ug/m3 (limit: ' + metadata.pm10Max + ' ug/m3)');\n  var tvoc = val(['tvoc', 'data_TVOC', 'data_tvoc', 'TVOC']);\n  if (tvoc !== undefined && metadata.tvocMax && tvoc >= Number(metadata.tvocMax)) alerts.push('• <b>TVOC:</b> ' + tvoc + ' ppb (limit: ' + metadata.tvocMax + ' ppb)');\n  var temp = val(['temperature', 'temp', 'data_temperature', 'data_temp', 'data_Temperature']);\n  if (temp !== undefined && metadata.tempMax && temp >= Number(metadata.tempMax)) alerts.push('• <b>Temp:</b> ' + temp + ' C (limit: ' + metadata.tempMax + ' C)');\n  var hum = val(['humidity', 'hum', 'data_humidity', 'data_hum', 'data_Humidity']);\n  if (hum !== undefined && metadata.humMax && hum >= Number(metadata.humMax)) alerts.push('• <b>Humidity:</b> ' + hum + '% (limit: ' + metadata.humMax + '%)');\n  var press = val(['pressure', 'data_pressure', 'data_Pressure', 'barometric_pressure']);\n  if (press !== undefined && metadata.pressMax && press >= Number(metadata.pressMax)) alerts.push('• <b>Pressure:</b> ' + press + ' hPa (limit: ' + metadata.pressMax + ' hPa)');\n}\n\nif (noiseEnabled) {\n  var laeq = val(['laeq', 'data_LAeq', 'data_laeq', 'LAeq']);\n  if (laeq !== undefined && metadata.laeqMax && laeq >= Number(metadata.laeqMax)) alerts.push('• <b>LAeq:</b> ' + laeq + ' dBA (limit: ' + metadata.laeqMax + ' dBA)');\n  var lai = val(['lai', 'data_LAI', 'data_lai', 'LAI']);\n  if (lai !== undefined && metadata.laiMax && lai >= Number(metadata.laiMax)) alerts.push('• <b>LAI:</b> ' + lai + ' dBA (limit: ' + metadata.laiMax + ' dBA)');\n  var laimax = val(['laimax', 'data_LAImax', 'data_laimax', 'LAImax']);\n  if (laimax !== undefined && metadata.laimaxMax && laimax >= Number(metadata.laimaxMax)) alerts.push('• <b>LAImax:</b> ' + laimax + ' dBA (limit: ' + metadata.laimaxMax + ' dBA)');\n}\n\nvar leak = val(['waterLeak', 'leak', 'data_leak', 'water_leak']);\nif (leak === 1) alerts.push('• <b>🚨 WATER LEAK DETECTED!</b>');\n\nvar dateStr = '';\ntry {\n  var ts = Number(msg.startTs || Date.now());\n  dateStr = new Date(ts).toISOString().replace('T', ' ').substring(0, 19) + ' UTC';\n} catch (e) {\n  dateStr = new Date().toISOString().replace('T', ' ').substring(0, 19) + ' UTC';\n}\n\nvar text = '🚨 <b>ALERT: Threshold Breached</b>\\n🏨 <b>Device:</b> ' + deviceName + '\\n⏱ <b>Time:</b> ' + dateStr + '\\n\\n<b>Details:</b>\\n' + alerts.join('\\n');\nvar body = { chat_id: tg.chatId, text: text, parse_mode: 'HTML' };\nif (tg.topicId) body.message_thread_id = parseInt(tg.topicId);\n\nmetadata.telegramBotToken = tg.botToken;\nreturn {msg: body, metadata: metadata, msgType: msgType};",
+          "jsScript": "var tg = {\n  botToken: metadata.telegram_botToken,\n  chatId: metadata.telegram_chatId,\n  topicId: metadata.telegram_topicId\n};\nvar rawDeviceName = metadata.deviceName || 'Unknown Device';\nvar deviceName = rawDeviceName;\nvar parts = rawDeviceName.split('-');\nif (parts.length >= 5) {\n  var model = parts[2];\n  var seq = parts[3];\n  var room = parts[4];\n  var sensorType = model;\n  if (model.indexOf('AM308') !== -1) {\n    sensorType = 'Indoor Ambience Sensor';\n  } else if (model.indexOf('WS302') !== -1) {\n    sensorType = 'Sound Level Sensor';\n  } else if (model.indexOf('WS303') !== -1) {\n    sensorType = 'Water Leak Sensor';\n  }\n  deviceName = sensorType + ' (Room ' + room + ')';\n}\n\nvar loc = metadata.location || metadata.ss_location || metadata.shared_location || metadata.cs_location || msg.location || '';\nif (loc) {\n  deviceName += ' (' + loc + ')';\n}\n\nfunction val(keys) {\n  for (var i = 0; i < keys.length; i++) {\n    if (msg[keys[i]] !== undefined) return Number(msg[keys[i]]);\n    if (msg.details && msg.details[keys[i]] !== undefined) return Number(msg.details[keys[i]]);\n  }\n  return undefined;\n}\n\nvar alerts = [];\nvar aqEnabled = (metadata.airQuality_enabled === 'true');\nvar noiseEnabled = (metadata.noise_enabled === 'true');\n\nif (aqEnabled) {\n  var co2 = val(['co2', 'data_CO2', 'data_co2', 'CO2']);\n  if (co2 !== undefined && metadata.co2Max && co2 >= Number(metadata.co2Max)) alerts.push('• <b>CO₂:</b> ' + co2 + ' ppm (limit: ' + metadata.co2Max + ' ppm)');\n  var pm25 = val(['pm25', 'data_PM25', 'data_pm25', 'PM25', 'data_PM2_5', 'pm2_5']);\n  if (pm25 !== undefined && metadata.pm25Max && pm25 >= Number(metadata.pm25Max)) alerts.push('• <b>PM2.5:</b> ' + pm25 + ' ug/m3 (limit: ' + metadata.pm25Max + ' ug/m3)');\n  var pm10 = val(['pm10', 'data_PM10', 'data_pm10', 'PM10']);\n  if (pm10 !== undefined && metadata.pm10Max && pm10 >= Number(metadata.pm10Max)) alerts.push('• <b>PM10:</b> ' + pm10 + ' ug/m3 (limit: ' + metadata.pm10Max + ' ug/m3)');\n  var tvoc = val(['tvoc', 'data_TVOC', 'data_tvoc', 'TVOC']);\n  if (tvoc !== undefined && metadata.tvocMax && tvoc >= Number(metadata.tvocMax)) alerts.push('• <b>TVOC:</b> ' + tvoc + ' ppb (limit: ' + metadata.tvocMax + ' ppb)');\n  var temp = val(['temperature', 'temp', 'data_temperature', 'data_temp', 'data_Temperature']);\n  if (temp !== undefined && metadata.tempMax && temp >= Number(metadata.tempMax)) alerts.push('• <b>Temp:</b> ' + temp + ' C (limit: ' + metadata.tempMax + ' C)');\n  var hum = val(['humidity', 'hum', 'data_humidity', 'data_hum', 'data_Humidity']);\n  if (hum !== undefined && metadata.humMax && hum >= Number(metadata.humMax)) alerts.push('• <b>Humidity:</b> ' + hum + '% (limit: ' + metadata.humMax + '%)');\n  var press = val(['pressure', 'data_pressure', 'data_Pressure', 'barometric_pressure']);\n  if (press !== undefined && metadata.pressMax && press >= Number(metadata.pressMax)) alerts.push('• <b>Pressure:</b> ' + press + ' hPa (limit: ' + metadata.pressMax + ' hPa)');\n}\n\nif (noiseEnabled) {\n  var laeq = val(['laeq', 'data_LAeq', 'data_laeq', 'LAeq']);\n  if (laeq !== undefined && metadata.laeqMax && laeq >= Number(metadata.laeqMax)) alerts.push('• <b>LAeq:</b> ' + laeq + ' dBA (limit: ' + metadata.laeqMax + ' dBA)');\n  var lai = val(['lai', 'data_LAI', 'data_lai', 'LAI']);\n  if (lai !== undefined && metadata.laiMax && lai >= Number(metadata.laiMax)) alerts.push('• <b>LAI:</b> ' + lai + ' dBA (limit: ' + metadata.laiMax + ' dBA)');\n  var laimax = val(['laimax', 'data_LAImax', 'data_laimax', 'LAImax']);\n  if (laimax !== undefined && metadata.laimaxMax && laimax >= Number(metadata.laimaxMax)) alerts.push('• <b>LAImax:</b> ' + laimax + ' dBA (limit: ' + metadata.laimaxMax + ' dBA)');\n}\n\nvar hasLeak = false;\nvar leakKeys = ['waterLeak', 'leak', 'data_leak', 'water_leak', 'data_leakage_status', 'leakage_status'];\nfor (var i = 0; i < leakKeys.length; i++) {\n  var k = leakKeys[i];\n  var v = msg[k];\n  if (v === undefined && msg.details) {\n    v = msg.details[k];\n  }\n  if (v !== undefined) {\n    if (v === true || v === 1 || String(v).toLowerCase() === 'true' || String(v).toLowerCase() === 'leak' || String(v).toLowerCase() === 'leakage') {\n      hasLeak = true;\n      break;\n    }\n    if ((k === 'data_leakage_status' || k === 'leakage_status') && String(v).toLowerCase() !== 'normal') {\n      hasLeak = true;\n      break;\n    }\n  }\n}\nif (hasLeak) alerts.push('• <b>🚨 WATER LEAK DETECTED!</b>');\n\nvar dateStr = '';\ntry {\n  var ts = Number(msg.startTs || Date.now());\n  dateStr = new Date(ts).toISOString().replace('T', ' ').substring(0, 19) + ' UTC';\n} catch (e) {\n  dateStr = new Date().toISOString().replace('T', ' ').substring(0, 19) + ' UTC';\n}\n\nvar text = '🚨 <b>ALERT: Threshold Breached</b>\\n🏨 <b>Device:</b> ' + deviceName + '\\n⏱ <b>Time:</b> ' + dateStr + '\\n\\n<b>Details:</b>\\n' + alerts.join('\\n');\nvar body = { chat_id: tg.chatId, text: text, parse_mode: 'HTML' };\nif (tg.topicId) body.message_thread_id = parseInt(tg.topicId);\n\nmetadata.telegramBotToken = tg.botToken;\nreturn {msg: body, metadata: metadata, msgType: msgType};",
           "tbelScript": ""
         },
         "additionalInfo": {
@@ -171,16 +195,21 @@
       {
         "fromIndex": 2,
         "toIndex": 3,
-        "type": "True"
+        "type": "Success"
       },
       {
         "fromIndex": 3,
         "toIndex": 4,
-        "type": "Created"
+        "type": "True"
       },
       {
         "fromIndex": 4,
         "toIndex": 5,
+        "type": "Created"
+      },
+      {
+        "fromIndex": 5,
+        "toIndex": 6,
         "type": "Success"
       }
     ],
