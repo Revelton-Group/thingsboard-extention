@@ -1,0 +1,6 @@
+
+milesight gateway
+https://192.168.222.126/login
+
+login: admin
+password: ofisjaltska1
