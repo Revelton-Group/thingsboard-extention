@@ -1,11 +1,15 @@
 <div #widgetContainer class="custom-room-widget"
     [ngClass]="{'status-warning': roomData.roomStatus === 'warning', 'status-danger': roomData.roomStatus === 'danger'}"
     (click)="onWidgetClick($event)">
+    <!-- FLOATING ROOM CARD PILL -->
+    <div class="room-card-pill">
+        <span>{{ t.room | uppercase }} {{ roomData.sensorData.roomNumber }}</span>
+    </div>
+
     <div class="room-header">
         <div class="room-title">
-            <span class="status-dot" [ngClass]="roomData.roomStatus === 'normal' ? 'online' : roomData.roomStatus"></span>
-            <h2>{{ t.room }}</h2>
-            <span class="room-number">{{ roomData.sensorData.roomNumber }}</span>
+            <span class="status-dot" [ngClass]="roomData.roomStatus === 'normal' ? 'online' : roomData.roomStatus" *ngIf="roomData.sensorData.roomTitle"></span>
+            <h2 *ngIf="roomData.sensorData.roomTitle">{{ roomData.sensorData.roomTitle }}</h2>
         </div>
         <div class="room-notifications"
             [ngClass]="{'alarm-warning': roomData.alarmCount > 0 && roomData.alarmCount < 3, 'alarm-danger': roomData.alarmCount >= 3}">

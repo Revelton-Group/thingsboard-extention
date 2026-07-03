@@ -556,6 +556,11 @@ export class ReveltonDashboardComponent implements OnInit, OnDestroy {
     this.themeService.setMode(mode.toLowerCase() as ThemeMode);
   }
 
+  toggleThemeMode(event: Event): void {
+    event.stopPropagation();
+    this.themeService.toggleMode();
+  }
+
   /* ──── Room Click ──── */
 
   onRoomClick($event: Event, room: InlineRoom): void {

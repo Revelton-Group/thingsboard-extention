@@ -24,9 +24,7 @@
         </div>
 
         <div class="lang-selector" (click)="toggleLangDropdown($event)">
-          <span class="flag-icon">{{
-            activeLang.code === "EN" ? "🇬🇧" : "🇷🇺"
-            }}</span>
+          <i class="material-icons" style="font-size: 16px; margin-right: 2px;">language</i>
           <span class="lang-name">{{ activeLang.code }}</span>
           <i class="material-icons dropdown-arrow">expand_more</i>
 
@@ -35,9 +33,7 @@
             <div class="lang-option" *ngFor="let lang of languages" [class.active]="activeLang.code === lang.code"
               (click)="selectLang(lang, $event)">
               <div class="lang-opt-content">
-                <span class="flag-icon">{{
-                  lang.code === "EN" ? "🇬🇧" : "🇷🇺"
-                  }}</span>
+                <i class="material-icons" style="font-size: 16px; margin-right: 4px;">language</i>
                 <span [style.color]="activePalette?.text">{{ lang.name }}</span>
               </div>
               <i class="material-icons check-icon" *ngIf="activeLang.code === lang.code"
@@ -53,41 +49,9 @@
         </button>
 
 
-        <div class="theme-selector" (click)="toggleThemeDropdown($event)">
-          <i class="material-icons palette-icon">palette</i>
-          <span class="theme-name">{{ activeTheme.name }}</span>
-          <div class="theme-color-dot" [style.background]="activeTheme.color"></div>
-          <i class="material-icons dropdown-arrow">expand_more</i>
-
-          <div class="theme-dropdown-menu" *ngIf="showThemeDropdown" [style.background]="activePalette?.card"
-            [style.border-color]="activePalette?.border" (click)="$event.stopPropagation()">
-            <div class="dropdown-section">
-              <div class="section-label">{{ t.appearance }}</div>
-              <div class="appearance-toggle" [style.background]="activePalette?.bg">
-                <button [class.active]="activeTheme.mode === 'Light'" (click)="setThemeMode('Light', $event)">
-                  <i class="material-icons">light_mode</i> {{ t.light }}
-                </button>
-                <button [class.active]="activeTheme.mode === 'Dark'" (click)="setThemeMode('Dark', $event)">
-                  <i class="material-icons">dark_mode</i> {{ t.dark }}
-                </button>
-              </div>
-            </div>
-            <div class="dropdown-section">
-              <div class="section-label">{{ t.palette }}</div>
-              <div class="palette-list">
-                <div class="palette-option" *ngFor="let theme of themes"
-                  [class.active]="activeTheme.name === theme.name" [style.color]="activePalette?.text"
-                  (click)="selectTheme(theme, $event)">
-                  <div class="theme-color-dot large" [style.background]="theme.color"></div>
-                  <span [style.color]="activePalette?.text">{{
-                    theme.name
-                    }}</span>
-                  <i class="material-icons check-icon" *ngIf="activeTheme.name === theme.name"
-                    [style.color]="activePalette?.text">check</i>
-                </div>
-              </div>
-            </div>
-          </div>
+        <div class="theme-selector" (click)="toggleThemeMode($event)">
+          <i class="material-icons palette-icon">{{ activeTheme.mode === 'Dark' ? 'light_mode' : 'dark_mode' }}</i>
+          <span class="theme-name">{{ activeTheme.mode === 'Dark' ? 'Daylight' : 'Midnight' }}</span>
         </div>
       </div>
     </div>
@@ -355,22 +319,9 @@
             'status-warning': room.roomData.roomStatus === 'warning',
             'status-danger': room.roomData.roomStatus === 'danger'
           }" (click)="onRoomClick($event, room)">
-          <!-- TOP-CENTER ROOM HANDLE — SVG arc + plate -->
-          <div class="room-pin-top" [ngClass]="{
-              'pin-normal': room.roomData.roomStatus === 'normal',
-              'pin-warning': room.roomData.roomStatus === 'warning',
-              'pin-danger': room.roomData.roomStatus === 'danger'
-            }">
-            <svg class="room-pin-arc-svg" viewBox="0 0 140 48" preserveAspectRatio="none" aria-hidden="true">
-              <path d="M 10 46 C 10 10, 130 10, 130 46" fill="none" stroke="currentColor" stroke-width="3"
-                stroke-linecap="round" />
-            </svg>
-            <div class="room-pin-plate">
-              <span class="pin-label">{{ t.room | uppercase }}</span>
-              <span class="pin-number">{{
-                room.roomData.sensorData.roomNumber
-                }}</span>
-            </div>
+          <!-- FLOATING ROOM CARD PILL -->
+          <div class="room-card-pill">
+            <span>{{ t.room | uppercase }} {{ room.roomData.sensorData.roomNumber }}</span>
           </div>
 
           <div class="room-header">

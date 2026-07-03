@@ -1,192 +1,242 @@
-<!-- Room Detail Dialog — matches test-widget design -->
 <div class="room-dialog">
-    <!-- Close button -->
-    <button class="close-btn" (click)="closeDialog()">
-        <i class="material-icons">close</i>
-    </button>
-
     <!-- Header -->
-    <div class="room-header">
-        <div class="header-content">
-            <div class="header-glass">
-                <div class="header-top">
-                    <div class="header-left">
-                        <span class="status-indicator"></span>
-                        <span class="room-title" [title]="roomTitleLabel + ' ' + roomNumber">{{ roomTitleLabel }} {{ roomNumber }}</span>
-                        <span class="floor-badge" *ngIf="floorLabel">{{ floorLabel }}</span>
+    <div class="room-header-container">
+        <div class="room-header-left">
+            <div class="header-bed-icon-wrapper">
+                <i class="material-icons">bed</i>
+                <span class="status-indicator"></span>
+            </div>
+            <div class="header-room-info">
+                <div class="room-title-row">
+                    <span class="room-num-prefix">{{ roomNumber }}</span>
+                    <span class="room-title-text" [title]="roomTitleLabel">{{ roomTitleLabel }}</span>
+                </div>
+                <div class="room-sub-row">
+                    <span class="guest-name-text" *ngIf="guestName"><i class="material-icons">person</i>{{ guestName }}</span>
+                    <span class="connection-status-text"><span class="conn-dot"></span>{{ t.connected }}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="room-header-middle" *ngIf="checkInDisplay || checkOutDisplay">
+            <div class="date-block checkin">
+                <span class="date-label">{{ t.checkIn | uppercase }}</span>
+                <span class="date-value">{{ checkInDisplay || '--' }}</span>
+            </div>
+            <div class="date-divider"></div>
+            <div class="date-block checkout">
+                <span class="date-label">{{ t.checkOut | uppercase }}</span>
+                <span class="date-value">{{ checkOutDisplay || '--' }}</span>
+            </div>
+        </div>
+
+        <div class="room-header-right">
+            <div class="overdue-warning-pill" *ngIf="statusSummary">
+                <i class="material-icons">schedule</i>
+                <span>{{ statusSummary }}</span>
+            </div>
+            <button class="header-action-btn hist-btn" (click)="openHistoricalData()" title="Historical Data">
+                <i class="material-icons">timeline</i>
+                <span>{{ t.history }}</span>
+            </button>
+            <button class="header-action-btn close-dialog-btn" (click)="closeDialog()" title="Close">
+                <i class="material-icons">close</i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="room-detail-body">
+        <!-- Section 1: Indoor Climate Vitals -->
+        <div class="detail-section">
+            <div class="detail-section-header">
+                <i class="material-icons">thermostat</i>
+                <span>{{ t.indoorClimate || 'INDOOR CLIMATE' }}</span>
+            </div>
+            <div class="vitals-grid">
+                <!-- Temp Card -->
+                <div class="vital-card temperature">
+                    <div class="vital-card-header">
+                        <div class="vital-card-title">
+                            <i class="material-icons">device_thermostat</i>
+                            <span>{{ t.temperature }}</span>
+                        </div>
+                        <span class="vital-status-badge normal">NORMAL</span>
                     </div>
-                    <div class="header-right-info">
-                        <button class="icon-btn hist-btn" (click)="openHistoricalData()" title="Historical Data">
-                            <i class="material-icons" style="font-size: 16px;">timeline</i>
-                            <span class="btn-text">{{ t.history }}</span>
-                        </button>
-                        <div class="reservation-status" *ngIf="statusSummary">
-                            <i class="material-icons" style="font-size: 13px; margin-right: 4px;">schedule</i>
-                            <span>{{ statusSummary }}</span>
-                        </div>
-                        <div class="connection-status">
-                            <i class="material-icons" style="font-size: 14px">wifi</i>
-                            <span>{{ t.connected }}</span>
-                        </div>
+                    <div class="vital-card-value">
+                        <span class="val-num">{{ avgTemp !== null ? (avgTemp | number:'1.1-1') : '--' }}</span>
+                        <span class="val-unit">°C</span>
+                    </div>
+                    <div class="vital-card-sparkline">
+                        <tb-sparkline [data]="tempSparkData" color="#5c7cfa" id="temp"></tb-sparkline>
+                    </div>
+                    <div class="vital-card-footer">
+                        <div class="footer-stat"><span class="lbl">MIN</span><span class="val">{{ tempMin !== null ? (tempMin | number:'1.1-1') : '--' }}</span></div>
+                        <div class="footer-stat"><span class="lbl">AVG</span><span class="val">{{ tempAvg !== null ? (tempAvg | number:'1.1-1') : '--' }}</span></div>
+                        <div class="footer-stat"><span class="lbl">MAX</span><span class="val">{{ tempMax !== null ? (tempMax | number:'1.1-1') : '--' }}</span></div>
                     </div>
                 </div>
-                <div class="quick-stats">
-                    <div class="qstat">
-                        <span class="qstat-label">{{ t.temperature }}</span>
-                        <span class="qstat-value">{{ avgTemp !== null ? (avgTemp | number:'1.0-1') + '°C' : '--'
-                            }}</span>
-                    </div>
-                    <div class="qstat">
-                        <span class="qstat-label">{{ t.humidity }}</span>
-                        <span class="qstat-value">{{ avgHum !== null ? (avgHum | number:'1.0-0') + '%' : '--' }}</span>
-                    </div>
-                    <div class="qstat">
-                        <span class="qstat-label">{{ t.airQuality }}</span>
-                        <span class="qstat-value"
-                            [style.color]="aqOverall === 'Good' ? '#34C759' : (aqOverall === '--' ? '' : '#FF3B30')">{{
-                            aqOverall }}</span>
-                    </div>
-                    <div class="qstat">
-                        <span class="qstat-label">{{ t.occupancy }}</span>
-                        <span class="qstat-value" [style.color]="occupancyDisplay === 'Occupied' ? '#34C759' : ''">{{
-                            occupancyDisplay }}</span>
-                    </div>
-                    <div class="qstat">
-                        <span class="qstat-label">{{ t.booked }}</span>
-                        <div class="qstat-value-group">
-                            <i class="material-icons" [style.color]="bookingDisplay === 'Started' ? '#34C759' : (bookingDisplay === 'Overdue' || bookingDisplay === 'Late Arrival' ? '#FF3B30' : (bookingDisplay === 'Available' ? '#8E8E93' : '#FF9500'))" style="font-size: 14px; margin-right: 4px;">calendar_today</i>
-                            <span class="qstat-value"
-                                [style.color]="bookingDisplay === 'Started' ? '#34C759' : (bookingDisplay === 'Overdue' || bookingDisplay === 'Late Arrival' ? '#FF3B30' : (bookingDisplay === 'Available' ? '#8E8E93' : '#FF9500'))">{{
-                                bookingDisplay }}</span>
+
+                <!-- Humid Card -->
+                <div class="vital-card humidity">
+                    <div class="vital-card-header">
+                        <div class="vital-card-title">
+                            <i class="material-icons">water_drop</i>
+                            <span>{{ t.humidity }}</span>
                         </div>
+                        <span class="vital-status-badge normal">NORMAL</span>
                     </div>
-                    <div class="qstat qstat-wide" *ngIf="guestName">
-                        <span class="qstat-label">{{ t.guest | uppercase }}</span>
-                        <span class="qstat-value" style="font-size: 13px;">{{ guestName }}</span>
+                    <div class="vital-card-value">
+                        <span class="val-num">{{ avgHum !== null ? (avgHum | number:'1.0-0') : '--' }}</span>
+                        <span class="val-unit">%</span>
                     </div>
-                    <div class="qstat qstat-wide" *ngIf="checkInDisplay">
-                        <span class="qstat-label">{{ t.checkIn | uppercase }}</span>
-                        <span class="qstat-value" style="font-size: 12px;">{{ checkInDisplay }}</span>
+                    <div class="vital-card-sparkline">
+                        <tb-sparkline [data]="humSparkData" color="#34d399" id="hum"></tb-sparkline>
                     </div>
-                    <div class="qstat qstat-wide" *ngIf="checkOutDisplay">
-                        <span class="qstat-label">{{ t.checkOut | uppercase }}</span>
-                        <span class="qstat-value" style="font-size: 12px;">{{ checkOutDisplay }}</span>
+                    <div class="vital-card-footer">
+                        <div class="footer-stat"><span class="lbl">MIN</span><span class="val">{{ humMin !== null ? (humMin | number:'1.0-0') : '--' }}</span></div>
+                        <div class="footer-stat"><span class="lbl">AVG</span><span class="val">{{ humAvg !== null ? (humAvg | number:'1.0-0') : '--' }}</span></div>
+                        <div class="footer-stat"><span class="lbl">MAX</span><span class="val">{{ humMax !== null ? (humMax | number:'1.0-0') : '--' }}</span></div>
+                    </div>
+                </div>
+
+                <!-- CO2 Card -->
+                <div class="vital-card co2">
+                    <div class="vital-card-header">
+                        <div class="vital-card-title">
+                            <i class="material-icons">co2</i>
+                            <span>CO₂</span>
+                        </div>
+                        <span class="vital-status-badge" [ngClass]="(aqSensors?.length > 0 && aqSensors[0].co2 > 1000) ? 'warning' : 'normal'">
+                            {{ (aqSensors?.length > 0 && aqSensors[0].co2 > 1000) ? 'WARNING' : 'NORMAL' }}
+                        </span>
+                    </div>
+                    <div class="vital-card-value">
+                        <span class="val-num">{{ (aqSensors?.length > 0) ? (aqSensors[0].co2 | number:'1.0-0') : '--' }}</span>
+                        <span class="val-unit">ppm</span>
+                    </div>
+                    <div class="vital-card-sparkline">
+                        <tb-sparkline [data]="co2SparkData" color="#f5b54a" id="co2"></tb-sparkline>
+                    </div>
+                    <div class="vital-card-footer">
+                        <div class="footer-stat"><span class="lbl">MIN</span><span class="val">{{ co2Min !== null ? (co2Min | number:'1.0-0') : '--' }}</span></div>
+                        <div class="footer-stat"><span class="lbl">AVG</span><span class="val">{{ co2Avg !== null ? (co2Avg | number:'1.0-0') : '--' }}</span></div>
+                        <div class="footer-stat"><span class="lbl">MAX</span><span class="val">{{ co2Max !== null ? (co2Max | number:'1.0-0') : '--' }}</span></div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <div class="main-content">
-        <div class="panel-grid" [class.no-thermostats]="thermostats.length === 0" [class.no-airquality]="aqSensors.length === 0">
-
-            <!-- TOP-LEFT: Thermostats -->
-            <div class="grid-thermostats section-container thermostats-wrapper" *ngIf="thermostats.length > 0"
-                 [style.backgroundColor]="getThermostatSectionColor() + '1A'"
-                 [style.borderColor]="getThermostatSectionColor() + '40'">
-                <div class="section-label">
-                    <i class="material-icons" style="font-size: 12px">local_fire_department</i>
-                    {{ t.thermostats | uppercase }} ({{ thermostats.length }})
-                </div>
-                <div class="thermo-grid">
-                    <tb-thermostat-card *ngFor="let trv of thermostats; trackBy: trackByEntityName" [trv]="trv"
-                        [modes]="modes" [presets]="presets" (modeChange)="selectMode(trv, $event)"
-                        (presetChange)="selectPreset(trv, $event)" (tempChange)="onTempChange(trv, $event)">
-                    </tb-thermostat-card>
-                </div>
+        <!-- Section 2: Sensors & Control Panel -->
+        <div class="detail-section">
+            <div class="detail-section-header">
+                <i class="material-icons">settings_remote</i>
+                <span>{{ t.sensorsAndControls || 'SENSORS & CONTROL PANEL' }}</span>
             </div>
+            <div class="panel-grid" [class.no-thermostats]="thermostats.length === 0" [class.no-airquality]="aqSensors.length === 0">
+                <!-- TOP-LEFT: Thermostats -->
+                <div class="grid-thermostats section-container thermostats-wrapper" *ngIf="thermostats.length > 0">
+                    <div class="section-label">
+                        <i class="material-icons" style="font-size: 12px">local_fire_department</i>
+                        {{ t.thermostats | uppercase }} ({{ thermostats.length }})
+                    </div>
+                    <div class="thermo-grid">
+                        <tb-thermostat-card *ngFor="let trv of thermostats; trackBy: trackByEntityName" [trv]="trv"
+                            [modes]="modes" [presets]="presets" (modeChange)="selectMode(trv, $event)"
+                            (presetChange)="selectPreset(trv, $event)" (tempChange)="onTempChange(trv, $event)">
+                        </tb-thermostat-card>
+                    </div>
+                </div>
 
-            <!-- TOP-MIDDLE: Air Quality -->
-            <div class="grid-airquality section-container aq-section" *ngIf="aqSensors.length > 0">
-                <div class="section-label">
-                    <i class="material-icons" style="font-size: 12px">air</i>
-                    INDOOR CLIMATE ({{ aqSensors.length }})
+                <!-- TOP-MIDDLE: Air Quality Detailed -->
+                <div class="grid-airquality section-container aq-section" *ngIf="aqSensors.length > 0">
+                    <div class="section-label">
+                        <i class="material-icons" style="font-size: 12px">air</i>
+                        AIR QUALITY MONITOR ({{ aqSensors.length }})
+                    </div>
+                    <div class="aq-list">
+                        <tb-air-quality-sensor *ngFor="let aq of aqSensors; trackBy: trackByEntityName"
+                            [sensor]="aq"></tb-air-quality-sensor>
+                    </div>
                 </div>
-                <div class="aq-list">
-                    <tb-air-quality-sensor *ngFor="let aq of aqSensors; trackBy: trackByEntityName"
-                        [sensor]="aq"></tb-air-quality-sensor>
-                </div>
-            </div>
 
-            <!-- RIGHT: Smart Sockets (spans both rows) -->
-            <div class="grid-sockets section-container sockets-section">
-                <div class="section-label">
-                    <i class="material-icons" style="font-size: 12px">power</i>
-                    {{ t.smartSockets | uppercase }} ({{ smartSockets.length }})
-                </div>
-                <div class="sockets-grid">
-                    <div class="socket-card" *ngFor="let socket of smartSockets; trackBy: trackByEntityName" [class.socket-on]="isSocketOn(socket)">
-                        <div class="socket-top">
-                            <div class="socket-left">
-                                <div class="socket-icon-box" [class.on]="isSocketOn(socket)">
-                                    <i class="material-icons">power</i>
-                                </div>
-                                <div class="socket-info">
-                                    <div class="socket-name-row">
-                                        <span class="socket-name" [title]="socket.displayName">{{ socket.displayName }}</span>
-                                        <span class="socket-power-badge" *ngIf="isSocketOn(socket) && socket.power !== null">
-                                            {{ socket.power }}W
-                                        </span>
+                <!-- RIGHT: Smart Sockets -->
+                <div class="grid-sockets section-container sockets-section" *ngIf="smartSockets.length > 0">
+                    <div class="section-label">
+                        <i class="material-icons" style="font-size: 12px">power</i>
+                        {{ t.smartSockets | uppercase }} ({{ smartSockets.length }})
+                    </div>
+                    <div class="sockets-grid">
+                        <div class="socket-card" *ngFor="let socket of smartSockets; trackBy: trackByEntityName" [class.socket-on]="isSocketOn(socket)">
+                            <div class="socket-top">
+                                <div class="socket-left">
+                                    <div class="socket-icon-box" [class.on]="isSocketOn(socket)">
+                                        <i class="material-icons">power</i>
                                     </div>
-                                    <div class="socket-model">{{ socket.model || 'Smart Plug' }}</div>
+                                    <div class="socket-info">
+                                        <div class="socket-name-row">
+                                            <span class="socket-name" [title]="socket.displayName">{{ socket.displayName }}</span>
+                                            <span class="socket-power-badge" *ngIf="isSocketOn(socket) && socket.power !== null">
+                                                {{ socket.power }}W
+                                            </span>
+                                        </div>
+                                        <div class="socket-model">{{ socket.model || 'Smart Plug' }}</div>
+                                    </div>
+                                </div>
+                                <div class="socket-control">
+                                    <button class="socket-toggle-btn" [class.on]="isSocketOn(socket)" (click)="toggleSocket(socket)">
+                                        <div class="toggle-thumb"></div>
+                                    </button>
                                 </div>
                             </div>
-                            <div class="socket-control">
-                                <button class="socket-toggle-btn" [class.on]="isSocketOn(socket)" (click)="toggleSocket(socket)">
-                                    <div class="toggle-thumb"></div>
-                                </button>
-                            </div>
-                        </div>
-                        <div class="socket-meta">
-                            <div class="socket-meta-left">
-                                <span *ngIf="socket.offline" class="meta-item-red">
-                                    <i class="material-icons">wifi_off</i>Offline
-                                </span>
-                                <span *ngIf="!socket.offline && socket.linkquality !== null" [ngClass]="getLinkQualityClass(socket.linkquality)">
-                                    <i class="material-icons">wifi</i>{{ getLinkQualityText(socket.linkquality) }}
-                                </span>
-                            </div>
-                            <div class="socket-meta-right" *ngIf="socket.lastSeen">
-                                <span class="socket-timestamp">
-                                    <i class="material-icons">schedule</i>{{ timeAgo(socket.lastSeen) }}
-                                </span>
+                            <div class="socket-meta">
+                                <div class="socket-meta-left">
+                                    <span *ngIf="socket.offline" class="meta-item-red">
+                                        <i class="material-icons">wifi_off</i>Offline
+                                    </span>
+                                    <span *ngIf="!socket.offline && socket.linkquality !== null" [ngClass]="getLinkQualityClass(socket.linkquality)">
+                                        <i class="material-icons">wifi</i>{{ getLinkQualityText(socket.linkquality) }}
+                                    </span>
+                                </div>
+                                <div class="socket-meta-right" *ngIf="socket.lastSeen">
+                                    <span class="socket-timestamp">
+                                        <i class="material-icons">schedule</i>{{ timeAgo(socket.lastSeen) }}
+                                    </span>
+                                </div>
                             </div>
                         </div>
                     </div>
-                    <div *ngIf="smartSockets.length === 0" class="empty-state">{{ t.noSockets }}</div>
+                </div>
+
+                <!-- BOTTOM-LEFT: Window/Noise/Leak Sensors -->
+                <div class="grid-sensors section-container sensors-section">
+                    <div class="section-label">
+                        <i class="material-icons" style="font-size: 12px">sensors</i>
+                        {{ t.sensors | uppercase }} ({{ allSensors.length }})
+                    </div>
+                    <div class="sensor-grid">
+                        <ng-container *ngFor="let s of allSensors; trackBy: trackByEntityName">
+                            <tb-noise-sensor *ngIf="s.type === 'noise'" [sensor]="s"></tb-noise-sensor>
+                            <tb-occupancy-sensor *ngIf="s.type === 'occupancy'" [sensor]="s"></tb-occupancy-sensor>
+                            <tb-window-sensor *ngIf="s.type === 'window'" [sensor]="s"></tb-window-sensor>
+                            <tb-water-leak-sensor *ngIf="s.type === 'water'" [sensor]="s"></tb-water-leak-sensor>
+                            <tb-sensor-tile
+                                *ngIf="s.type !== 'window' && s.type !== 'water' && s.type !== 'noise' && s.type !== 'occupancy'"
+                                [sensor]="s"></tb-sensor-tile>
+                        </ng-container>
+                        <div *ngIf="allSensors.length === 0" class="empty-state">{{ t.loading }}</div>
+                    </div>
+                </div>
+
+                <!-- BOTTOM-MIDDLE: Alerts -->
+                <div class="grid-alerts alerts-wrapper">
+                    <tb-alerts-panel 
+                        [alerts]="alerts" 
+                        [archivedAlerts]="archivedAlerts" 
+                        (acknowledge)="acknowledgeAlert($event)">
+                    </tb-alerts-panel>
                 </div>
             </div>
-
-            <!-- BOTTOM-LEFT: Sensors -->
-            <div class="grid-sensors section-container sensors-section">
-                <div class="section-label">
-                    <i class="material-icons" style="font-size: 12px">sensors</i>
-                    {{ t.sensors | uppercase }} ({{ allSensors.length }})
-                </div>
-                <div class="sensor-grid">
-                    <ng-container *ngFor="let s of allSensors; trackBy: trackByEntityName">
-                        <tb-noise-sensor *ngIf="s.type === 'noise'" [sensor]="s"></tb-noise-sensor>
-                        <tb-occupancy-sensor *ngIf="s.type === 'occupancy'" [sensor]="s"></tb-occupancy-sensor>
-                        <tb-window-sensor *ngIf="s.type === 'window'" [sensor]="s"></tb-window-sensor>
-                        <tb-water-leak-sensor *ngIf="s.type === 'water'" [sensor]="s"></tb-water-leak-sensor>
-                        <tb-sensor-tile
-                            *ngIf="s.type !== 'window' && s.type !== 'water' && s.type !== 'noise' && s.type !== 'occupancy'"
-                            [sensor]="s"></tb-sensor-tile>
-                    </ng-container>
-                    <div *ngIf="allSensors.length === 0" class="empty-state">{{ t.loading }}</div>
-                </div>
-            </div>
-
-            <!-- BOTTOM-MIDDLE: Alerts -->
-            <div class="grid-alerts alerts-wrapper">
-                <tb-alerts-panel 
-                    [alerts]="alerts" 
-                    [archivedAlerts]="archivedAlerts" 
-                    (acknowledge)="acknowledgeAlert($event)">
-                </tb-alerts-panel>
-            </div>
-
         </div>
     </div>
-
 </div>

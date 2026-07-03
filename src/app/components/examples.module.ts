@@ -25,6 +25,7 @@ import { OtherDevicesPanelComponent } from "./revelton-tb-extension-dashboard/fe
 import { CompactThermostatComponent } from "./revelton-tb-extension-dashboard/shared/components/compact-thermostat/compact-thermostat.component";
 import { CompactEnvSensorComponent } from "./revelton-tb-extension-dashboard/shared/components/compact-env-sensor/compact-env-sensor.component";
 import { ControlPanelComponent } from "./revelton-tb-extension-dashboard/features/control-panel/control-panel.component";
+import { SparklineComponent } from "./revelton-tb-extension-dashboard/shared/components/sparkline/sparkline.component";
 
 // Historical Dashboard — Orchestrator
 import { ReveltonTbExtensionHistoricalDashboardComponent } from "./revelton-tb-extension-historical-dashboard/revelton-tb-extension-historical-dashboard.component";
@@ -91,6 +92,7 @@ const UTILITY_FEATURES = [
     CompactThermostatComponent,
     CompactEnvSensorComponent,
     ControlPanelComponent,
+    SparklineComponent,
     // Historical dashboard
     ReveltonTbExtensionHistoricalDashboardComponent,
     HistoricalSummaryCardComponent,
@@ -128,6 +130,7 @@ const UTILITY_FEATURES = [
     CompactThermostatComponent,
     CompactEnvSensorComponent,
     ControlPanelComponent,
+    SparklineComponent,
     // Historical dashboard
     ReveltonTbExtensionHistoricalDashboardComponent,
     HistoricalSummaryCardComponent,

@@ -10,8 +10,8 @@ export type ThemeMode = "light" | "dark";
 
 @Injectable({ providedIn: "root" })
 export class ThemeService {
-  private _theme$ = new BehaviorSubject<ThemeDefinition>(THEMES[0]);
-  private _mode$ = new BehaviorSubject<ThemeMode>("light");
+  private _theme$ = new BehaviorSubject<ThemeDefinition>(THEMES.find(t => t.name === 'Revelton') || THEMES[0]);
+  private _mode$ = new BehaviorSubject<ThemeMode>("dark");
 
   /** Observable of the active theme definition */
   readonly theme$ = this._theme$.asObservable();
@@ -59,7 +59,7 @@ export class ThemeService {
     return this._theme$.value.swatch;
   }
 
-  /** Switch to a named theme (e.g. 'Midnight', 'Ocean') */
+  /** Switch to a named theme (e.g. 'Revelton', 'Midnight') */
   setTheme(themeName: string): void {
     const found = THEMES.find((t) => t.name === themeName);
     if (found) {
@@ -91,20 +91,39 @@ export class ThemeService {
       this._mode$.value === "dark" ? theme.dark : theme.light;
     const root = target ? target.style : document.documentElement.style;
 
-    // Core layout colors
+    // ── Surface tokens ───────────────────────────────────────────
     root.setProperty("--bg", palette.bg);
     root.setProperty("--panel", palette.panel);
+    root.setProperty("--panel2", palette.panel2 ?? palette.panel);
+    root.setProperty("--inner", palette.inner ?? palette.card);
     root.setProperty("--card", palette.card);
     root.setProperty("--border", palette.border);
+
+    // ── Accent ──────────────────────────────────────────────────
     root.setProperty("--accent", palette.accent);
+    root.setProperty("--accent-soft", palette.accentSoft ?? palette.accentMuted);
     root.setProperty("--accent-muted", palette.accentMuted);
 
-    // Text hierarchy
+    // ── Text hierarchy (new token names) ─────────────────────────
+    root.setProperty("--tx", palette.tx ?? palette.text);
+    root.setProperty("--t2", palette.t2 ?? palette.textSecondary);
+    root.setProperty("--t3", palette.t3 ?? palette.textMuted);
+
+    // ── Text hierarchy (legacy token names) ──────────────────────
     root.setProperty("--text", palette.text);
     root.setProperty("--text-secondary", palette.textSecondary);
     root.setProperty("--text-muted", palette.textMuted);
 
-    // Semantic colors
+    // ── Semantic colors (new token names) ────────────────────────
+    root.setProperty("--ok", palette.ok ?? palette.success);
+    root.setProperty("--ok-soft", palette.okSoft ?? palette.successBg);
+    root.setProperty("--warn", palette.warn ?? palette.warning);
+    root.setProperty("--warn-soft", palette.warnSoft ?? palette.warningBg);
+    root.setProperty("--alert", palette.alert ?? palette.danger);
+    root.setProperty("--alert-soft", palette.alertSoft ?? palette.dangerBg);
+    root.setProperty("--ring-track", palette.ringTrack ?? palette.border);
+
+    // ── Semantic colors (legacy token names) ─────────────────────
     root.setProperty("--success", palette.success);
     root.setProperty("--success-bg", palette.successBg);
     root.setProperty("--warning", palette.warning);
@@ -113,7 +132,7 @@ export class ThemeService {
     root.setProperty("--danger-bg", palette.dangerBg);
     root.setProperty("--info", palette.info);
 
-    // Convenience: set a data attribute for CSS selectors
+    // Convenience: data attributes for CSS selectors
     if (target) {
       target.setAttribute("data-theme", theme.name.toLowerCase());
       target.setAttribute("data-mode", this._mode$.value);

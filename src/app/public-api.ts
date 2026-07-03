@@ -14,6 +14,8 @@ export { HistoricalFilterBarComponent } from "./components/revelton-tb-extension
 export { HistoricalChartComponent } from "./components/revelton-tb-extension-historical-dashboard/shared/components/historical-chart/historical-chart.component";
 export { AirQualityMetricsPanelComponent } from "./components/revelton-tb-extension-historical-dashboard/features/air-quality-panel/air-quality-metrics-panel.component";
 
+export { SparklineComponent } from "./components/revelton-tb-extension-dashboard/shared/components/sparkline/sparkline.component";
+
 // Utility Dashboard (required by NG3001)
 export { ReveltonUtilityDashboardComponent } from "./components/revelton-tb-extension-utility-dashboard/revelton-tb-extension-utility-dashboard.component";
 export { EvChargerPanelComponent } from "./components/revelton-tb-extension-utility-dashboard/features/ev-charger-panel/ev-charger-panel.component";

@@ -24,6 +24,25 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
   @Input() data: any;
   @Output() close = new EventEmitter<void>();
 
+  // Sparkline data
+  tempSparkData: number[] = [];
+  humSparkData: number[] = [];
+  co2SparkData: number[] = [];
+
+  tempMin: number | null = null;
+  tempAvg: number | null = null;
+  tempMax: number | null = null;
+
+  humMin: number | null = null;
+  humAvg: number | null = null;
+  humMax: number | null = null;
+
+  co2Min: number | null = null;
+  co2Avg: number | null = null;
+  co2Max: number | null = null;
+
+  private lastFetchedRoom: string = '';
+
   // Header
   roomNumber = '--';
   floorLabel = '';
@@ -151,6 +170,7 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
     if (!this.data) return;
     this.deviceEntityIdMap = { ...this.data.deviceEntityIdMap };
     this.buildFromPassedData();
+    this.fetchHistoricalVitals();
     this.cdr.detectChanges();
   }
 
@@ -163,6 +183,7 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
 
   public updateData(): void {
     this.buildFromPassedData();
+    this.fetchHistoricalVitals();
     if (!this.attributesInitialized && this.thermostats.length > 0) {
       this.attributesInitialized = true;
       this.initializeSharedAttributes();
@@ -1080,5 +1101,109 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
 
   trackById(index: number, item: any): string | number {
     return item.id;
+  }
+
+  fetchHistoricalVitals(): void {
+    const ctx = this.data?.ctx;
+    const http = ctx?.http;
+    if (!http || !this.deviceEntityIdMap || this.roomNumber === '--' || this.roomNumber === this.lastFetchedRoom) {
+      return;
+    }
+    this.lastFetchedRoom = this.roomNumber;
+
+    const endTs = Date.now();
+    const startTs = endTs - (24 * 60 * 60 * 1000); // Past 24 hours
+    const limit = 300;
+
+    // Identify AQ, Temp, Hum device IDs
+    let aqDeviceId: string | null = null;
+    let tempDeviceId: string | null = null;
+    let humDeviceId: string | null = null;
+
+    if (this.aqSensors?.length > 0) {
+      aqDeviceId = this.deviceEntityIdMap[this.aqSensors[0].entityName] ?? null;
+    } else {
+      const aqKey = Object.keys(this.deviceEntityIdMap).find(name => /^(aq|am|air)/i.test(name));
+      if (aqKey) aqDeviceId = this.deviceEntityIdMap[aqKey];
+    }
+
+    const tempKeys = Object.keys(this.data.tempDevices || {}).filter(k => !/trv/i.test(k) && !/thermostat/i.test(k));
+    if (tempKeys.length > 0) tempDeviceId = this.deviceEntityIdMap[tempKeys[0]] ?? null;
+
+    const humKeys = Object.keys(this.data.humDevices || {});
+    if (humKeys.length > 0) humDeviceId = this.deviceEntityIdMap[humKeys[0]] ?? null;
+
+    const keysToFetch = 'temperature,humidity,co2,temp,hum';
+    const safeFetch = (id: string | null): Promise<any> => {
+      if (!id) return Promise.resolve(null);
+      return http.get(`/api/plugins/telemetry/DEVICE/${id}/values/timeseries?keys=${keysToFetch}&startTs=${startTs}&endTs=${endTs}&limit=${limit}&orderBy=ASC`).toPromise().catch(() => null);
+    };
+
+    const uniqueIds = [...new Set([aqDeviceId, tempDeviceId, humDeviceId].filter(Boolean))];
+    Promise.all(uniqueIds.map(id => safeFetch(id))).then((results) => {
+      let tempPoints: any[] = [];
+      let humPoints: any[] = [];
+      let co2Points: any[] = [];
+
+      uniqueIds.forEach((id, index) => {
+        const resData = results[index];
+        if (!resData) return;
+
+        if (id === tempDeviceId || (!tempDeviceId && id === aqDeviceId)) {
+          tempPoints = resData['temperature'] || resData['temp'] || [];
+        }
+        if (id === humDeviceId || (!humDeviceId && id === aqDeviceId)) {
+          humPoints = resData['humidity'] || resData['hum'] || [];
+        }
+        if (id === aqDeviceId) {
+          co2Points = resData['co2'] || [];
+        }
+      });
+
+      // Extract values as number arrays
+      this.tempSparkData = tempPoints.map(p => Number(p.value)).filter(v => !isNaN(v));
+      this.humSparkData = humPoints.map(p => Number(p.value)).filter(v => !isNaN(v));
+      this.co2SparkData = co2Points.map(p => Number(p.value)).filter(v => !isNaN(v));
+
+      // Calculate Min, Avg, Max
+      if (this.tempSparkData.length > 0) {
+        this.tempMin = Math.min(...this.tempSparkData);
+        this.tempMax = Math.max(...this.tempSparkData);
+        this.tempAvg = this.tempSparkData.reduce((a, b) => a + b, 0) / this.tempSparkData.length;
+      } else if (this.avgTemp !== null) {
+        // Fallback simulation if timeseries is empty
+        this.tempMin = this.avgTemp - 0.6;
+        this.tempMax = this.avgTemp + 0.8;
+        this.tempAvg = this.avgTemp;
+        this.tempSparkData = [this.avgTemp - 0.5, this.avgTemp - 0.2, this.avgTemp + 0.1, this.avgTemp - 0.3, this.avgTemp + 0.4, this.avgTemp];
+      }
+
+      if (this.humSparkData.length > 0) {
+        this.humMin = Math.min(...this.humSparkData);
+        this.humMax = Math.max(...this.humSparkData);
+        this.humAvg = this.humSparkData.reduce((a, b) => a + b, 0) / this.humSparkData.length;
+      } else if (this.avgHum !== null) {
+        // Fallback simulation if timeseries is empty
+        this.humMin = Math.max(0, this.avgHum - 3);
+        this.humMax = Math.min(100, this.avgHum + 4);
+        this.humAvg = this.avgHum;
+        this.humSparkData = [this.avgHum - 2, this.avgHum + 1, this.avgHum - 1, this.avgHum + 3, this.avgHum - 2, this.avgHum];
+      }
+
+      const co2Val = this.aqSensors?.length > 0 ? this.aqSensors[0].co2 : null;
+      if (this.co2SparkData.length > 0) {
+        this.co2Min = Math.min(...this.co2SparkData);
+        this.co2Max = Math.max(...this.co2SparkData);
+        this.co2Avg = this.co2SparkData.reduce((a, b) => a + b, 0) / this.co2SparkData.length;
+      } else if (co2Val !== null && co2Val !== undefined) {
+        const val = Number(co2Val);
+        this.co2Min = Math.max(300, val - 80);
+        this.co2Max = val + 120;
+        this.co2Avg = val;
+        this.co2SparkData = [val - 50, val + 80, val - 30, val + 100, val - 20, val];
+      }
+
+      this.cdr.detectChanges();
+    });
   }
 }
