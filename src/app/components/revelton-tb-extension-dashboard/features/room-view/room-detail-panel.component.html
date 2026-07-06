@@ -18,23 +18,24 @@
             </div>
         </div>
 
-        <div class="room-header-middle" *ngIf="checkInDisplay || checkOutDisplay">
-            <div class="date-block checkin">
-                <span class="date-label">{{ t.checkIn | uppercase }}</span>
-                <span class="date-value">{{ checkInDisplay || '--' }}</span>
-            </div>
-            <div class="date-divider"></div>
-            <div class="date-block checkout">
-                <span class="date-label">{{ t.checkOut | uppercase }}</span>
-                <span class="date-value">{{ checkOutDisplay || '--' }}</span>
-            </div>
-        </div>
-
         <div class="room-header-right">
+            <div class="room-header-dates" *ngIf="checkInDisplay || checkOutDisplay">
+                <div class="date-block checkin">
+                    <span class="date-label">{{ t.checkIn | uppercase }}</span>
+                    <span class="date-value">{{ checkInDisplay || '--' }}</span>
+                </div>
+                <div class="date-divider"></div>
+                <div class="date-block checkout">
+                    <span class="date-label">{{ t.checkOut | uppercase }}</span>
+                    <span class="date-value">{{ checkOutDisplay || '--' }}</span>
+                </div>
+            </div>
+
             <div class="overdue-warning-pill" *ngIf="statusSummary">
                 <i class="material-icons">schedule</i>
                 <span>{{ statusSummary }}</span>
             </div>
+
             <button class="header-action-btn close-dialog-btn" (click)="closeDialog()" [title]="t.close">
                 <i class="material-icons">close</i>
             </button>
