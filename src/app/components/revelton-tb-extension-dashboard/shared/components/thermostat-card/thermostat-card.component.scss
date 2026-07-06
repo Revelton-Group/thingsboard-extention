@@ -1,363 +1,269 @@
 :host {
   display: block;
+  height: 100%;
 }
 
+/* ═══ Card ═══ */
 .thermo-card {
   width: 100%;
-  max-width: 290px;
-  min-width: 200px;
-  background: var(--card, #FFFFFF);
-  border-radius: var(--radius, 16px);
-  border: 1px solid var(--border, rgba(0, 0, 0, 0.04));
-  padding: 20px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-
-  &:hover {
-    background: var(--accent-muted, rgba(129, 140, 248, 0.1));
-    border-color: var(--accent, #818cf8);
-    box-shadow: 0 12px 32px var(--accent-muted, rgba(129, 140, 248, 0.2));
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    transform: translateY(-4px);
-  }
-
-  &.z-top {
-    z-index: 1100;
-    position: relative;
-  }
-}
-
-.thermo-header-new {
+  height: 100%;
+  background: var(--panel, #141b25);
+  border: 1px solid var(--border, #27313f);
+  border-radius: 16px;
+  padding: 15px;
   display: flex;
   flex-direction: column;
-  margin-bottom: 12px;
 }
 
-.thermo-header-top {
+/* ═══ Header ═══ */
+.thermo-header {
   display: flex;
   align-items: flex-start;
-  justify-content: space-between;
-}
-
-.thermo-header-left {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+  gap: 10px;
+  margin-bottom: 11px;
 }
 
 .thermo-icon-box {
-  width: 40px;
-  height: 40px;
-  border-radius: var(--radius-sm, 12px);
+  width: 36px;
+  height: 36px;
+  border-radius: 11px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 20px;
+  flex-shrink: 0;
+
+  i {
+    font-size: 19px;
+  }
+}
+
+.thermo-header-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.thermo-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.thermo-header-sub {
+  margin-top: 3px;
 }
 
 .thermo-name {
-  font-family: 'Outfit', sans-serif;
-  font-size: 15px;
+  font-size: 12.5px;
   font-weight: 700;
-  color: var(--text, #1a202c);
-  line-height: 1.2;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.thermo-model {
-  font-family: 'Manrope', sans-serif;
-  font-size: 11px;
-  color: var(--text-muted, #8E8E93);
-}
-
-.thermo-header-right {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 4px;
+  color: var(--tx, #e6ecf3);
 }
 
 .thermo-state-badge {
   display: flex;
   align-items: center;
-  padding: 5px 12px;
-  border-radius: 12px;
-  font-size: 11px;
-  font-weight: 700;
+  gap: 4px;
+  font: 700 10px Manrope;
+  flex-shrink: 0;
 }
 
-.thermo-timestamp {
+.state-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.thermo-badges {
   display: flex;
   align-items: center;
-  gap: 4px;
-  font-size: 11px;
-  color: var(--text-muted, #A0AEC0);
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.thermo-badge {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  font: 700 10px Manrope;
+  letter-spacing: .3px;
+  padding: 3px 7px;
+  border-radius: 7px;
   white-space: nowrap;
 
   i {
-    font-size: 14px;
+    font-size: 12px;
   }
 }
 
-.thermo-state-badge .state-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  margin-right: 6px;
+.thermo-model {
+  font: 500 10px 'IBM Plex Mono';
+  color: var(--t3, #5c6675);
 }
 
-.thermo-meta-bottom {
+.thermo-time {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  margin-top: 10px;
-  font-size: 11px;
-  font-weight: 600;
+  gap: 3px;
+  font: 600 9.5px Manrope;
+  color: var(--t3, #5c6675);
+  flex-shrink: 0;
+
+  i {
+    font-size: 11px;
+  }
 }
 
-.meta-left {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+/* ═══ Body: Preset + Status ═══ */
+.thermo-body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  flex: 1;
 }
 
-.meta-left span {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.meta-left i {
-  font-size: 14px;
-}
-
-.meta-item-green {
-  color: var(--success, #2F8A6B);
-}
-
-.meta-item-red {
-  color: var(--danger, #E53E3E);
-}
-
-.meta-item-orange {
-  color: var(--warning, #F59E0B);
-}
-
-.meta-item-gray {
-  color: var(--text-muted, #8E8E93);
-}
-
-/* Temperature Display Compact */
-.temp-display-compact {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: var(--bg, #F9FAFB);
-  border-radius: 12px;
-  padding: 12px 16px;
-  margin-bottom: 12px;
-}
-
-.temp-compact-col {
+.thermo-preset-panel,
+.thermo-status-panel {
+  background: var(--panel2, #1a2230);
+  border-radius: 11px;
+  padding: 11px 6px;
+  text-align: center;
   display: flex;
   flex-direction: column;
-  align-items: center;
+}
+
+.thermo-panel-label {
+  font: 700 9px Manrope;
+  letter-spacing: .6px;
+  color: var(--t3, #5c6675);
+}
+
+/* Preset Controls */
+.thermo-preset-controls {
   flex: 1;
-}
-
-.temp-divider {
-  width: 1px;
-  height: 40px;
-  background: var(--border, #E2E8F0);
-  margin: 0 10px;
-}
-
-.temp-target-label {
-  font-family: 'Manrope', sans-serif;
-  font-size: 10px;
-  font-weight: 700;
-  color: var(--text-muted, #8E8E93);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  margin-bottom: 4px;
-}
-
-.temp-value-wrapper {
   display: flex;
+  align-items: center;
   justify-content: center;
-  align-items: flex-start;
+  gap: 6px;
 }
 
-.temp-value {
-  font-family: 'Outfit', sans-serif;
-  font-size: 32px;
-  font-weight: 600;
+.thermo-step-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 9px;
+  background: var(--inner, #1e2733);
+  border: 1px solid var(--border, #27313f);
+  color: var(--t2, #8b97a8);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all .15s;
+  padding: 0;
+
+  i {
+    font-size: 18px;
+  }
+
+  &:hover:not(:disabled) {
+    color: var(--accent, #5c7cfa);
+    border-color: var(--accent, #5c7cfa);
+  }
+
+  &:disabled {
+    opacity: .35;
+    cursor: not-allowed;
+  }
+}
+
+.thermo-setpoint-value {
+  min-width: 50px;
+}
+
+.thermo-setpoint-num {
+  font: 700 24px 'IBM Plex Mono';
+  color: var(--accent, #5c7cfa);
+  position: relative;
+}
+
+.thermo-setpoint-deg {
+  position: absolute;
+  top: 1px;
+  right: -11px;
+  font-size: 10px;
   line-height: 1;
-  letter-spacing: -1px;
 }
 
-.temp-value--dark {
-  color: var(--text, #1A202C);
+/* Status Value */
+.thermo-status-panel {
+  padding: 11px 9px;
 }
 
-.temp-unit {
-  font-family: 'Outfit', sans-serif;
-  font-size: 14px;
-  font-weight: 600;
-  margin-top: 4px;
-  margin-left: 2px;
-}
-
-.temp-unit--dark {
-  color: var(--text, #1A202C);
-}
-
-/* Slider Classes */
-.slider-container {
-  padding: 0 10px;
-  position: relative;
-  margin-bottom: 16px;
-  user-select: none;
-  -webkit-user-select: none;
-}
-
-.slider-track {
-  position: relative;
-  height: 6px;
-  background: var(--border, #E2E8F0);
-  border-radius: 3px;
-  cursor: pointer;
-}
-
-.slider-fill {
-  position: absolute;
-  left: 0;
-  top: 0;
-  height: 100%;
-  border-radius: 3px;
-}
-
-.slider-thumb {
-  position: absolute;
-  top: 50%;
-  width: 20px;
-  height: 20px;
-  background: var(--card, #FFFFFF);
-  border: 1px solid #D1D5DB;
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
-  cursor: grab;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-
-  &:hover {
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
-  }
-
-  &:active {
-    cursor: grabbing;
-  }
-}
-
-.slider-labels {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 6px;
-  font-size: 10px;
-  color: var(--text-muted, #8E8E93);
-  font-weight: 500;
-}
-
-/* Mode / Preset Dropdowns */
-.controls-row {
-  display: flex;
-  gap: 12px;
-}
-
-.control-group {
+.thermo-status-value {
   flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.thermo-status-num {
+  font: 700 24px 'IBM Plex Mono';
+  color: var(--tx, #e6ecf3);
   position: relative;
 }
 
-.control-label {
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: var(--text-muted, #8E8E93);
-  font-weight: 700;
-  margin-bottom: 6px;
-}
-
-.control-btn {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 8px 12px;
-  border-radius: var(--radius-sm, 12px);
-  background: var(--bg, #F2F2F7);
-  border: 1px solid var(--border, rgba(0, 0, 0, 0.04));
-  cursor: pointer;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text, #1C1C1E);
-  transition: background 0.2s;
-
-  &:hover {
-    background: var(--bg, #E5E5EA);
-  }
-}
-
-.control-btn-left {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.dropdown-menu {
+.thermo-status-deg {
   position: absolute;
-  z-index: 1000;
-  top: 100%;
-  left: 0;
-  right: 0;
-  margin-top: 4px;
-  background: var(--card, #FFFFFF);
-  border-radius: var(--radius-sm, 12px);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
-  border: 1px solid var(--border, rgba(0, 0, 0, 0.06));
-  overflow: hidden;
+  top: 1px;
+  right: -11px;
+  font-size: 10px;
+  line-height: 1;
+  color: var(--t3, #5c6675);
 }
 
-.dropdown-item {
-  width: 100%;
-  display: flex;
-  align-items: center;
+/* ═══ Mode / Preset Selects ═══ */
+.thermo-selects-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 10px;
-  padding: 10px 12px;
-  border: none;
-  background: none;
-  cursor: pointer;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-muted, #8E8E93);
-  text-align: left;
-  transition: background 0.15s;
-
-  &:hover {
-    background: var(--bg, #F2F2F7);
-  }
-
-  &.active {
-    background: var(--bg, #F2F2F7);
-    color: var(--text, #1C1C1E);
-  }
+  margin-top: 10px;
 }
 
-.active-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  margin-left: auto;
+.thermo-select-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.thermo-select-label {
+  display: block;
+  font: 700 9px Manrope;
+  letter-spacing: .6px;
+  color: var(--t3, #5c6675);
+  margin-bottom: 5px;
+  text-transform: uppercase;
+}
+
+.thermo-select {
+  width: 100%;
+  background: var(--panel2, #1a2230);
+  border: 1px solid var(--border, #27313f);
+  border-radius: 10px;
+  padding: 9px 11px;
+  color: var(--tx, #e6ecf3);
+  font: 600 12.5px Manrope;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238b97a8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 30px;
+
+  &:focus {
+    outline: none;
+    border-color: var(--accent, #5c7cfa);
+  }
 }

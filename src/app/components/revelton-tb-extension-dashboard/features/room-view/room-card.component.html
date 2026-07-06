@@ -12,7 +12,7 @@
             <h2 *ngIf="roomData.sensorData.roomTitle">{{ roomData.sensorData.roomTitle }}</h2>
         </div>
         <div class="room-notifications"
-            [ngClass]="{'alarm-warning': roomData.alarmCount > 0 && roomData.alarmCount < 3, 'alarm-danger': roomData.alarmCount >= 3}">
+            [ngClass]="{'alarm-warning': roomData.alarmCount > 0 && roomData.roomStatus === 'warning', 'alarm-danger': roomData.alarmCount > 0 && roomData.roomStatus === 'danger'}">
             <i class="material-icons">notifications_active</i>
             <span class="badge" *ngIf="roomData.alarmCount > 0">{{ roomData.alarmCount }}</span>
         </div>

@@ -28,6 +28,7 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
   tempSparkData: number[] = [];
   humSparkData: number[] = [];
   co2SparkData: number[] = [];
+  aqiSparkData: number[] = [];
 
   tempMin: number | null = null;
   tempAvg: number | null = null;
@@ -40,6 +41,41 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
   co2Min: number | null = null;
   co2Avg: number | null = null;
   co2Max: number | null = null;
+
+  aqiMin: number | null = null;
+  aqiAvg: number | null = null;
+  aqiMax: number | null = null;
+
+  // Computed status/color for vitals
+  tempStatus = 'normal';
+  humStatus = 'normal';
+  co2Status = 'normal';
+  co2Value: number | null = null;
+  aqiScore: number | null = null;
+
+  get tempColor(): string {
+    if (this.tempStatus === 'danger') return 'var(--alert, #f87171)';
+    if (this.tempStatus === 'warning') return 'var(--warn, #f5b54a)';
+    return 'var(--accent, #5c7cfa)';
+  }
+
+  get co2Color(): string {
+    if (this.co2Status === 'danger') return 'var(--alert, #f87171)';
+    if (this.co2Status === 'warning') return 'var(--warn, #f5b54a)';
+    return 'var(--ok, #34d399)';
+  }
+
+  get aqiColor(): string {
+    if (this.aqOverall === 'Hazardous') return 'var(--alert, #f87171)';
+    if (this.aqOverall === 'Poor' || this.aqOverall === 'Unhealthy') return 'var(--warn, #f5b54a)';
+    return 'var(--ok, #34d399)';
+  }
+
+  get aqiColorBg(): string {
+    if (this.aqOverall === 'Hazardous') return 'var(--alert-soft, rgba(248,113,113,.13))';
+    if (this.aqOverall === 'Poor' || this.aqOverall === 'Unhealthy') return 'var(--warn-soft, rgba(245,181,74,.13))';
+    return 'var(--ok-soft, rgba(52,211,153,.13))';
+  }
 
   private lastFetchedRoom: string = '';
 
@@ -95,6 +131,14 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
   leftSensors: any[] = [];
   rightSensors: any[] = [];
   smartSockets: any[] = [];
+
+  // Partitioned sensor arrays for new card-based layout
+  occupancySensors: any[] = [];
+  windowSensors: any[] = [];
+  waterLeakSensors: any[] = [];
+  noiseSensors: any[] = [];
+  allRawSensors: any[] = [];
+
   alerts: any[] = [];
   alertTimestamps: Map<string, number> = new Map();
   archivedAlerts: any[] = [];
@@ -111,25 +155,29 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
   private refreshInterval: any;
   private configSub: any;
 
-  // History Modal
+  // ── Vitals Time Range ──────────────────────────────────────────
+  /** Time range for vitals sparklines and expand modal: 24 | 168 | 720 hours */
+  vitalsTimeRange: number = 24;
+
+  setVitalsTimeRange(hours: number): void {
+    this.vitalsTimeRange = hours;
+    this.fetchHistoricalVitals();
+    this.cdr.detectChanges();
+  }
+
+  // ── Inline Historical Telemetry State ──────────────────────────────
+  /** Time range for inline historical section: 24 | 168 | 720 hours */
+  histTimeRange: number = 24;
+  /** Legacy flag kept for backward compat */
   showHistoricalData = false;
 
-  constructor(
-    @Optional() @Inject(MAT_DIALOG_DATA) public dialogData: any,
-    @Optional() private dialogRef: MatDialogRef<RoomDetailPanelComponent>,
-    private cdr: ChangeDetectorRef,
-    private roomDataService: RoomDataService,
-    private translationService: TranslationService,
-    private hotelStateService: HotelStateService,
-    private controlPanelService: ControlPanelService
-  ) {}
+  setHistTimeRange(hours: number): void {
+    this.histTimeRange = hours;
+    this.cdr.detectChanges();
+  }
 
   openHistoricalData(): void {
     if (this.data) {
-      // Find the room in the global state or create a temporary InlineRoom if needed
-      // Actually, since we have the data, we can pass it.
-      // But openHistoricalData expects InlineRoom.
-      // Let's see if we can just pass the current data as a partial InlineRoom or find it.
       this.hotelStateService.openHistoricalData({
         id: this.roomNumber,
         name: this.roomTitleLabel,
@@ -145,7 +193,134 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
     this.cdr.detectChanges();
   }
 
+  // ── Vital Expand Modal State ────────────────────────────────────
+  expandedVitalKey: string | null = null;
+  expandedVitalTint = '';
+  expandedVitalColor = '';
+  expandedVitalIcon = '';
+  expandedVitalLabel = '';
+  expandedVitalValue = '';
+  expandedVitalDeg = '';
+  expandedVitalUnit = '';
+  expandedVitalStat = '';
+  expandedVitalScBg = '';
+  expandedVitalSc = '';
+  expandedVitalMin = '';
+  expandedVitalAvg = '';
+  expandedVitalMax = '';
+
+  expandVital(key: string): void {
+    this.expandedVitalKey = key;
+    const cfg = this.getVitalConfig(key);
+    this.expandedVitalTint = cfg.tint;
+    this.expandedVitalColor = cfg.color;
+    this.expandedVitalIcon = cfg.icon;
+    this.expandedVitalLabel = cfg.label;
+    this.expandedVitalValue = cfg.value;
+    this.expandedVitalDeg = cfg.deg;
+    this.expandedVitalUnit = cfg.unit;
+    this.expandedVitalStat = cfg.stat;
+    this.expandedVitalScBg = cfg.scBg;
+    this.expandedVitalSc = cfg.sc;
+    this.expandedVitalMin = cfg.min;
+    this.expandedVitalAvg = cfg.avg;
+    this.expandedVitalMax = cfg.max;
+    this.cdr.detectChanges();
+  }
+
+  closeExpandedVital(): void {
+    this.expandedVitalKey = null;
+    this.cdr.detectChanges();
+  }
+
+  private getVitalConfig(key: string): any {
+    const def = { tint: '', color: '', icon: '', label: key, value: '--', deg: '', unit: '', stat: 'NORMAL', scBg: 'var(--ok-soft)', sc: 'var(--ok)', min: '--', avg: '--', max: '--' };
+    switch (key) {
+      case 'temperature':
+        return {
+          ...def,
+          tint: 'rgba(245,181,74,.13)',
+          color: this.tempColor,
+          icon: 'device_thermostat',
+          label: this.t.temperature || 'Temperature',
+          value: this.avgTemp !== null ? this.avgTemp.toFixed(1) : '--',
+          deg: '°',
+          unit: 'C',
+          stat: this.tempStatus === 'danger' ? 'CRITICAL' : (this.tempStatus === 'warning' ? 'WARNING' : 'NORMAL'),
+          scBg: this.tempStatus === 'danger' ? 'var(--alert-soft)' : (this.tempStatus === 'warning' ? 'var(--warn-soft)' : 'var(--ok-soft)'),
+          sc: this.tempStatus === 'danger' ? 'var(--alert)' : (this.tempStatus === 'warning' ? 'var(--warn)' : 'var(--ok)'),
+          min: this.tempMin !== null ? this.tempMin.toFixed(1) : '--',
+          avg: this.tempAvg !== null ? this.tempAvg.toFixed(1) : '--',
+          max: this.tempMax !== null ? this.tempMax.toFixed(1) : '--'
+        };
+      case 'humidity':
+        return {
+          ...def,
+          tint: 'rgba(92,124,250,.14)',
+          color: 'var(--accent, #5c7cfa)',
+          icon: 'water_drop',
+          label: this.t.humidity || 'Humidity',
+          value: this.avgHum !== null ? this.avgHum.toFixed(0) : '--',
+          deg: '',
+          unit: '%',
+          stat: this.humStatus === 'danger' ? 'CRITICAL' : (this.humStatus === 'warning' ? 'WARNING' : 'NORMAL'),
+          scBg: this.humStatus === 'danger' ? 'var(--alert-soft)' : (this.humStatus === 'warning' ? 'var(--warn-soft)' : 'var(--ok-soft)'),
+          sc: this.humStatus === 'danger' ? 'var(--alert)' : (this.humStatus === 'warning' ? 'var(--warn)' : 'var(--ok)'),
+          min: this.humMin !== null ? this.humMin.toFixed(0) : '--',
+          avg: this.humAvg !== null ? this.humAvg.toFixed(0) : '--',
+          max: this.humMax !== null ? this.humMax.toFixed(0) : '--'
+        };
+      case 'co2':
+        return {
+          ...def,
+          tint: 'rgba(52,211,153,.13)',
+          color: this.co2Color,
+          icon: 'co2',
+          label: 'CO₂',
+          value: this.co2Value !== null ? this.co2Value.toFixed(0) : '--',
+          deg: '',
+          unit: 'ppm',
+          stat: this.co2Status === 'danger' ? 'CRITICAL' : (this.co2Status === 'warning' ? 'WARNING' : 'NORMAL'),
+          scBg: this.co2Status === 'danger' ? 'var(--alert-soft)' : (this.co2Status === 'warning' ? 'var(--warn-soft)' : 'var(--ok-soft)'),
+          sc: this.co2Status === 'danger' ? 'var(--alert)' : (this.co2Status === 'warning' ? 'var(--warn)' : 'var(--ok)'),
+          min: this.co2Min !== null ? this.co2Min.toFixed(0) : '--',
+          avg: this.co2Avg !== null ? this.co2Avg.toFixed(0) : '--',
+          max: this.co2Max !== null ? this.co2Max.toFixed(0) : '--'
+        };
+      case 'aqi':
+        return {
+          ...def,
+          tint: this.aqiColorBg,
+          color: this.aqiColor,
+          icon: 'air',
+          label: this.t.airQuality || 'Air Quality',
+          value: this.aqiScore !== null ? String(this.aqiScore) : '--',
+          deg: '',
+          unit: 'AQI',
+          stat: this.aqOverall === 'Good' ? 'NORMAL' : (this.aqOverall === 'Hazardous' ? 'CRITICAL' : 'WARNING'),
+          scBg: this.aqiColorBg,
+          sc: this.aqiColor,
+          min: this.aqiMin !== null ? String(this.aqiMin) : '--',
+          avg: this.aqiAvg !== null ? String(this.aqiAvg) : '--',
+          max: this.aqiMax !== null ? String(this.aqiMax) : '--'
+        };
+      default:
+        return def;
+    }
+  }
+
+  constructor(
+    @Optional() @Inject(MAT_DIALOG_DATA) public dialogData: any,
+    @Optional() private dialogRef: MatDialogRef<RoomDetailPanelComponent>,
+    private cdr: ChangeDetectorRef,
+    private roomDataService: RoomDataService,
+    private translationService: TranslationService,
+    private hotelStateService: HotelStateService,
+    private controlPanelService: ControlPanelService
+  ) {}
+
   ngOnInit(): void {
+
     if (this.dialogData) {
       this.data = this.dialogData;
     }
@@ -232,6 +407,11 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
     this.allSensors = [];
     this.leftSensors = [];
     this.rightSensors = [];
+    this.occupancySensors = [];
+    this.windowSensors = [];
+    this.waterLeakSensors = [];
+    this.noiseSensors = [];
+    this.allRawSensors = [];
     this.logs = [];
 
     const sd = this.data.sensorData || {};
@@ -282,7 +462,7 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
 
       const freshData = {
         entityName: name,
-        displayName: this.data.deviceMeta?.[name]?.location || this.formatDeviceName(name, 'Thermostat'),
+        displayName: this.formatTrvDisplayName(name, this.data.deviceMeta?.[name]?.location),
         currentTemp: this.data.tempDevices?.[name] ?? null,
         targetTemp: finalTarget,
         systemMode: finalMode,
@@ -560,36 +740,34 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
     this.thermostats.sort((a, b) => this.extractDeviceNumber(a.displayName) - this.extractDeviceNumber(b.displayName));
     this.aqSensors.sort((a, b) => this.extractDeviceNumber(a.displayName) - this.extractDeviceNumber(b.displayName));
     this.smartSockets.sort((a, b) => this.extractDeviceNumber(a.displayName) - this.extractDeviceNumber(b.displayName));
-    // Partition allSensors into left and right columns
-    this.leftSensors = this.allSensors.filter(s => s.type === 'occupancy' || s.type === 'noise');
-    this.rightSensors = this.allSensors.filter(s => s.type !== 'occupancy' && s.type !== 'noise');
 
-    // Keep presence first, noise second in leftSensors
-    this.leftSensors.sort((a, b) => {
-      if (a.type === 'occupancy' && b.type !== 'occupancy') return -1;
-      if (a.type !== 'occupancy' && b.type === 'occupancy') return 1;
-      return this.extractDeviceNumber(a.displayName) - this.extractDeviceNumber(b.displayName);
-    });
+    // Partition allSensors into typed categories for new card layout
+    this.allRawSensors = [...this.allSensors];
+    this.occupancySensors = this.allSensors.filter(s => s.type === 'occupancy');
+    this.windowSensors = this.allSensors.filter(s => s.type === 'window');
+    this.waterLeakSensors = this.allSensors.filter(s => s.type === 'water');
+    this.noiseSensors = this.allSensors.filter(s => s.type === 'noise');
 
-    // Sort rightSensors consistently
-    this.rightSensors.sort((a, b) => {
-      return a.type.localeCompare(b.type) || this.extractDeviceNumber(a.displayName) - this.extractDeviceNumber(b.displayName);
-    });
-
-    // Interleave left and right sensors for row-major order:
-    // Row 1: Left[0] (Presence), Right[0] (Bathroom/Water)
-    // Row 2: Left[1] (Noise), Right[1] (Kitchen/Window)
-    const interleaved: any[] = [];
-    const maxLen = Math.max(this.leftSensors.length, this.rightSensors.length);
-    for (let i = 0; i < maxLen; i++) {
-      if (i < this.leftSensors.length) {
-        interleaved.push(this.leftSensors[i]);
-      }
-      if (i < this.rightSensors.length) {
-        interleaved.push(this.rightSensors[i]);
-      }
+    // Sort each category by device number
+    for (const arr of [this.occupancySensors, this.windowSensors, this.waterLeakSensors, this.noiseSensors]) {
+      arr.sort((a, b) => this.extractDeviceNumber(a.displayName) - this.extractDeviceNumber(b.displayName));
     }
-    this.allSensors = interleaved;
+
+    // Compute status fields for vitals
+    this.tempStatus = this.data.tempStatus || 'normal';
+    this.humStatus = this.data.humStatus || 'normal';
+    this.co2Value = this.aqSensors.length > 0 ? this.aqSensors[0].co2 : null;
+    if (this.co2Value !== null) {
+      if (this.co2Value > 1500) this.co2Status = 'danger';
+      else if (this.co2Value > 1000) this.co2Status = 'warning';
+      else this.co2Status = 'normal';
+    }
+    this.aqiScore = this.aqSensors.length > 0 ? (this.aqSensors[0].aqiScore ?? null) : null;
+    if (this.aqiScore !== null) {
+      this.aqiMin = this.aqiMin ?? this.aqiScore;
+      this.aqiMax = this.aqiMax ?? this.aqiScore;
+      this.aqiAvg = this.aqiScore;
+    }
 
     // Populate alerts dynamically based on custom thresholds from Control Config
     const previousAlerts = [...this.alerts];
@@ -825,6 +1003,10 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
     return leadMatch ? parseInt(leadMatch[1], 10) : 999;
   }
 
+  private formatTrvDisplayName(entityName: string, _location?: string): string {
+    return this.formatDeviceName(entityName, 'TRV');
+  }
+
   private formatDeviceName(name: string, defaultType: string): string {
     // Pattern: type_room_X_Y  (e.g., window_room_6_2, trv_room_6_1, wl_room_5_1)
     const fullMatch = name.match(/^([a-zA-Z]+)_room_(\d+)_(\d+)$/i);
@@ -833,7 +1015,7 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
       const deviceNum = fullMatch[3];
       const types: Record<string, string> = {
         WINDOW: this.t.windows, WIN: this.t.windows,
-        TRV: this.t.thermostats,
+        TRV: 'TRV',
         AQ: this.t.airQuality, AM: this.t.airQuality,
         WL: this.t.waterLeak,
         NS: this.t.noiseLevel, NOISE: this.t.noiseLevel,
@@ -849,7 +1031,7 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
       const deviceNum = shortMatch[3];
       const types: Record<string, string> = {
         WINDOW: this.t.windows, WIN: this.t.windows,
-        TRV: this.t.thermostats,
+        TRV: 'TRV',
         AQ: this.t.airQuality, AM: this.t.airQuality,
         WL: this.t.waterLeak,
         NS: this.t.noiseLevel, NOISE: this.t.noiseLevel,
@@ -864,7 +1046,7 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
       const prefix = singleMatch[1].toUpperCase();
       const types: Record<string, string> = {
         WINDOW: this.t.windows, WIN: this.t.windows,
-        TRV: this.t.thermostats,
+        TRV: 'TRV',
         AQ: this.t.airQuality, AM: this.t.airQuality,
         WL: this.t.waterLeak,
         NS: this.t.noiseLevel, NOISE: this.t.noiseLevel,
@@ -1025,6 +1207,63 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
     return 'meta-item-gray';
   }
 
+  // ── Battery helpers ──────────────────────────────────────────────
+
+  getBatteryBg(battery: number | null): string {
+    if (battery == null) return 'var(--panel2, #1a2230)';
+    if (battery <= 20) return 'var(--alert-soft, rgba(248,113,113,.13))';
+    if (battery <= 50) return 'var(--warn-soft, rgba(245,181,74,.13))';
+    return 'var(--ok-soft, rgba(52,211,153,.13))';
+  }
+
+  getBatteryColor(battery: number | null): string {
+    if (battery == null) return 'var(--t3, #5c6675)';
+    if (battery <= 20) return 'var(--alert, #f87171)';
+    if (battery <= 50) return 'var(--warn, #f5b54a)';
+    return 'var(--ok, #34d399)';
+  }
+
+  getBatteryIcon(battery: number | null): string {
+    if (battery == null) return 'battery_unknown';
+    if (battery <= 10) return 'battery_alert';
+    if (battery <= 25) return 'battery_2_bar';
+    if (battery <= 50) return 'battery_4_bar';
+    if (battery <= 75) return 'battery_5_bar';
+    return 'battery_full';
+  }
+
+  // ── Signal helpers ───────────────────────────────────────────────
+
+  getSignalBg(lqi: number | null): string {
+    if (lqi == null) return 'var(--panel2, #1a2230)';
+    if (lqi < 50) return 'var(--alert-soft, rgba(248,113,113,.13))';
+    if (lqi < 100) return 'var(--warn-soft, rgba(245,181,74,.13))';
+    return 'var(--ok-soft, rgba(52,211,153,.13))';
+  }
+
+  getSignalColor(lqi: number | null): string {
+    if (lqi == null) return 'var(--t3, #5c6675)';
+    if (lqi < 50) return 'var(--alert, #f87171)';
+    if (lqi < 100) return 'var(--warn, #f5b54a)';
+    return 'var(--ok, #34d399)';
+  }
+
+  // ── Sensor value color helpers ───────────────────────────────────
+
+  getTempColor(temp: number | null): string {
+    if (temp == null) return 'var(--t3, #5c6675)';
+    if (temp > 28) return 'var(--alert, #f87171)';
+    if (temp > 25) return 'var(--warn, #f5b54a)';
+    return 'var(--accent, #5c7cfa)';
+  }
+
+  getCo2Color(co2: number | null): string {
+    if (co2 == null) return 'var(--t3, #5c6675)';
+    if (co2 > 1500) return 'var(--alert, #f87171)';
+    if (co2 > 1000) return 'var(--warn, #f5b54a)';
+    return 'var(--ok, #34d399)';
+  }
+
   loadArchive(): void {
     const key = `revelton_alerts_archive_${this.roomNumber}`;
     const ackKey = `revelton_alerts_ack_${this.roomNumber}`;
@@ -1106,14 +1345,17 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
   fetchHistoricalVitals(): void {
     const ctx = this.data?.ctx;
     const http = ctx?.http;
-    if (!http || !this.deviceEntityIdMap || this.roomNumber === '--' || this.roomNumber === this.lastFetchedRoom) {
+    if (!http || !this.deviceEntityIdMap || this.roomNumber === '--') {
       return;
     }
-    this.lastFetchedRoom = this.roomNumber;
+    // Re-fetch when room or time range changes
+    const cacheKey = `${this.roomNumber}_${this.vitalsTimeRange}`;
+    if (cacheKey === this.lastFetchedRoom) return;
+    this.lastFetchedRoom = cacheKey;
 
     const endTs = Date.now();
-    const startTs = endTs - (24 * 60 * 60 * 1000); // Past 24 hours
-    const limit = 300;
+    const startTs = endTs - (this.vitalsTimeRange * 60 * 60 * 1000);
+    const limit = this.vitalsTimeRange <= 24 ? 300 : (this.vitalsTimeRange <= 168 ? 1000 : 2000);
 
     // Identify AQ, Temp, Hum device IDs
     let aqDeviceId: string | null = null;

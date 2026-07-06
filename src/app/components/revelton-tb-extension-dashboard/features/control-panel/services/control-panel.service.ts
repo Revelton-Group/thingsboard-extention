@@ -47,21 +47,36 @@ export class ControlPanelService {
     this._activeSection$.next(section);
   }
 
+  /** Deep merge stored config over defaults, preserving nested objects */
+  private deepMerge(defaults: any, stored: any): any {
+    if (!stored || typeof stored !== 'object') return JSON.parse(JSON.stringify(defaults));
+    const result: any = {};
+    for (const key of Object.keys(defaults)) {
+      if (stored[key] === undefined) {
+        // Use default
+        result[key] = JSON.parse(JSON.stringify(defaults[key]));
+      } else if (typeof defaults[key] === 'object' && !Array.isArray(defaults[key]) && defaults[key] !== null) {
+        // Nested object — merge
+        result[key] = this.deepMerge(defaults[key], stored[key]);
+      } else if (Array.isArray(defaults[key])) {
+        // Array — use stored if non-empty, otherwise default
+        result[key] = Array.isArray(stored[key]) && stored[key].length > 0
+          ? JSON.parse(JSON.stringify(stored[key]))
+          : JSON.parse(JSON.stringify(defaults[key]));
+      } else {
+        // Primitive — use stored value
+        result[key] = stored[key];
+      }
+    }
+    return result;
+  }
+
   loadConfig(): ControlPanelConfig {
     try {
       const stored = localStorage.getItem(this.STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
-        return {
-          ...DEFAULT_CONTROL_PANEL_CONFIG,
-          ...parsed,
-          airQuality: { ...DEFAULT_CONTROL_PANEL_CONFIG.airQuality, ...parsed.airQuality },
-          thermostat: { ...DEFAULT_CONTROL_PANEL_CONFIG.thermostat, ...parsed.thermostat },
-          noise: { ...DEFAULT_CONTROL_PANEL_CONFIG.noise, ...parsed.noise },
-          window: { ...DEFAULT_CONTROL_PANEL_CONFIG.window, ...parsed.window },
-          mews: { ...DEFAULT_CONTROL_PANEL_CONFIG.mews, ...parsed.mews },
-          telegram: { ...DEFAULT_CONTROL_PANEL_CONFIG.telegram, ...parsed.telegram },
-        };
+        return this.deepMerge(DEFAULT_CONTROL_PANEL_CONFIG, parsed) as ControlPanelConfig;
       }
     } catch (e) {
       console.warn('Failed to load control panel config from localStorage', e);
@@ -69,13 +84,16 @@ export class ControlPanelService {
     return JSON.parse(JSON.stringify(DEFAULT_CONTROL_PANEL_CONFIG));
   }
 
-  saveConfig(newConfig: ControlPanelConfig): void {
+  saveConfig(newConfig: ControlPanelConfig, roomEntityIds?: string[]): void {
     try {
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(newConfig));
       this._config$.next(newConfig);
 
       // Also persist to ThingsBoard server attributes for Rule Engine access
-      this.persistToThingsBoard(newConfig);
+      this.persistToThingsBoard(newConfig, roomEntityIds);
+
+      // Persist syncIntervalMinutes to Mews gateway shared attributes
+      this.persistMewsSyncInterval(newConfig.mews.intervalMinutes);
     } catch (e) {
       console.error('Failed to save control panel config', e);
     }
@@ -100,16 +118,7 @@ export class ControlPanelService {
             const serverConfig = typeof attrs[0].value === 'string'
               ? JSON.parse(attrs[0].value)
               : attrs[0].value;
-            const merged: ControlPanelConfig = {
-              ...DEFAULT_CONTROL_PANEL_CONFIG,
-              ...serverConfig,
-              airQuality: { ...DEFAULT_CONTROL_PANEL_CONFIG.airQuality, ...serverConfig.airQuality },
-              thermostat: { ...DEFAULT_CONTROL_PANEL_CONFIG.thermostat, ...serverConfig.thermostat },
-              noise: { ...DEFAULT_CONTROL_PANEL_CONFIG.noise, ...serverConfig.noise },
-              window: { ...DEFAULT_CONTROL_PANEL_CONFIG.window, ...serverConfig.window },
-              mews: { ...DEFAULT_CONTROL_PANEL_CONFIG.mews, ...serverConfig.mews },
-              telegram: { ...DEFAULT_CONTROL_PANEL_CONFIG.telegram, ...serverConfig.telegram },
-            };
+            const merged = this.deepMerge(DEFAULT_CONTROL_PANEL_CONFIG, serverConfig) as ControlPanelConfig;
             this._config$.next(merged);
             localStorage.setItem(this.STORAGE_KEY, JSON.stringify(merged));
             console.log('[ControlPanel] ✅ Loaded config from ThingsBoard server');
@@ -122,67 +131,91 @@ export class ControlPanelService {
     );
   }
 
-  /** Persist entire config as a SERVER_SCOPE attribute on all resolved Assets */
-  private persistToThingsBoard(config: ControlPanelConfig): void {
-    console.log('[ControlPanel] persistToThingsBoard starting...', { ctx: this.ctx });
+  /** Persist entire config as a SERVER_SCOPE attribute on the target room Assets */
+  private persistToThingsBoard(config: ControlPanelConfig, roomEntityIds?: string[]): void {
     if (!this.ctx?.http) {
       console.warn('[ControlPanel] No ctx.http available — config saved locally only');
       return;
     }
 
-    const entityIds = this.resolveAllAssetEntityIds();
+    // Use provided entity IDs (respecting room scope), or fall back to all datasource assets
+    const entityIds = roomEntityIds && roomEntityIds.length > 0
+      ? roomEntityIds
+      : this.resolveAllAssetEntityIds();
+
     if (entityIds.length === 0) {
-      console.warn('[ControlPanel] Could not resolve any asset entity IDs. Datasources:', this.ctx?.datasources);
+      console.warn('[ControlPanel] Could not resolve any asset entity IDs.');
       return;
     }
 
-    const payload: any = {
-      controlPanelConfig: JSON.stringify(config),
-
-      // Flat Air Quality thresholds
-      co2Max: config.airQuality.co2Max,
-      pm25Max: config.airQuality.pm25Max,
-      pm10Max: config.airQuality.pm10Max,
-      tvocMax: config.airQuality.tvocMax,
-      tempMax: config.airQuality.tempMax,
-      humMax: config.airQuality.humMax,
-      pressMax: config.airQuality.pressMax,
-      airQuality_enabled: config.airQuality.enabled,
-
-      // Flat Noise thresholds
-      noiseMax: config.noise.noiseMax,
-      laeqMax: config.noise.laeqMax,
-      laiMax: config.noise.laiMax,
-      laimaxMax: config.noise.laimaxMax,
-      noise_enabled: config.noise.enabled,
-
-      // Flat Telegram settings
-      telegram_enabled: config.telegram.enabled,
-      telegram_botToken: config.telegram.botToken,
-      telegram_chatId: config.telegram.chatId,
-      telegram_topicId: config.telegram.topicId,
-
-      // Flat Thermostat settings
-      thermostat_enabled: config.thermostat.enabled,
-      thermostat_startTime: config.thermostat.startTime,
-      thermostat_endTime: config.thermostat.endTime,
-      thermostat_exerciseTemp: config.thermostat.exerciseTemp,
-
-      // Flat Window settings
-      window_enabled: config.window.enabled,
-      window_thresholdHours: config.window.thresholdHours
-    };
+    const payload = this.buildFlatPayload(config);
 
     for (const entityId of entityIds) {
-      console.log(`[ControlPanel] Attempting POST to /api/plugins/telemetry/ASSET/${entityId}/SERVER_SCOPE`, payload);
       this.ctx.http.post(
         `/api/plugins/telemetry/ASSET/${entityId}/SERVER_SCOPE`,
         payload
       ).subscribe(
-        () => console.log(`[ControlPanel] ✅ Config persisted successfully to Asset ${entityId}`),
+        () => console.log(`[ControlPanel] ✅ Config persisted to Asset ${entityId}`),
         (err: any) => console.error(`[ControlPanel] ❌ Failed to persist config to Asset ${entityId}`, err)
       );
     }
+  }
+
+  /** Build the complete flat key-value attribute payload from a ControlPanelConfig */
+  private buildFlatPayload(config: ControlPanelConfig): Record<string, any> {
+    return {
+      // Full config JSON (backward compatibility)
+      controlPanelConfig: JSON.stringify(config),
+
+      // ── Air Quality ──
+      co2Max: config.airQuality.co2Max,
+      co2Min: config.airQuality.co2Min,
+      pm25Max: config.airQuality.pm25Max,
+      pm25Min: config.airQuality.pm25Min,
+      pm10Max: config.airQuality.pm10Max,
+      pm10Min: config.airQuality.pm10Min,
+      tvocMax: config.airQuality.tvocMax,
+      tvocMin: config.airQuality.tvocMin,
+      tempMax: config.airQuality.tempMax,
+      tempMin: config.airQuality.tempMin,
+      humMax: config.airQuality.humMax,
+      humMin: config.airQuality.humMin,
+      pressMax: config.airQuality.pressMax,
+      pressMin: config.airQuality.pressMin,
+
+      // ── Thermostat ──
+      thermostat_valveOpen: config.thermostat.valveOpen,
+      thermostat_comfortTemp: config.thermostat.comfortTemp,
+      thermostat_schedule: JSON.stringify(config.thermostat.schedule),
+      thermostat_maintenance_enabled: config.thermostat.maintenance.enabled,
+      thermostat_maintenance_tests: JSON.stringify(config.thermostat.maintenance.tests),
+
+      // ── Noise ──
+      noise_day_laeq: config.noise.day.laeq,
+      noise_day_lai: config.noise.day.lai,
+      noise_day_laimax: config.noise.day.laimax,
+      noise_night_laeq: config.noise.night.laeq,
+      noise_night_lai: config.noise.night.lai,
+      noise_night_laimax: config.noise.night.laimax,
+      noise_dayPeriod_start: config.noise.dayPeriod.start,
+      noise_dayPeriod_end: config.noise.dayPeriod.end,
+      noise_nightPeriod_start: config.noise.nightPeriod.start,
+      noise_nightPeriod_end: config.noise.nightPeriod.end,
+
+      // ── Window ──
+      window_thresholdMinutes: config.window.thresholdMinutes,
+      window_autoPauseHeating: config.window.autoPauseHeating,
+
+      // ── Telegram ──
+      telegram_alert_temp: config.telegram.alerts.temp,
+      telegram_alert_humidity: config.telegram.alerts.humidity,
+      telegram_alert_co2: config.telegram.alerts.co2,
+      telegram_alert_noise: config.telegram.alerts.noise,
+      telegram_alert_water: config.telegram.alerts.water,
+      telegram_alert_window: config.telegram.alerts.window,
+      telegram_alert_battery: config.telegram.alerts.battery,
+      telegram_alert_checkin: config.telegram.alerts.checkin,
+    };
   }
 
   /** Find the first ASSET entity ID from the widget context datasources for loading */
@@ -194,7 +227,6 @@ export class ControlPanelService {
   /** Get all ASSET entity IDs from the widget context datasources */
   private resolveAllAssetEntityIds(): string[] {
     if (!this.ctx?.datasources) {
-      console.warn('[ControlPanel] resolveAllAssetEntityIds: No datasources found on ctx');
       return [];
     }
 
@@ -208,7 +240,44 @@ export class ControlPanelService {
         }
       }
     }
-    console.log('[ControlPanel] resolveAllAssetEntityIds found assets:', assetIds);
     return assetIds;
+  }
+
+  private resolveMewsDeviceId(): string | null {
+    if (!this.ctx?.datasources) return null;
+    for (const ds of this.ctx.datasources) {
+      if (ds.entityType === 'DEVICE') {
+        const entityName = ds.entityName || '';
+        const lowerName = entityName.toLowerCase();
+        const isMews = lowerName.includes('mews') && !lowerName.includes('room');
+        if (isMews) {
+          const rawId = ds.entityId;
+          return typeof rawId === 'string' ? rawId : rawId?.id;
+        }
+      }
+    }
+    return null;
+  }
+
+  private persistMewsSyncInterval(interval: number): void {
+    if (!this.ctx?.http) {
+      console.warn('[ControlPanel] No ctx.http available — cannot persist syncIntervalMinutes to ThingsBoard');
+      return;
+    }
+    const mewsDeviceId = this.resolveMewsDeviceId();
+    if (mewsDeviceId) {
+      const payload = {
+        syncIntervalMinutes: interval
+      };
+      this.ctx.http.post(
+        `/api/plugins/telemetry/DEVICE/${mewsDeviceId}/SHARED_SCOPE`,
+        payload
+      ).subscribe(
+        () => console.log(`[ControlPanel] ✅ syncIntervalMinutes (${interval} min) persisted to Mews Gateway (${mewsDeviceId})`),
+        (err: any) => console.error(`[ControlPanel] ❌ Failed to persist syncIntervalMinutes to Mews Gateway (${mewsDeviceId})`, err)
+      );
+    } else {
+      console.warn('[ControlPanel] Could not find Mews gateway device in datasources to persist syncIntervalMinutes');
+    }
   }
 }

@@ -5,6 +5,7 @@ export interface TranslationSet {
   // Common
   details: string;
   close: string;
+  done: string;
   room: string;
   rooms: string;
   lastSync: string;
@@ -167,17 +168,121 @@ export interface TranslationSet {
   noSockets: string;
 
   cpCo2Limit: string;
-  cpPmbLimit: string;
+  cpPm25Limit: string;
   cpPm10Limit: string;
   cpTvocLimit: string;
   cpNoiseLimit: string;
-  cpTempMaxLimit: string;
-  cpHumMaxLimit: string;
-  cpPressMaxLimit: string;
+  cpTempMax: string;
+  cpHumMax: string;
+  cpPressMax: string;
   cpAirQualityThresholds: string;
   cpAirQualityDesc: string;
   cpNoiseThresholds: string;
   cpNoiseDesc: string;
+  cpAirGuardTitle: string;
+  cpAirGuardDesc: string;
+  cpNormalBadge: string;
+  cpWarningBadge: string;
+  cpAlertBadge: string;
+  cpMonitorLabel: string;
+  cpClimateSection: string;
+  cpPuritySection: string;
+  cpCurrent: string;
+  cpNoiseTitle: string;
+  cpLaeqName: string;
+  cpLaeqHint: string;
+  cpLaiName: string;
+  cpLaiHint: string;
+  cpLaimaxName: string;
+  cpLaimaxHint: string;
+  cpHomePreset: string;
+  cpOfficePreset: string;
+  cpLabPreset: string;
+  cpMaintSchedule: string;
+  cpMaintScheduleHint: string;
+  cpValveOpen: string;
+  cpValveClosed: string;
+  cpAddInterval: string;
+  cpComfortTemp: string;
+  cpComfortTempHint: string;
+  cpWindowAutoPause: string;
+  cpWindowAutoPauseHint: string;
+  cpWindowAlertT: string;
+  cpWindowAlertHint: string;
+  cpOn: string;
+  cpOff: string;
+  cpCurrentlyOpen: string;
+  cpNoOpenWindows: string;
+  cpTelegramEnabledHint: string;
+  cpTelegramEnabledT: string;
+  cpTelegramActive: string;
+  cpBotToken: string;
+  cpBotTokenHint2: string;
+  cpChatId: string;
+  cpChatIdHint: string;
+  cpTopicId: string;
+  cpTopicIdHint: string;
+  cpAlertTypes: string;
+  cpAlertTypesHint: string;
+  cpSendTest: string;
+  cpUnsavedChanges: string;
+  cpSaveThresholds: string;
+  cpPmbLimit: string;
+  cpTempMaxLimit: string;
+  cpHumMaxLimit: string;
+  cpPressMaxLimit: string;
+
+  // Control Panel — Design-aligned
+  schedule: string;
+  scheduleHint: string;
+  maintenanceT: string;
+  maintenanceHint: string;
+  heatingValve: string;
+  valveHint: string;
+  limitW: string;
+  noiseThresholdHint: string;
+  minutesU: string;
+  appliesTo: string;
+  ofRooms: string;
+  roomsTargeted: string;
+  allRooms: string;
+  selectRooms: string;
+  searchRooms: string;
+  alertC: string;
+  dayPeriod: string;
+  nightPeriod: string;
+  syncNow: string;
+  mewsSyncT: string;
+  mewsAutoSyncT: string;
+  mewsAutoSyncHint: string;
+  mewsSyncHint: string;
+  lastSyncT: string;
+  minAgo: string;
+  alertTypesT: string;
+  acousticNoise: string;
+  thermostatsT: string;
+  windowOpenAlert: string;
+  mewsB: string;
+  normalC: string;
+  warningC: string;
+  addTest: string;
+  comfortHint: string;
+  connectionStatus: string;
+  onlineLabel: string;
+  offlineLabel: string;
+  integrationStatusT: string;
+  roomsSyncedT: string;
+  lastHeartbeatT: string;
+  errorT: string;
+  alertActiveT: string;
+  tempAlert: string;
+  humidityAlert: string;
+  waterAlert: string;
+  windowAlert: string;
+  batteryAlert: string;
+  checkinAlert: string;
+  co2Alert: string;
+  noiseAlert: string;
 
   histSyncing: string;
   histRetry: string;
@@ -228,14 +333,15 @@ export interface TranslationSet {
 })
 export class TranslationService {
   private languages = [
-    { code: "EN", name: "English" },
-    { code: "RU", name: "Русский" },
+    { code: "EN", name: "English", flag: "🇬🇧" },
+    { code: "RU", name: "Русский", flag: "🇷🇺" },
   ];
 
   private translations: Record<string, TranslationSet> = {
     EN: {
       details: "Details",
       close: "Close",
+      done: "Done",
       room: "Room",
       rooms: "rooms",
       lastSync: "Last sync",
@@ -367,7 +473,7 @@ export class TranslationService {
       cpSyncFrequency: "Sync Frequency",
       cpSyncFrequencyHint: "Shorter intervals give more real-time data but increase API usage.",
       cpNextSyncScheduled: "Next sync scheduled every",
-      cpTelegramTitle: "Telegram Notifications",
+      cpTelegramTitle: "Telegram",
       cpTelegramDesc: "Forward alerts to a Telegram chat or group.",
       cpAlertLevel: "Alert Level",
       cpDangerOnly: "Danger only",
@@ -403,6 +509,109 @@ export class TranslationService {
       cpAirQualityDesc: "Configure alert limits for room environment pollutants.",
       cpNoiseThresholds: "Noise Thresholds",
       cpNoiseDesc: "Configure maximum acoustic noise thresholds.",
+      cpAirGuardTitle: "Threshold Settings",
+      cpAirGuardDesc: "AirGuard · alert limits per metric",
+      cpNormalBadge: "NORMAL",
+      cpWarningBadge: "WARNING",
+      cpAlertBadge: "EXCEEDED",
+      cpMonitorLabel: "MONITOR",
+      cpClimateSection: "CLIMATE COMFORT",
+      cpPuritySection: "AIR PURITY",
+      cpCurrent: "Current",
+      cpNoiseTitle: "Acoustic Noise Settings",
+      cpLaeqName: "LAEQ",
+      cpLaeqHint: "Equivalent continuous level — average sound energy over time; best gauge of ongoing comfort",
+      cpLaiName: "LAI",
+      cpLaiHint: "Instantaneous level — captures short peaks and transient events",
+      cpLaimaxName: "LAIMAX",
+      cpLaimaxHint: "Maximum level recorded — the loudest moment in the interval",
+      cpHomePreset: "Home",
+      cpOfficePreset: "Office",
+      cpLabPreset: "Lab",
+      cpMaintSchedule: "Valve Maintenance Schedule",
+      cpMaintScheduleHint: "Periodically fully opens then closes the valve to prevent limescale build-up and keep it moving freely",
+      cpValveOpen: "Valve Open",
+      cpValveClosed: "Valve Closed",
+      cpAddInterval: "Add Interval",
+      cpComfortTemp: "Comfort Temperature",
+      cpComfortTempHint: "Default setpoint applied on guest check-in",
+      cpWindowAutoPause: "Auto-pause Heating",
+      cpWindowAutoPauseHint: "Pause the valve automatically while a window is open in the room",
+      cpWindowAlertT: "Open-Window Alert",
+      cpWindowAlertHint: "Notify staff if a window stays open longer than this",
+      cpOn: "On",
+      cpOff: "Off",
+      cpCurrentlyOpen: "Currently Open Windows",
+      cpNoOpenWindows: "All windows closed right now",
+      cpTelegramEnabledHint: "Always on — alerts your hotel staff Telegram group",
+      cpTelegramEnabledT: "Bot Notifications",
+      cpTelegramActive: "Bot is active and sending alerts",
+      cpBotToken: "Main Bot Token",
+      cpBotTokenHint2: "The API Token provided by BotFather.",
+      cpChatId: "Chat / Group ID",
+      cpChatIdHint: "The Telegram chat that receives alerts.",
+      cpTopicId: "Topic ID (Hotel Thread)",
+      cpTopicIdHint: "The specific thread ID within the group.",
+      cpAlertTypes: "Alert Types",
+      cpAlertTypesHint: "Choose which events trigger a Telegram message",
+      cpSendTest: "Send Test Message",
+      cpUnsavedChanges: "Unsaved changes",
+      cpSaveThresholds: "Save",
+      cpPm25Limit: "PM2.5 LIMIT",
+      cpTempMax: "TEMP MAX LIMIT",
+      cpHumMax: "HUMIDITY MAX LIMIT",
+      cpPressMax: "PRESSURE MAX LIMIT",
+
+      schedule: "Schedule",
+      scheduleHint: "Define heating periods with target temperatures for each time block.",
+      maintenanceT: "Valve Maintenance",
+      maintenanceHint: "Periodically fully opens then closes the valve to prevent limescale build-up and keep it moving freely.",
+      heatingValve: "Heating Valve",
+      valveHint: "Opens the thermostat valve (turns heating on) for targeted rooms.",
+      limitW: "LIMIT",
+      noiseThresholdHint: "Noise thresholds per period — day and night limits.",
+      minutesU: "min",
+      appliesTo: "Applies to",
+      ofRooms: "of",
+      roomsTargeted: "rooms",
+      allRooms: "All rooms",
+      selectRooms: "Select rooms",
+      searchRooms: "Search rooms...",
+      alertC: "EXCEEDED",
+      dayPeriod: "Day",
+      nightPeriod: "Night",
+      syncNow: "Sync Now",
+      mewsSyncT: "Sync Interval",
+      mewsAutoSyncT: "Auto Sync",
+      mewsAutoSyncHint: "Reservation data is kept up to date automatically.",
+      mewsSyncHint: "How often reservation data is pulled from Mews PMS.",
+      lastSyncT: "Last Sync",
+      minAgo: "min ago",
+      alertTypesT: "Alert Types",
+      acousticNoise: "Noise",
+      thermostatsT: "Thermostats",
+      windowOpenAlert: "Window",
+      mewsB: "Mews Bridge",
+      normalC: "NORMAL",
+      warningC: "WARNING",
+      addTest: "Add Test",
+      comfortHint: "Default setpoint applied on guest check-in.",
+      connectionStatus: "Connection",
+      onlineLabel: "Online",
+      offlineLabel: "Offline",
+      integrationStatusT: "Integration Status",
+      roomsSyncedT: "Rooms Synced",
+      lastHeartbeatT: "Last Heartbeat",
+      errorT: "Error",
+      alertActiveT: "Alert Active",
+      tempAlert: "Temperature",
+      humidityAlert: "Humidity",
+      waterAlert: "Water Leak",
+      windowAlert: "Window Open",
+      batteryAlert: "Low Battery",
+      checkinAlert: "Check-in",
+      co2Alert: "CO₂",
+      noiseAlert: "Noise",
 
       histSyncing: "Syncing sensors...",
       histRetry: "Retry",
@@ -450,6 +659,7 @@ export class TranslationService {
     RU: {
       details: "Детали",
       close: "Закрыть",
+      done: "Готово",
       room: "Комната",
       rooms: "комнат",
       lastSync: "Синхр.",
@@ -581,7 +791,7 @@ export class TranslationService {
       cpSyncFrequency: "Частота синхронизации",
       cpSyncFrequencyHint: "Короткие интервалы дают актуальные данные, но увеличивают нагрузку.",
       cpNextSyncScheduled: "Следующая синхронизация каждые",
-      cpTelegramTitle: "Уведомления Telegram",
+      cpTelegramTitle: "Telegram",
       cpTelegramDesc: "Пересылка оповещений в чат или группу Telegram.",
       cpAlertLevel: "Уровень оповещения",
       cpDangerOnly: "Только опасность",
@@ -617,6 +827,109 @@ export class TranslationService {
       cpAirQualityDesc: "Настройте лимиты оповещений для загрязняющих веществ в комнатах.",
       cpNoiseThresholds: "Пороги уровня шума",
       cpNoiseDesc: "Настройте максимальные пороги акустического шума.",
+      cpAirGuardTitle: "Настройки порогов",
+      cpAirGuardDesc: "AirGuard · лимиты оповещений по метрикам",
+      cpNormalBadge: "НОРМА",
+      cpWarningBadge: "ВНИМАНИЕ",
+      cpAlertBadge: "ПРЕВЫШЕНИЕ",
+      cpMonitorLabel: "МОНИТОР",
+      cpClimateSection: "КЛИМАТИЧЕСКИЙ КОМФОРТ",
+      cpPuritySection: "ЧИСТОТА ВОЗДУХА",
+      cpCurrent: "Текущее",
+      cpNoiseTitle: "Настройки акустического шума",
+      cpLaeqName: "LAEQ",
+      cpLaeqHint: "Эквивалентный непрерывный уровень — средняя звуковая энергия за время; лучший показатель комфорта",
+      cpLaiName: "LAI",
+      cpLaiHint: "Мгновенный уровень — фиксирует короткие пики и переходные события",
+      cpLaimaxName: "LAIMAX",
+      cpLaimaxHint: "Максимальный зафиксированный уровень — самый громкий момент в интервале",
+      cpHomePreset: "Дом",
+      cpOfficePreset: "Офис",
+      cpLabPreset: "Лаб.",
+      cpMaintSchedule: "Расписание обслуживания клапанов",
+      cpMaintScheduleHint: "Периодически полностью открывает и закрывает клапан для предотвращения известкового налёта",
+      cpValveOpen: "Клапан открыт",
+      cpValveClosed: "Клапан закрыт",
+      cpAddInterval: "Добавить интервал",
+      cpComfortTemp: "Комфортная температура",
+      cpComfortTempHint: "Уставка по умолчанию при заезде гостя",
+      cpWindowAutoPause: "Авто-пауза отопления",
+      cpWindowAutoPauseHint: "Автоматически приостанавливать клапан, пока окно открыто в комнате",
+      cpWindowAlertT: "Оповещение об открытом окне",
+      cpWindowAlertHint: "Уведомить персонал, если окно открыто дольше указанного",
+      cpOn: "Вкл",
+      cpOff: "Выкл",
+      cpCurrentlyOpen: "Сейчас открытые окна",
+      cpNoOpenWindows: "Все окна сейчас закрыты",
+      cpTelegramEnabledHint: "Всегда включено — оповещает группу персонала отеля в Telegram",
+      cpTelegramEnabledT: "Уведомления бота",
+      cpTelegramActive: "Бот активен и отправляет оповещения",
+      cpBotToken: "Основной токен бота",
+      cpBotTokenHint2: "API-токен, предоставленный BotFather.",
+      cpChatId: "ID чата / группы",
+      cpChatIdHint: "Чат Telegram, который получает оповещения.",
+      cpTopicId: "ID темы (ветка отеля)",
+      cpTopicIdHint: "Конкретный ID темы внутри группы.",
+      cpAlertTypes: "Типы оповещений",
+      cpAlertTypesHint: "Выберите, какие события вызывают сообщение в Telegram",
+      cpSendTest: "Отправить тестовое сообщение",
+      cpUnsavedChanges: "Несохранённые изменения",
+      cpSaveThresholds: "Сохранить",
+      cpPm25Limit: "ЛИМИТ PM2.5",
+      cpTempMax: "МАКС. ЛИМИТ ТЕМП.",
+      cpHumMax: "МАКС. ЛИМИТ ВЛАЖН.",
+      cpPressMax: "МАКС. ЛИМИТ ДАВЛ.",
+
+      schedule: "Расписание",
+      scheduleHint: "Задайте периоды отопления с целевой температурой для каждого временного блока.",
+      maintenanceT: "Обслуживание клапанов",
+      maintenanceHint: "Периодически полностью открывает и закрывает клапан для предотвращения известкового налёта.",
+      heatingValve: "Клапан отопления",
+      valveHint: "Открывает клапан термостата (включает отопление) для выбранных комнат.",
+      limitW: "ЛИМИТ",
+      noiseThresholdHint: "Пороги шума по периодам — дневные и ночные лимиты.",
+      minutesU: "мин",
+      appliesTo: "Применяется к",
+      ofRooms: "из",
+      roomsTargeted: "комнат",
+      allRooms: "Все комнаты",
+      selectRooms: "Выбрать комнаты",
+      searchRooms: "Поиск комнат...",
+      alertC: "ПРЕВЫШЕНИЕ",
+      dayPeriod: "День",
+      nightPeriod: "Ночь",
+      syncNow: "Синхронизировать",
+      mewsSyncT: "Интервал синхр.",
+      mewsAutoSyncT: "Авто-синхр.",
+      mewsAutoSyncHint: "Данные бронирования обновляются автоматически.",
+      mewsSyncHint: "Как часто данные бронирования загружаются из Mews PMS.",
+      lastSyncT: "Последняя синхр.",
+      minAgo: "мин. назад",
+      alertTypesT: "Типы оповещений",
+      acousticNoise: "Шум",
+      thermostatsT: "Термостаты",
+      windowOpenAlert: "Окна",
+      mewsB: "Mews Bridge",
+      normalC: "НОРМА",
+      warningC: "ВНИМАНИЕ",
+      addTest: "Добавить тест",
+      comfortHint: "Уставка по умолчанию при заезде гостя.",
+      connectionStatus: "Подключение",
+      onlineLabel: "В сети",
+      offlineLabel: "Не в сети",
+      integrationStatusT: "Статус интеграции",
+      roomsSyncedT: "Комнат синхр.",
+      lastHeartbeatT: "Последний heartbeat",
+      errorT: "Ошибка",
+      alertActiveT: "Алерт активен",
+      tempAlert: "Температура",
+      humidityAlert: "Влажность",
+      waterAlert: "Утечка воды",
+      windowAlert: "Открытое окно",
+      batteryAlert: "Низкий заряд",
+      checkinAlert: "Заезд",
+      co2Alert: "CO₂",
+      noiseAlert: "Шум",
 
       histSyncing: "Синхронизация...",
       histRetry: "Повторить",

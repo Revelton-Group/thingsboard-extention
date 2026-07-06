@@ -24,7 +24,7 @@
         </div>
 
         <div class="lang-selector" (click)="toggleLangDropdown($event)">
-          <i class="material-icons" style="font-size: 16px; margin-right: 2px;">language</i>
+          <span class="lang-flag">{{ activeLang.flag }}</span>
           <span class="lang-name">{{ activeLang.code }}</span>
           <i class="material-icons dropdown-arrow">expand_more</i>
 
@@ -33,7 +33,7 @@
             <div class="lang-option" *ngFor="let lang of languages" [class.active]="activeLang.code === lang.code"
               (click)="selectLang(lang, $event)">
               <div class="lang-opt-content">
-                <i class="material-icons" style="font-size: 16px; margin-right: 4px;">language</i>
+                <span class="lang-flag">{{ lang.flag }}</span>
                 <span [style.color]="activePalette?.text">{{ lang.name }}</span>
               </div>
               <i class="material-icons check-icon" *ngIf="activeLang.code === lang.code"
@@ -59,48 +59,42 @@
     <!-- Dashboard Header -->
     <div class="hotel-dashboard">
       <!-- New KPI Cards -->
-      <div class="kpi-card occupancy-card">
-        <div class="kpi-body">
-          <div class="occupancy-left">
-            <div class="kpi-header">
-              <div class="kpi-icon-wrapper">
-                <i class="material-icons">data_usage</i>
-              </div>
-              <span class="kpi-title">{{ t.occupancy }}</span>
-            </div>
-            <div class="kpi-main">
-              <span class="kpi-value">{{ hotelStats?.roomsBooked }} /
-                {{ hotelStats?.totalRooms }}</span>
-              <span class="kpi-subtext">{{ t.rooms }}</span>
-            </div>
+      <div class="kpi-card">
+        <div class="kpi-icon-wrapper">
+          <i class="material-icons">data_usage</i>
+        </div>
+        <div class="kpi-text">
+          <span class="kpi-title">{{ t.occupancy }}</span>
+          <div class="kpi-main">
+            <span class="kpi-value">{{ hotelStats?.roomsBooked }} /
+              {{ hotelStats?.totalRooms }}</span>
+            <span class="kpi-subtext">{{ t.rooms }}</span>
           </div>
-          <!-- CSS circle for occupancy with percentage inside -->
-          <div class="kpi-chart large-chart" [style.--percent]="hotelStats?.occupancyPercent">
-            <span>{{ hotelStats?.occupancyPercent }}%</span>
-          </div>
+        </div>
+        <div class="kpi-chart" [style.--percent]="hotelStats?.occupancyPercent">
+          <span>{{ hotelStats?.occupancyPercent }}%</span>
         </div>
       </div>
 
       <div class="kpi-card interactive-kpi" [ngClass]="{ 'active-dropdown': showCheckInsList }"
         (click)="toggleCheckInsList($event)" (mouseleave)="closeCheckInsList($event)"
         [style.cursor]="hotelStats?.checkInsToday > 0 ? 'pointer' : 'default'">
-        <div class="kpi-header">
-          <div class="kpi-icon-wrapper light-blue-bg">
-            <i class="material-icons">login</i>
-          </div>
-          <span class="kpi-title">{{ t.checkInsToday }}</span>
+        <div class="kpi-icon-wrapper light-blue-bg">
+          <i class="material-icons">login</i>
         </div>
-        <div class="kpi-body">
+        <div class="kpi-text">
+          <span class="kpi-title">{{ t.checkInsToday }}</span>
           <div class="kpi-main">
             <span class="kpi-value">{{ hotelStats?.checkInsToday }}</span>
             <span class="kpi-subtext">{{ t.guestArrivals }}</span>
           </div>
         </div>
 
-        <!-- Check-ins Dropdown -->
+        <!-- Check-ins Popover -->
         <div class="kpi-dropdown" *ngIf="showCheckInsList" (click)="$event.stopPropagation()">
           <div class="kpi-dropdown-header">
-            <span>{{ t.details }}</span>
+            <i class="material-icons" style="font-size:17px;color:var(--ok,#34d399);">login</i>
+            <span>{{ t.checkInsToday }}</span>
             <button class="close-btn" (click)="closeCheckInsList($event)">
               <i class="material-icons">close</i>
             </button>
@@ -111,9 +105,10 @@
                 <span class="room-badge">{{ t.room }} {{ item.room }}</span>
                 <span class="guest-name">{{ item.guest }}</span>
               </div>
-              <div class="kpi-item-right">
-                {{ item.time }}
-              </div>
+              <div class="kpi-item-right">{{ item.time }}</div>
+            </div>
+            <div class="kpi-list-item" *ngIf="!hotelStats?.checkInsList?.length" style="justify-content:center;">
+              <span style="font:600 11px Manrope;color:var(--t3);padding:10px 0;">{{ t.noDatasource }}</span>
             </div>
           </div>
         </div>
@@ -122,23 +117,22 @@
       <div class="kpi-card interactive-kpi" [ngClass]="{ 'active-dropdown': showCheckOutsList }"
         (click)="toggleCheckOutsList($event)" (mouseleave)="closeCheckOutsList($event)"
         [style.cursor]="hotelStats?.checkOutsToday > 0 ? 'pointer' : 'default'">
-        <div class="kpi-header">
-          <div class="kpi-icon-wrapper light-blue-bg">
-            <i class="material-icons">logout</i>
-          </div>
-          <span class="kpi-title">{{ t.checkOutsToday }}</span>
+        <div class="kpi-icon-wrapper light-blue-bg">
+          <i class="material-icons">logout</i>
         </div>
-        <div class="kpi-body">
+        <div class="kpi-text">
+          <span class="kpi-title">{{ t.checkOutsToday }}</span>
           <div class="kpi-main">
             <span class="kpi-value">{{ hotelStats?.checkOutsToday }}</span>
             <span class="kpi-subtext">{{ t.guestDepartures }}</span>
           </div>
         </div>
 
-        <!-- Check-outs Dropdown -->
+        <!-- Check-outs Popover -->
         <div class="kpi-dropdown" *ngIf="showCheckOutsList" (click)="$event.stopPropagation()">
           <div class="kpi-dropdown-header">
-            <span>{{ t.details }}</span>
+            <i class="material-icons" style="font-size:17px;color:var(--ok,#34d399);">logout</i>
+            <span>{{ t.checkOutsToday }}</span>
             <button class="close-btn" (click)="closeCheckOutsList($event)">
               <i class="material-icons">close</i>
             </button>
@@ -150,83 +144,86 @@
                 <span class="guest-name">{{ item.guest }}</span>
               </div>
               <div class="kpi-item-right" [class.overdue]="item.isOverdue">
-                <span class="departure-time">{{ item.time }}</span>
+                {{ item.time }}
                 <span class="overdue-tag" *ngIf="item.isOverdue">OVERDUE</span>
               </div>
+            </div>
+            <div class="kpi-list-item" *ngIf="!hotelStats?.checkOutsList?.length" style="justify-content:center;">
+              <span style="font:600 11px Manrope;color:var(--t3);padding:10px 0;">{{ t.noDatasource }}</span>
             </div>
           </div>
         </div>
       </div>
 
-      <div class="dash-card">
-        <div class="dash-icon"><i class="material-icons">wifi</i></div>
-        <div class="dash-info">
-          <span class="dash-label">{{ t.onlineOffline }}</span>
-          <span class="dash-value"><span class="text-green">{{ hotelStats?.onlineDevices }}</span> /
-            <span class="text-red">{{ hotelStats?.offlineDevices }}</span></span>
+      <div class="kpi-card">
+        <div class="kpi-icon-wrapper" style="background:var(--ok-soft,rgba(52,211,153,.13));color:var(--ok,#34d399);">
+          <i class="material-icons">wifi</i>
+        </div>
+        <div class="kpi-text">
+          <span class="kpi-title">{{ t.onlineOffline }}</span>
+          <div class="kpi-main">
+            <span class="kpi-value" style="color:var(--ok,#34d399);">{{ hotelStats?.onlineDevices }}</span>
+            <span class="kpi-subtext">/ {{ hotelStats?.offlineDevices }}</span>
+          </div>
         </div>
       </div>
-      <div class="dash-card battery-card" [ngClass]="{
+      <div class="kpi-card interactive-kpi" [ngClass]="{
           'has-alerts': (hotelStats?.batteryAlerts || 0) > 0,
           'active-dropdown': showBatteryAlertsList
-        }" (click)="toggleBatteryAlerts($event)" (mouseleave)="closeBatteryAlerts($event)">
-        <div class="dash-icon" [ngClass]="{ 'alert-icon': (hotelStats?.batteryAlerts || 0) > 0 }">
+        }" (click)="toggleBatteryAlerts($event)" (mouseleave)="closeBatteryAlerts($event)"
+        [style.cursor]="(hotelStats?.batteryAlerts || 0) > 0 ? 'pointer' : 'default'">
+        <div class="kpi-icon-wrapper" [style.background]="(hotelStats?.batteryAlerts || 0) > 0 ? 'var(--warn-soft,rgba(245,181,74,.13))' : 'var(--inner,#1e2733)'" [style.color]="(hotelStats?.batteryAlerts || 0) > 0 ? 'var(--warn,#f5b54a)' : 'var(--t2,#8b97a8)'">
           <i class="material-icons">battery_alert</i>
         </div>
-        <div class="dash-info">
-          <span class="dash-label">{{ t.batteryAlerts }}</span>
-          <span class="dash-value" [ngClass]="{ 'text-red': (hotelStats?.batteryAlerts || 0) > 0 }">{{
-            hotelStats?.batteryAlerts }}</span>
+        <div class="kpi-text">
+          <span class="kpi-title">{{ t.batteryAlerts }}</span>
+          <div class="kpi-main">
+            <span class="kpi-value" [style.color]="(hotelStats?.batteryAlerts || 0) > 0 ? 'var(--warn,#f5b54a)' : 'var(--tx,#e6ecf3)'">{{ hotelStats?.batteryAlerts }}</span>
+          </div>
         </div>
 
-        <!-- Dropdown List -->
+        <!-- Battery Alerts Popover -->
         <div class="battery-dropdown" *ngIf="showBatteryAlertsList" (click)="$event.stopPropagation()">
           <div class="battery-dropdown-header">
-            <span>{{ t.details }}</span>
+            <span>{{ t.batteryAlerts }}</span>
             <button class="close-btn" (click)="closeBatteryAlerts($event)">
               <i class="material-icons">close</i>
             </button>
           </div>
-          <div class="battery-table">
-            <div class="battery-header">
-              <span class="h-room">ROOM</span>
-              <span class="h-device">DEVICES</span>
-              <span class="h-status">BATTERY</span>
-            </div>
-            <div class="battery-list-body">
-              <div class="battery-table-row" *ngFor="
-                  let item of hotelStats?.batteryAlertDevices;
-                  let i = index
-                ">
-                <div class="cell-room">
-                  <span class="row-index">{{ i + 1 }}</span>
-                  <span class="room-num">{{ item.room }}</span>
-                </div>
-                <div class="cell-device">
-                  <span class="dev-type">{{ item.type }}</span>
-                  <span class="dev-name">({{ item.device }})</span>
-                </div>
-                <div class="cell-status" [ngClass]="{
-                    'text-danger': item.battery === null || item.battery < 20
-                  }">
-                  {{ item.battery !== null ? item.battery + "%" : t.low }}
-                </div>
+          <div class="battery-list-body">
+            <div class="battery-table-row" *ngFor="let item of hotelStats?.batteryAlertDevices">
+              <div class="batt-icon" [class.critical]="item.battery === null || item.battery < 10">
+                <i class="material-icons">{{ getBatteryDeviceIcon(item.type) }}</i>
               </div>
+              <div class="batt-info">
+                <div class="batt-device">{{ item.device }}</div>
+                <div class="batt-room">{{ t.room }} {{ item.room }}</div>
+              </div>
+              <div class="batt-badge" [class.critical]="item.battery === null || item.battery < 10">
+                {{ item.type === 'Thermostat' ? t.low : (item.battery !== null ? item.battery + '%' : t.low) }}
+              </div>
+            </div>
+            <div class="battery-table-row" *ngIf="!hotelStats?.batteryAlertDevices?.length" style="justify-content:center;">
+              <span style="font:600 11px Manrope;color:var(--t3);padding:10px 0;">{{ t.noDatasource }}</span>
             </div>
           </div>
         </div>
       </div>
-      <div class="dash-card mews-card" [ngClass]="{ 'active-dropdown': showMewsList }" (click)="toggleMewsList($event)"
-        (mouseleave)="closeMewsList($event)">
-        <div class="dash-icon" [ngClass]="{
-            'icon-online':
-              hotelStats?.mewsStatus === 'ONLINE' &&
-              !hotelStats?.mewsAlertActive,
-            'icon-alert': hotelStats?.mewsAlertActive,
-            'icon-offline':
-              hotelStats?.mewsStatus === 'OFFLINE' &&
-              !hotelStats?.mewsAlertActive
-          }">
+      <div class="kpi-card interactive-kpi" [ngClass]="{ 'active-dropdown': showMewsList }" (click)="toggleMewsList($event)"
+        (mouseleave)="closeMewsList($event)" style="cursor:pointer;">
+        <div class="kpi-icon-wrapper" [style.background]="
+            hotelStats?.mewsStatus === 'ONLINE' && !hotelStats?.mewsAlertActive
+              ? 'var(--ok-soft,rgba(52,211,153,.13))'
+              : hotelStats?.mewsAlertActive
+              ? 'var(--warn-soft,rgba(245,181,74,.13))'
+              : 'var(--alert-soft,rgba(248,113,113,.13))'
+          " [style.color]="
+            hotelStats?.mewsStatus === 'ONLINE' && !hotelStats?.mewsAlertActive
+              ? 'var(--ok,#34d399)'
+              : hotelStats?.mewsAlertActive
+              ? 'var(--warn,#f5b54a)'
+              : 'var(--alert,#f87171)'
+          ">
           <i class="material-icons">{{
             hotelStats?.mewsStatus === "ONLINE" && !hotelStats?.mewsAlertActive
             ? "cloud_done"
@@ -235,75 +232,58 @@
             : "cloud_off"
             }}</i>
         </div>
-        <div class="dash-info">
-          <div class="dash-info-header">
-            <span class="dash-label">{{ t.mewsBridge }}</span>
-            <div *ngIf="hotelStats?.mewsLastActivity" class="mews-activity-inline">
-              <i class="material-icons">history</i>
-              <span class="activity-time">{{ t.lastSync }}: {{ hotelStats?.mewsLastActivity }}</span>
-            </div>
+        <div class="kpi-text">
+          <span class="kpi-title">{{ t.mewsBridge }}</span>
+          <div class="kpi-main">
+            <ng-container *ngIf="hotelStats?.mewsAlertActive && hotelStats?.mewsErrorMessage; else mewsNormal">
+              <span class="kpi-value" style="color:var(--warn,#f5b54a);font-size:12px;">{{ hotelStats?.mewsErrorMessage }}</span>
+            </ng-container>
+            <ng-template #mewsNormal>
+              <span class="kpi-value">{{ hotelStats?.mewsRoomsSynced || 0 }}</span>
+              <span class="kpi-subtext">{{ t.roomsSynced }}</span>
+            </ng-template>
           </div>
-          <span class="dash-value mews-value" [ngClass]="{
-              'text-green':
-                hotelStats?.mewsStatus === 'ONLINE' &&
-                !hotelStats?.mewsAlertActive,
-              'text-orange': hotelStats?.mewsAlertActive,
-              'text-muted':
-                hotelStats?.mewsStatus === 'OFFLINE' &&
-                !hotelStats?.mewsAlertActive
-            }">
-            <ng-container *ngIf="
-                hotelStats?.mewsAlertActive && hotelStats?.mewsErrorMessage
-              ">
-              {{ hotelStats?.mewsErrorMessage }}
-            </ng-container>
-            <ng-container *ngIf="!hotelStats?.mewsAlertActive">
-              {{ hotelStats?.mewsStatus }}
-              <span *ngIf="(hotelStats?.mewsRoomsSynced || 0) > 0"
-                style="font-size: 11px; opacity: 0.8; margin-left: 4px">({{ hotelStats?.mewsRoomsSynced }} {{
-                t.roomsSynced }})</span>
-            </ng-container>
-          </span>
         </div>
 
-        <!-- Mews Status Dropdown -->
+        <!-- Mews Status Popover -->
         <div class="mews-dropdown" *ngIf="showMewsList" (click)="$event.stopPropagation()">
           <div class="mews-dropdown-header">
-            <span>Mews Connection Status</span>
+            <i class="material-icons" style="font-size:17px;" [style.color]="
+                hotelStats?.mewsStatus === 'ONLINE' && !hotelStats?.mewsAlertActive
+                  ? 'var(--ok)'
+                  : hotelStats?.mewsAlertActive
+                  ? 'var(--warn)'
+                  : 'var(--alert)'
+              ">{{
+              hotelStats?.mewsStatus === 'ONLINE' && !hotelStats?.mewsAlertActive
+                ? 'cloud_done'
+                : hotelStats?.mewsAlertActive
+                ? 'error_outline'
+                : 'cloud_off'
+              }}</i>
+            <span>{{ t.mewsBridge }}</span>
             <button class="close-btn" (click)="closeMewsList($event)">
               <i class="material-icons">close</i>
             </button>
           </div>
           <div class="mews-dropdown-content">
             <div class="mews-status-item">
-              <span class="mews-item-label">Bridge Status:</span>
-              <span class="mews-item-value" [ngClass]="
-                  hotelStats?.mewsStatus === 'ONLINE'
-                    ? 'text-green'
-                    : 'text-red'
-                ">
-                {{ hotelStats?.mewsStatus }}
-              </span>
+              <span class="mews-item-label">{{ t.mewsBridge }} Status</span>
+              <span class="mews-item-value" [style.color]="
+                  hotelStats?.mewsStatus === 'ONLINE' ? 'var(--ok)' : 'var(--alert)'
+                ">{{ hotelStats?.mewsStatus }}</span>
             </div>
             <div class="mews-status-item" *ngIf="hotelStats?.mewsAlertActive">
-              <span class="mews-item-label">Error Detected:</span>
-              <span class="mews-item-value text-red">{{
-                hotelStats?.mewsErrorMessage || "Unknown Error"
-                }}</span>
-            </div>
-            <div class="mews-status-item" *ngIf="!hotelStats?.mewsAlertActive">
-              <span class="mews-item-label">Error Status:</span>
-              <span class="mews-item-value text-green">System Healthy</span>
+              <span class="mews-item-label">Error</span>
+              <span class="mews-item-value" style="color:var(--alert);">{{ hotelStats?.mewsErrorMessage || 'Unknown' }}</span>
             </div>
             <div class="mews-status-item">
-              <span class="mews-item-label">Last Successful Sync:</span>
-              <span class="mews-item-value">{{
-                hotelStats?.mewsLastActivity || "--"
-                }}</span>
+              <span class="mews-item-label">{{ t.roomsSynced }}</span>
+              <span class="mews-item-value mono">{{ hotelStats?.mewsRoomsSynced || 0 }}</span>
             </div>
             <div class="mews-status-item">
-              <span class="mews-item-label">Rooms Synced:</span>
-              <span class="mews-item-value">{{ hotelStats?.mewsRoomsSynced || 0 }} rooms</span>
+              <span class="mews-item-label">{{ t.lastSync }}</span>
+              <span class="mews-item-value">{{ hotelStats?.mewsLastActivity || '--' }}</span>
             </div>
           </div>
         </div>
@@ -316,6 +296,7 @@
       <div class="room-wrapper" *ngFor="let room of rooms; trackBy: trackByRoomId">
         <!-- INLINE ROOM CARD — standalone, no tb-room-card dependency -->
         <div class="custom-room-widget" [ngClass]="{
+            'status-normal': room.roomData.roomStatus === 'normal',
             'status-warning': room.roomData.roomStatus === 'warning',
             'status-danger': room.roomData.roomStatus === 'danger'
           }" (click)="onRoomClick($event, room)">
@@ -355,7 +336,7 @@
           <div class="metrics-grid">
             <tb-metric-cell icon="thermostat" [iconClass]="
                 room.roomData.hasData.temperature ? 'icon-orange' : 'icon-gray'
-              " [dynamicClass]="'cell-' + room.roomData.tempStatus" label="TEMP" valueClass="primary-text" [value]="
+              " [dynamicClass]="room.roomData.tempStatus !== 'normal' ? 'cell-' + room.roomData.tempStatus : ''" label="TEMP" valueClass="primary-text" [value]="
                 room.roomData.sensorData.temperature != null
                   ? (room.roomData.sensorData.temperature | number : '1.1-1') +
                     '°'
@@ -366,7 +347,7 @@
             <tb-metric-cell icon="invert_colors" [iconClass]="
                 room.roomData.hasData.humidity ? 'icon-blue' : 'icon-gray'
               " [dynamicClass]="
-                room.roomData.hasData.humidity
+                room.roomData.hasData.humidity && room.roomData.humStatus !== 'normal'
                   ? 'cell-' + room.roomData.humStatus
                   : ''
               " label="HUMID" valueClass="primary-text" [value]="
@@ -379,7 +360,7 @@
             <tb-metric-cell icon="air" [iconClass]="
                 room.roomData.hasData.airQuality ? 'icon-green' : 'icon-gray'
               " [dynamicClass]="
-                room.roomData.hasData.airQuality
+                room.roomData.hasData.airQuality && room.roomData.airStatus !== 'normal'
                   ? 'cell-' + room.roomData.airStatus
                   : ''
               " label="AIR" valueClass="primary-text" [value]="
@@ -398,7 +379,7 @@
                     room.roomData.trvAgg.count === 0
                   ? 'icon-gray'
                   : 'icon-red'
-              " label="THERMO" [valueClass]="
+              " [dynamicClass]="room.roomData.trvAgg.worstStatus === 'heating' ? 'cell-warning' : ''" label="THERMO" [valueClass]="
                 'pill-base ' +
                 (room.roomData.trvAgg.count === 0 ||
                 room.roomData.trvAgg.worstStatus === 'off'
@@ -417,7 +398,7 @@
             </tb-metric-cell>
 
             <tb-metric-cell containerClass="cell-window" [dynamicClass]="
-                room.roomData.winAgg.anyOpen ? 'cell-warning' : ''
+                room.roomData.winAgg.anyOpen ? 'cell-accent' : ''
               " icon="window" [iconClass]="
                 room.roomData.winAgg.total > 0 ? 'icon-green' : 'icon-gray'
               " label="WINDOW" [valueClass]="
@@ -435,7 +416,7 @@
             </tb-metric-cell>
 
             <tb-metric-cell containerClass="cell-check" icon="meeting_room"
-              [iconClass]="room.roomData.reservation.checkIconClass" label="CHECK" [valueClass]="
+              [dynamicClass]="(room.roomData.reservation.checkPillClass === 'pill-wait' || room.roomData.reservation.checkPillClass === 'pill-warning') ? 'cell-warning' : (room.roomData.reservation.checkPillClass === 'pill-danger' ? 'cell-danger' : '')" [iconClass]="room.roomData.reservation.checkIconClass" label="CHECK" [valueClass]="
                 'pill-base ' + room.roomData.reservation.checkPillClass
               " [value]="room.roomData.reservation.checkDisplay">
             </tb-metric-cell>
@@ -464,7 +445,7 @@
             </tb-metric-cell>
 
             <tb-metric-cell containerClass="cell-noise" [dynamicClass]="
-                room.roomData.hasData.noise
+                room.roomData.hasData.noise && room.roomData.noiseStatus !== 'normal'
                   ? 'cell-' + room.roomData.noiseStatus
                   : ''
               " icon="volume_up" [iconClass]="
@@ -481,7 +462,7 @@
               ">
             </tb-metric-cell>
 
-            <tb-metric-cell containerClass="cell-booked" [dynamicClass]="room.roomData.reservation.bookCellClass"
+            <tb-metric-cell containerClass="cell-booked" [dynamicClass]="(room.roomData.reservation.bookPillClass === 'pill-danger') ? 'cell-danger' : ((room.roomData.reservation.bookPillClass === 'pill-wait' || room.roomData.reservation.bookPillClass === 'pill-warning') ? 'cell-warning' : '')"
               icon="event_available" [iconClass]="room.roomData.reservation.bookIconClass" label="BOOKED" [valueClass]="
                 'pill-base ' + room.roomData.reservation.bookPillClass
               " [value]="room.roomData.reservation.bookDisplay">
