@@ -4,7 +4,26 @@
       "Bash(npx tsc *)",
       "Bash(yarn build:scss)",
       "WebFetch(domain:charger-dashboard.preview.emergentagent.com)",
-      "Bash(yarn start *)"
+      "Bash(yarn start *)",
+      "Bash(node -e ' *)",
+      "Bash(grep -n \"loading\\\\|rooms\\\\$|isLoading\\\\|hotelStats\\\\$|_rooms\\\\$\" src/app/components/revelton-tb-extension-dashboard/features/hotel-dashboard/revelton-hotel.component.ts)",
+      "Bash(grep -n \"_rooms\\\\$.next\\\\|_hotelStats\\\\$.next\\\\|emitMergedOtherDevices\\\\|processDataUpdate\\\\|roomsUpdated\")",
+      "Bash(grep -n \"_firstDataProcessed\\\\|_doProcessDataUpdate\\\\|_rooms\\\\$.next\\\\|roomsUpdated\" \"/home/nurlansarkhanov/Desktop/code/Revelton/thingsboard-extention/src/app/components/revelton-tb-extension-dashboard/core/services/hotel-state.service.ts\")",
+      "Bash(grep -n \"_rooms\\\\$.next\" \"/home/nurlansarkhanov/Desktop/code/Revelton/thingsboard-extention/src/app/components/revelton-tb-extension-dashboard/core/services/hotel-state.service.ts\")",
+      "Bash(grep -n \"rooms\\\\$.*next\\\\|_rooms.*next\\\\|\\\\.next.*rooms\" \"/home/nurlansarkhanov/Desktop/code/Revelton/thingsboard-extention/src/app/components/revelton-tb-extension-dashboard/core/services/hotel-state.service.ts\")",
+      "Bash(curl -s -X POST \"http://localhost:8080/api/auth/login\" -H \"Content-Type: application/json\" -d '{\"username\":\"iot-admin@thingboard.org\",\"password\":\"admin132465798!!\"}')",
+      "Bash(curl -s -X POST \"http://localhost:9090/api/auth/login\" -H \"Content-Type: application/json\" -d '{\"username\":\"iot-admin@thingboard.org\",\"password\":\"admin132465798!!\"}')",
+      "Bash(curl -s --max-time 10 -X POST \"https://thingsboard.cloud/api/auth/login\" -H \"Content-Type: application/json\" -d '{\"username\":\"iot-admin@thingboard.org\",\"password\":\"admin132465798!!\"}')",
+      "Bash(curl -s --max-time 10 -X POST \"https://demo.thingsboard.io/api/auth/login\" -H \"Content-Type: application/json\" -d '{\"username\":\"iot-admin@thingboard.org\",\"password\":\"admin132465798!!\"}')",
+      "Bash(curl -s --max-time 10 -X POST \"https://app.thingsboard.io/api/auth/login\" -H \"Content-Type: application/json\" -d '{\"username\":\"iot-admin@thingboard.org\",\"password\":\"admin132465798!!\"}')",
+      "Bash(curl -s --max-time 10 -X POST \"http://192.168.1.1:8080/api/auth/login\" -H \"Content-Type: application/json\" -d '{\"username\":\"iot-admin@thingboard.org\",\"password\":\"admin132465798!!\"}')",
+      "Read(//home/nurlansarkhanov/Desktop/revelton-jaltska-edge-ui/**)",
+      "Bash(grep -n -i \"room.*detail\\\\|room-detail\\\\|roomDetail\\\\|detail.*panel\\\\|right.*panel\\\\|slide.*panel\\\\|side.*panel\" \"/home/nurlansarkhanov/Desktop/revelton-jaltska-edge-ui/Hotel IoT Dashboard \\(standalone\\).html\" | head -40)",
+      "Bash(wc -l \"/home/nurlansarkhanov/Desktop/revelton-jaltska-edge-ui/Hotel IoT Dashboard \\(standalone\\).html\")",
+      "Bash(grep -oP '.{0,50}room.{0,50}' \"/home/nurlansarkhanov/Desktop/revelton-jaltska-edge-ui/Hotel IoT Dashboard \\(standalone\\).html\" | head -30)",
+      "Bash(grep -oP '.{0,50}detail.{0,50}' \"/home/nurlansarkhanov/Desktop/revelton-jaltska-edge-ui/Hotel IoT Dashboard \\(standalone\\).html\" | head -30)",
+      "Bash(grep -oP '.{0,50}panel.{0,50}' \"/home/nurlansarkhanov/Desktop/revelton-jaltska-edge-ui/Hotel IoT Dashboard \\(standalone\\).html\" | head -30)",
+      "Bash(grep -oP 'role=\"dialog\".*?\\(?=<sc-if value=\"\\\\{\\\\{ detail.expandedChart\\)|role=\"dialog\".{0,5000}' \"/home/nurlansarkhanov/Desktop/revelton-jaltska-edge-ui/Hotel IoT Dashboard \\(standalone\\).html\" 2>/dev/null | head -1 | fold -w 200 | head -80)"
     ]
   }
 }

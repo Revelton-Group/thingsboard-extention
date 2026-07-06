@@ -123,8 +123,8 @@ export class RoomDataService {
   ) {
     this.controlPanelService.config$.subscribe(config => {
       if (config) {
-        if (config.airQuality && config.airQuality.enabled) {
-          // Warning at 80% of configured max, Danger at 100% of configured max
+        // ── Air Quality (CO₂-based AQI threshold) ──
+        if (config.airQuality?.enabled) {
           this.THRESHOLDS.airQuality = {
             warning: Math.round(config.airQuality.co2Max * 0.8),
             danger: config.airQuality.co2Max
@@ -133,9 +133,39 @@ export class RoomDataService {
           this.THRESHOLDS.airQuality = { warning: 800, danger: 1000 };
         }
 
-        if (config.noise && config.noise.enabled) {
+        // ── Temperature ──
+        if (config.airQuality?.enabled) {
+          const tMin = config.airQuality.tempMin ?? 18;
+          const tMax = config.airQuality.tempMax ?? 28;
+          this.THRESHOLDS.temperature = {
+            warning: { min: tMin, max: tMax },
+            danger: { min: tMin - 4, max: tMax + 4 }
+          };
+        } else {
+          this.THRESHOLDS.temperature = {
+            warning: { min: 16, max: 28 },
+            danger: { min: 14, max: 32 }
+          };
+        }
+
+        // ── Humidity ──
+        if (config.airQuality?.enabled) {
+          const hMin = config.airQuality.humMin ?? 30;
+          const hMax = config.airQuality.humMax ?? 65;
+          this.THRESHOLDS.humidity = {
+            warning: { min: hMin, max: hMax },
+            danger: { min: hMin - 10, max: hMax + 10 }
+          };
+        } else {
+          this.THRESHOLDS.humidity = {
+            warning: { min: 30, max: 65 },
+            danger: { min: 20, max: 80 }
+          };
+        }
+
+        // ── Noise ──
+        if (config.noise?.enabled) {
           const mainLimit = config.noise.laeqMax ?? config.noise.noiseMax ?? 60;
-          // Warning at configured limit - 10 dB, Danger at configured limit
           this.THRESHOLDS.noise = {
             warning: Math.max(40, mainLimit - 10),
             danger: mainLimit
@@ -927,6 +957,24 @@ export class RoomDataService {
 
     const s = [data.tempStatus, data.humStatus, data.airStatus, data.noiseStatus, data.sensorData.waterLeak ? 'danger' : 'normal', hasBatteryLow ? 'warning' : 'normal'];
     data.roomStatus = s.includes('danger') ? 'danger' : s.includes('warning') ? 'warning' : 'normal';
+
+    // Debug: log per-room status breakdown when non-normal
+    if (data.roomStatus !== 'normal') {
+      console.log(
+        `[RoomData] Room ${data.sensorData.roomNumber} → ${data.roomStatus.toUpperCase()} | ` +
+        `temp=${data.sensorData.temperature}°(${data.tempStatus}) ` +
+        `hum=${data.sensorData.humidity}%(${data.humStatus}) ` +
+        `aqi=${data.sensorData.airQuality}(${data.airStatus}) ` +
+        `noise=${data.sensorData.noise}dB(${data.noiseStatus}) ` +
+        `waterLeak=${data.sensorData.waterLeak} ` +
+        `batteryLow=${hasBatteryLow} ` +
+        `windows=${data.winAgg?.openCount || 0} ` +
+        `| thresholds: T[${this.THRESHOLDS.temperature.warning.min}-${this.THRESHOLDS.temperature.warning.max} warn / ${this.THRESHOLDS.temperature.danger.min}-${this.THRESHOLDS.temperature.danger.max} danger] ` +
+        `H[${this.THRESHOLDS.humidity.warning.min}-${this.THRESHOLDS.humidity.warning.max} warn / ${this.THRESHOLDS.humidity.danger.min}-${this.THRESHOLDS.humidity.danger.max} danger] ` +
+        `AQI[warn>${this.THRESHOLDS.airQuality.warning} danger>${this.THRESHOLDS.airQuality.danger}] ` +
+        `Noise[warn>${this.THRESHOLDS.noise.warning} danger>${this.THRESHOLDS.noise.danger}]`
+      );
+    }
 
     // sensorAlarmCount — only sensor/environmental alerts drive the bell RED
     const sensorAlerts = (data.tempStatus !== 'normal' ? 1 : 0) + (data.humStatus !== 'normal' ? 1 : 0) +

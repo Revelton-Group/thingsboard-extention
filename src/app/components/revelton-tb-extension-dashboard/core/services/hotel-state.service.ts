@@ -1,6 +1,26 @@
 import { Injectable, OnDestroy } from "@angular/core";
-import { BehaviorSubject } from "rxjs";
+import { BehaviorSubject, Subject } from "rxjs";
+import { debounceTime } from "rxjs/operators";
 import { RoomDataService, RoomData } from "./room-data.service";
+
+/* ───────────────────────────────────────────────────────────
+   Production config
+   ─────────────────────────────────────────────────────────── */
+const DEBUG = true; // TEMPORARY: enable to debug Mews Bridge data flow
+const HTTP_TIMEOUT_MS = 10000; // 10s timeout on all TB REST calls
+const HTTP_RETRY_COUNT = 2; // retry failed calls twice
+const PROCESS_DEBOUNCE_MS = 300; // debounce rapid onDataUpdated calls
+const PERIODIC_REFRESH_MS = 30000; // 30s between full telemetry refreshes (was 15s)
+
+function log(...args: any[]): void {
+  if (DEBUG) console.log(...args);
+}
+function warn(...args: any[]): void {
+  console.warn(...args);
+}
+function error(...args: any[]): void {
+  console.error(...args);
+}
 
 /* ───────────────────────────────────────────────────────────
    InlineRoom — one room tracked by the hotel dashboard
@@ -148,6 +168,15 @@ export class HotelStateService implements OnDestroy {
   private _selectedHistoricalRoom$ = new BehaviorSubject<InlineRoom | null>(null);
   readonly selectedHistoricalRoom$ = this._selectedHistoricalRoom$.asObservable();
 
+  /** Emits when HTTP calls fail — UI can subscribe to show a banner */
+  private _connectionError$ = new Subject<string>();
+  readonly connectionError$ = this._connectionError$.asObservable();
+
+  /** Debounce rapid onDataUpdated → processDataUpdate calls */
+  private _processDebounce$ = new Subject<any>();
+  private _processSub: any = null;
+  private _firstDataProcessed = false;
+
   /* ──── Internal state ──── */
   private roomMap = new Map<string, InlineRoom>();
   private ctxOtherDevices = new Map<string, OtherDevice>();
@@ -177,10 +206,66 @@ export class HotelStateService implements OnDestroy {
   private lastCtx: any = null;
   private refreshTimer: any = null;
 
-  constructor(private roomDataService: RoomDataService) {}
+  constructor(private roomDataService: RoomDataService) {
+    // Debounce processDataUpdate so rapid onDataUpdated calls batch together.
+    // The first call is processed immediately; subsequent calls within the window are batched.
+    this._processSub = this._processDebounce$
+      .pipe(debounceTime(PROCESS_DEBOUNCE_MS))
+      .subscribe({
+        next: (ctx) => {
+          try {
+            this._doProcessDataUpdate(ctx);
+          } catch (e) {
+            console.error('[HotelState] _doProcessDataUpdate threw:', e);
+          }
+        },
+        error: (e) => console.error('[HotelState] debounce stream error:', e),
+      });
+  }
 
   ngOnDestroy(): void {
     if (this.refreshTimer) clearInterval(this.refreshTimer);
+    if (this._processSub) this._processSub.unsubscribe();
+  }
+
+  /**
+   * HTTP GET with timeout and retry.
+   * Returns a Promise that resolves with the response or rejects after retries.
+   */
+  private httpGetWithRetry(
+    ctx: any,
+    url: string,
+    retries: number = HTTP_RETRY_COUNT
+  ): Promise<any> {
+    return new Promise((resolve, reject) => {
+      const attempt = (remaining: number) => {
+        const sub = ctx.http.get(url).subscribe(
+          (res: any) => resolve(res),
+          (err: any) => {
+            warn(`HTTP ${url} failed (status=${err?.status}), retries left=${remaining}`);
+            if (remaining > 0) {
+              setTimeout(() => attempt(remaining - 1), 1000 * (HTTP_RETRY_COUNT - remaining + 1));
+            } else {
+              this._connectionError$.next(`Connection failed: ${url}`);
+              reject(err);
+            }
+          }
+        );
+        // Timeout guard
+        setTimeout(() => {
+          if (!sub.closed) {
+            sub.unsubscribe();
+            if (remaining > 0) {
+              attempt(remaining - 1);
+            } else {
+              this._connectionError$.next(`Connection timeout: ${url}`);
+              reject(new Error(`Timeout: ${url}`));
+            }
+          }
+        }, HTTP_TIMEOUT_MS);
+      };
+      attempt(retries);
+    });
   }
 
   openHistoricalData(room: InlineRoom): void {
@@ -212,14 +297,29 @@ export class HotelStateService implements OnDestroy {
   }
 
   /* ───────────────────────────────────────────────────────────
-     processDataUpdate — parses ctx.data into rooms, runs
-     telemetry through RoomDataService, then recalcs stats.
-     Returns the sorted rooms array (side-effects: updates BehaviorSubjects).
-     1:1 logic from onDataUpdated() in revelton-hotel.component.ts
+     processDataUpdate — debounced entry point for onDataUpdated.
      ─────────────────────────────────────────────────────────── */
   processDataUpdate(ctx: any): InlineRoom[] {
     if (!ctx || !ctx.data) return this._rooms$.value;
     this.lastCtx = ctx;
+    // First call: process immediately so the UI populates without delay.
+    // Subsequent calls within the debounce window are batched.
+    if (!this._firstDataProcessed) {
+      this._firstDataProcessed = true;
+      try {
+        this._doProcessDataUpdate(ctx);
+      } catch (e) {
+        console.error('[HotelState] Initial _doProcessDataUpdate threw:', e);
+      }
+    } else {
+      this._processDebounce$.next(ctx);
+    }
+    return this._rooms$.value;
+  }
+
+  /** Actual worker (runs after debounce) */
+  private _doProcessDataUpdate(ctx: any): void {
+    if (!ctx || !ctx.data) return;
 
     const stats = { ...this._hotelStats$.value };
     const dataByRoom = new Map<string, any[]>();
@@ -228,19 +328,7 @@ export class HotelStateService implements OnDestroy {
 
     this.ctxOtherDevices.clear();
 
-    // ── DEBUG: dump full datasource list once ──────────────────────────────
-    console.group("[HotelState] 📋 processDataUpdate — datasources dump");
-    console.log(`  total datasources: ${ctx.datasources?.length ?? 0}`);
-    (ctx.datasources || []).forEach((ds: any, i: number) => {
-      const rawId = ds.entityId;
-      const id = typeof rawId === "string" ? rawId : (rawId as any)?.id;
-      console.log(
-        `  [${i}] aliasName="${ds.aliasName}"  entityName="${ds.entityName}"` +
-          `  entityType="${ds.entityType}"  entityId="${id}"  label="${ds.entityLabel}"`
-      );
-    });
-    console.groupEnd();
-    // ── END DEBUG ──────────────────────────────────────────────────────────
+    log(`processDataUpdate: ${ctx.datasources?.length ?? 0} datasources, ${ctx.data?.length ?? 0} data items`);
 
     // First, scan all datasources to discover entities even if they have no telemetry data yet.
     // This is critical for discovering child devices of assets like "JLT-Office".
@@ -261,41 +349,34 @@ export class HotelStateService implements OnDestroy {
         const entityId: string =
           typeof rawId === "string" ? rawId : (rawId as any)?.id;
         if (!entityId) {
-          console.warn(
+          warn(
             `[HotelState] ⚠️ Could not extract entityId for datasource: ${entityName}`
           );
           return;
         }
 
-        // Asynchronously fetch device details to determine Device Profile (deviceType)
+        // Fetch device profile (fire-and-forget — don't re-trigger full processing)
         if (ds.entityType === "DEVICE" && !this.deviceProfileMap.has(entityName)) {
-          ctx.http.get(`/api/device/info/${entityId}`).subscribe(
-            (deviceInfo: any) => {
-              if (deviceInfo && deviceInfo.deviceProfileName) {
-                console.log(`[HotelState] ℹ️ Loaded device profile for ${entityName}:`, deviceInfo.deviceProfileName);
+          this.httpGetWithRetry(ctx, `/api/device/info/${entityId}`, 1)
+            .then((deviceInfo: any) => {
+              if (deviceInfo?.deviceProfileName) {
                 this.deviceProfileMap.set(entityName, deviceInfo.deviceProfileName);
-                if (this.lastCtx) {
-                  this.processDataUpdate(this.lastCtx);
-                }
+                log(`Loaded device profile for ${entityName}: ${deviceInfo.deviceProfileName}`);
               }
-            },
-            () => {
-              ctx.http.get(`/api/device/${entityId}`).subscribe(
-                (device: any) => {
-                  if (device && device.type) {
-                    console.log(`[HotelState] ℹ️ Loaded device type/profile for ${entityName}:`, device.type);
+            })
+            .catch(() => {
+              this.httpGetWithRetry(ctx, `/api/device/${entityId}`, 1)
+                .then((device: any) => {
+                  if (device?.type) {
                     this.deviceProfileMap.set(entityName, device.type);
-                    if (this.lastCtx) {
-                      this.processDataUpdate(this.lastCtx);
-                    }
+                    log(`Loaded device type for ${entityName}: ${device.type}`);
                   }
-                }
-              );
-            }
-          );
+                })
+                .catch(() => {});
+            });
         }
 
-        console.log(
+        log(
           `[HotelState] 🗂 DS scan: aliasName="${aliasName}" isOtherAlias=${isOtherAlias}` +
             ` entityName="${entityName}" entityType="${ds.entityType}" id="${entityId}"` +
             ` alreadyTriggered=${this.triggeredOtherAssets.has(entityId)}`
@@ -303,14 +384,14 @@ export class HotelStateService implements OnDestroy {
 
         if (isOtherAlias && !this.triggeredOtherAssets.has(entityId)) {
           this.triggeredOtherAssets.add(entityId);
-          console.log(
+          log(
             `[HotelState] 🔍 Triggering discovery for "Other" Asset: "${entityName}" (ID: ${entityId})`
           );
           if (ds.entityType === "ASSET") {
             // forceOther=true ensures the asset is NEVER treated as a room card
             this.discoverDevicesForRoom(ctx, entityId, entityName, true);
           } else {
-            console.log(
+            log(
               `[HotelState]   → is a DEVICE, calling discoverKeysAndFetch directly`
             );
             this.discoverKeysAndFetch(
@@ -348,50 +429,45 @@ export class HotelStateService implements OnDestroy {
                            "";
         
         if (lowerName.includes("mews")) {
-          const flatParts: string[] = [];
-          Object.keys(item.datasource).forEach(k => {
-            const val = item.datasource[k];
-            if (typeof val !== 'object' && val !== null && val !== undefined) {
-              flatParts.push(k + '="' + val + '"');
-            }
-          });
-          console.log("[HotelState] 🔍 MEWS FLAT DATASOURCE: " + flatParts.join(', '));
-
-          if (item.datasource.entity) {
-            const entityParts: string[] = [];
-            Object.keys(item.datasource.entity).forEach(k => {
-              const val = item.datasource.entity[k];
-              if (typeof val !== 'object' && val !== null && val !== undefined) {
-                entityParts.push(k + '="' + val + '"');
-              }
-            });
-            console.log("[HotelState] 🔍 MEWS FLAT ENTITY: " + entityParts.join(', '));
-          }
+          // Mews detection — stripped debug spam
         }
 
-        const profile = this.deviceProfileMap.get(entityName) || deviceType || "";
-        const isMewsBridge = profile.toLowerCase() === "mews bridge" || 
-                             (lowerName.startsWith("mews") && !lowerName.includes("room"));
+        const profileLower = (this.deviceProfileMap.get(entityName) || deviceType || "").toLowerCase();
+        const deviceTypeLower = (deviceType || "").toLowerCase();
+        // Match Mews Bridge: profile includes "mews", OR device type includes "mews",
+        // OR entity name includes "mews" (but not "room"), OR entity name includes "gateway" with mews keys
+        const isMewsByName =
+          profileLower.includes("mews") ||
+          deviceTypeLower.includes("mews") ||
+          (lowerName.includes("mews") && !lowerName.includes("room"));
+
+        // Also check: does this datasource carry Mews-like telemetry keys?
+        // This catches gateways where the profile name might differ.
+        const mewsKeyNames = ["integrationstatus", "isonline", "roomssynced", "alertactive", "errormessage", "lastheartbeautc",
+                              "integration_status", "is_online", "rooms_synced", "alert_active", "error_message", "last_heartbeat_utc"];
+        const hasMewsKeys = item.dataKey?.name && mewsKeyNames.includes((item.dataKey.name || "").toLowerCase());
+
+        const isMewsBridge = isMewsByName || (lowerName.includes("gateway") && hasMewsKeys) || hasMewsKeys;
         if (isMewsBridge) {
           if (item.data && item.data.length > 0) {
-            const keyName = item.dataKey?.name || "";
+            const keyName = (item.dataKey?.name || "").toLowerCase().replace(/_/g, "");
             const val = item.data[0][1];
 
-            if (keyName === "integrationStatus") {
+            if (keyName.includes("integration") && keyName.includes("status")) {
               stats.mewsStatus = String(val);
-            } else if (keyName === "isOnline") {
-              if (val === 1 || val === "1" || val === true)
+            } else if (keyName.includes("isonline") || keyName.includes("is_online") || keyName === "online") {
+              if (val === 1 || val === "1" || val === true || String(val).toLowerCase() === "true")
                 stats.mewsStatus = "ONLINE";
-              else if (val === 0 || val === "0" || val === false)
+              else if (val === 0 || val === "0" || val === false || String(val).toLowerCase() === "false")
                 stats.mewsStatus = "OFFLINE";
-            } else if (keyName === "roomsSynced") {
+            } else if (keyName.includes("rooms") && keyName.includes("sync")) {
               stats.mewsRoomsSynced = Number(val);
-            } else if (keyName === "alertActive") {
+            } else if (keyName.includes("alert") && keyName.includes("active")) {
               stats.mewsAlertActive =
                 val === 1 || val === "1" || val === "true" || val === true;
-            } else if (keyName === "errorMessage" && val) {
+            } else if (keyName.includes("error") && keyName.includes("message")) {
               stats.mewsErrorMessage = String(val);
-            } else if (keyName === "lastHeartbeatUtc") {
+            } else if (keyName.includes("lastheartbeat") || keyName.includes("last_heartbeat")) {
               if (val) {
                 const date = new Date(val);
                 if (!isNaN(date.getTime())) {
@@ -406,6 +482,8 @@ export class HotelStateService implements OnDestroy {
                 }
               }
             }
+            // Log what we received for debugging
+            console.log(`[Mews] key="${item.dataKey?.name}" val="${val}" → status=${stats.mewsStatus} rooms=${stats.mewsRoomsSynced} online=${!stats.mewsAlertActive}`);
           }
           return;
         }
@@ -623,14 +701,9 @@ export class HotelStateService implements OnDestroy {
     }
     this.updateHotelStats(rooms, stats);
 
-    if (roomsUpdated) {
-      this._rooms$.next(rooms);
-    }
-
+    this._rooms$.next(rooms);
     this._hotelStats$.next(stats);
     this.emitMergedOtherDevices();
-
-    return rooms;
   }
 
   private emitMergedOtherDevices(): void {
@@ -644,7 +717,7 @@ export class HotelStateService implements OnDestroy {
       }
     });
     const devices = Array.from(merged.values());
-    console.log(
+    log(
       `[HotelState] 📤 _otherDevices$.next — emitting ${devices.length} devices:`,
       devices.map((d) => `${d.name} (${d.type}) @ ${d.room}`)
     );
@@ -965,9 +1038,7 @@ export class HotelStateService implements OnDestroy {
     this.lastCtx = ctx;
     this.discoveryDone = true;
 
-    console.group("[HotelState] 🚀 discoverDevices() — START");
-    console.log(`  ctx.http available: ${!!ctx.http}`);
-    console.log(`  total datasources: ${ctx.datasources?.length ?? 0}`);
+    log(`discoverDevices: ${ctx.datasources?.length ?? 0} datasources`);
 
     // Separate "room" assets from "other" alias assets so they are always
     // routed correctly regardless of whether their name contains a number.
@@ -1000,7 +1071,7 @@ export class HotelStateService implements OnDestroy {
 
           if (ds.entityType === "ASSET") {
             if (isOtherAlias) {
-              console.log(
+              log(
                 `  → OTHER asset: "${
                   ds.entityName || ds.entityLabel
                 }" alias="${aliasName}" id=${id}`
@@ -1011,7 +1082,7 @@ export class HotelStateService implements OnDestroy {
                 entityName: ds.entityName || ds.entityLabel || "",
               });
             } else {
-              console.log(
+              log(
                 `  → ROOM asset:  "${
                   ds.entityName || ds.entityLabel
                 }" alias="${aliasName}" id=${id}`
@@ -1036,15 +1107,14 @@ export class HotelStateService implements OnDestroy {
       }
     }
 
-    console.log(`  roomAssets count:  ${roomAssets.size}`);
-    console.log(`  otherAssets count: ${otherAssets.size}`);
-    console.log(
+    log(`  roomAssets count:  ${roomAssets.size}`);
+    log(`  otherAssets count: ${otherAssets.size}`);
+    log(
       `  otherAssets names: [${Array.from(otherAssets.values())
         .map((a) => a.entityName)
         .join(", ")}]`
     );
-    console.groupEnd();
-
+    
     // 1. Process explicit room assets
     roomAssets.forEach((asset, assetId) => {
       this.discoverDevicesForRoom(ctx, assetId, asset.entityName, false);
@@ -1055,7 +1125,7 @@ export class HotelStateService implements OnDestroy {
     otherAssets.forEach((asset, assetId) => {
       if (!this.triggeredOtherAssets.has(assetId)) {
         this.triggeredOtherAssets.add(assetId);
-        console.log(
+        log(
           `[HotelState] 🏢 discoverDevicesForRoom (forceOther=true): "${asset.entityName}" id=${assetId}`
         );
         this.discoverDevicesForRoom(ctx, assetId, asset.entityName, true);
@@ -1088,17 +1158,17 @@ export class HotelStateService implements OnDestroy {
           }
         },
         (err: any) =>
-          console.warn(
+          warn(
             `HotelStateService: ⚠️ Failed to query parent asset for device [${deviceId}]`
           )
       );
     });
 
-    // Set up periodic refresh (every 15s)
+    // Set up periodic refresh (every 30s)
     if (!this.refreshTimer) {
       this.refreshTimer = setInterval(() => {
         this.refreshAllDeviceTelemetry(ctx);
-      }, 15000);
+      }, PERIODIC_REFRESH_MS);
     }
   }
 
@@ -1126,22 +1196,22 @@ export class HotelStateService implements OnDestroy {
       this.roomLocationNames.add(locationName); // e.g. "1", "2"
       this.roomLocationNames.add(assetName); // e.g. "JLT-Room 1"
       this.roomLocationNames.add(extractedRoomNumber); // same as locationName for rooms
-      console.log(
+      log(
         `[HotelState] 🏠 Registered room location: "${locationName}" (asset: "${assetName}")`
       );
     }
 
-    console.log(
+    log(
       `[HotelState] 🔎 discoverDevicesForRoom: assetName="${assetName}" assetId="${assetId}"` +
         ` forceOther=${forceOther} isRoom=${isRoom} locationName="${locationName}"`
     );
 
     const url = `/api/relations/info?fromId=${assetId}&fromType=ASSET`;
-    console.log(`[HotelState]   → GET ${url}`);
+    log(`[HotelState]   → GET ${url}`);
 
     ctx.http.get(url).subscribe(
       (relations: any[]) => {
-        console.log(
+        log(
           `[HotelState]   ← relations response for "${assetName}": ${
             relations?.length ?? 0
           } total relations`,
@@ -1149,7 +1219,7 @@ export class HotelStateService implements OnDestroy {
         );
 
         if (!relations || relations.length === 0) {
-          console.warn(
+          warn(
             `[HotelState]   ⚠️ No relations found for asset "${assetName}" (${assetId}). ` +
               `Make sure "Contains" relations exist between this asset and its devices in ThingsBoard.`
           );
@@ -1160,20 +1230,20 @@ export class HotelStateService implements OnDestroy {
           (r) => r.to?.entityType === "DEVICE" && r.type === "Contains"
         );
 
-        console.log(
+        log(
           `[HotelState]   📦 "${assetName}" → ${deviceRelations.length} DEVICE "Contains" relations` +
             ` (${
               relations.length - deviceRelations.length
             } non-device/non-Contains filtered out)`
         );
-        console.log(
+        log(
           `[HotelState]   device names: [${deviceRelations
             .map((r) => r.toName)
             .join(", ")}]`
         );
 
         if (deviceRelations.length === 0) {
-          console.warn(
+          warn(
             `[HotelState]   ⚠️ Asset "${assetName}" has relations but NONE are DEVICE+Contains. ` +
               `Relation types found: [${relations
                 .map((r) => `${r.type}/${r.to?.entityType}`)
@@ -1189,7 +1259,7 @@ export class HotelStateService implements OnDestroy {
             rel.toName || `device_${deviceId?.substring(0, 8)}`;
           if (!deviceId) continue;
 
-          console.log(
+          log(
             `[HotelState]   🔑 discoverKeysAndFetch: "${deviceName}" id=${deviceId} isRoom=${isRoom} location="${locationName}"`
           );
           this.discoverKeysAndFetch(
@@ -1203,7 +1273,7 @@ export class HotelStateService implements OnDestroy {
         }
       },
       (err: any) => {
-        console.error(
+        error(
           `HotelStateService: ❌ Failed to query relations for [${assetName}] (${assetId}):`,
           err?.status,
           err?.message,
@@ -1292,7 +1362,7 @@ export class HotelStateService implements OnDestroy {
         );
       },
       (err: any) => {
-        console.warn(
+        warn(
           `HotelStateService: ⚠️ Failed to get keys for [${entityName}]:`,
           err?.status
         );
@@ -1405,7 +1475,7 @@ export class HotelStateService implements OnDestroy {
         }
       },
       (err: any) => {
-        console.warn(
+        warn(
           `HotelStateService: ⚠️ Failed to fetch telemetry for [${entityName}]:`,
           err?.status
         );
@@ -1480,7 +1550,7 @@ export class HotelStateService implements OnDestroy {
     telemetry: any,
     entityType: string = "DEVICE"
   ): void {
-    console.log(
+    log(
       `[HotelState] 💾 mergeDeviceDataIntoOther: "${entityName}" (${entityId})` +
         ` location="${locationName}" keys=[${Object.keys(telemetry || {}).join(
           ", "
@@ -1498,7 +1568,7 @@ export class HotelStateService implements OnDestroy {
       this.roomMap.has(extractedNum);
 
     if (isKnownRoom) {
-      console.log(
+      log(
         `[HotelState] 🚫 mergeDeviceDataIntoOther SKIPPED "${entityName}" ` +
           `— location "${locationName}" is a room (extracted="${extractedNum}")`
       );
@@ -1561,13 +1631,13 @@ export class HotelStateService implements OnDestroy {
 
     if (updated || isNew) {
       if (isNew) {
-        console.log(
+        log(
           `[HotelState] ➕ Added new "Other" device: "${entityName}" type="${
             dev!.type
           }" location="${locationName}" (${entityId})`
         );
       }
-      console.log(
+      log(
         `[HotelState] 📡 emitMergedOtherDevices — discoveredOther=${this.discoveredOtherDevices.size}` +
           ` ctxOther=${this.ctxOtherDevices.size}`
       );

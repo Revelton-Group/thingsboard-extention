@@ -609,6 +609,17 @@ export class ReveltonDashboardComponent implements OnInit, OnDestroy {
     return this.roomDataService.getAirQualityLabel(aqi);
   }
 
+  getBatteryDeviceIcon(type: string): string {
+    const icons: Record<string, string> = {
+      'Window Sensor': 'window',
+      'Thermostat': 'local_fire_department',
+      'Leak Sensor': 'water_drop',
+      'Noise Sensor': 'graphic_eq',
+      'Air Monitor': 'air',
+    };
+    return icons[type] || 'battery_alert';
+  }
+
   private groupDevices(): void {
     this.groupedOtherDevices = {};
     for (const dev of this.otherDevices) {

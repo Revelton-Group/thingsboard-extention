@@ -1,5 +1,7 @@
-<div class="metric-cell {{ containerClass }}" [ngClass]="dynamicClass">
-    <i class="material-icons {{ iconClass }}">{{ icon }}</i>
-    <span class="metric-label">{{ label }}</span>
-    <span class="metric-value" [ngClass]="valueClass">{{ value }}</span>
+<div class="metric-cell" [ngClass]="dynamicClass">
+    <div class="tile-header">
+        <i class="material-icons tile-icon {{ iconClass }}">{{ icon }}</i>
+        <span class="tile-label">{{ label }}</span>
+    </div>
+    <div class="tile-value" [ngClass]="valueClass">{{ value }}</div>
 </div>
