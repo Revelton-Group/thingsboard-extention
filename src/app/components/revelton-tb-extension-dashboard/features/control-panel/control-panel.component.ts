@@ -219,22 +219,53 @@ import {
                 </div>
                 <p class="cp-card-hint">{{ t.scheduleHint || 'Define heating periods with target temperatures for each time block.' }}</p>
 
+                <!-- Timeline Visualizer -->
+                <div class="cp-timeline-container" *ngIf="thermostatSchedule.length > 0">
+                  <div class="cp-timeline-bar">
+                    <div *ngFor="let seg of getTimelineSegments()"
+                         class="cp-timeline-segment"
+                         [style.width.%]="seg.widthPct"
+                         [style.background]="seg.bg"
+                         [style.color]="seg.color"
+                         [class.cp-timeline-segment--conflict]="seg.isConflict"
+                         [class.cp-timeline-segment--empty]="seg.isEmpty"
+                         [title]="seg.isConflict ? 'Conflict Overlap! ' + seg.startStr + ' - ' + seg.endStr : (seg.isEmpty ? 'Unscheduled: ' + seg.startStr + ' - ' + seg.endStr : 'Interval: ' + seg.startStr + ' - ' + seg.endStr + ' (' + seg.label + ')')">
+                      <span class="cp-timeline-lbl" *ngIf="seg.widthPct > 8">{{ seg.label }}</span>
+                      <span class="cp-timeline-time" *ngIf="seg.widthPct > 15">{{ seg.startStr }} - {{ seg.endStr }}</span>
+                    </div>
+                  </div>
+                  <!-- Timeline Ticks (00:00, 06:00, 12:00, 18:00, 24:00) -->
+                  <div class="cp-timeline-ticks">
+                    <span>00:00</span>
+                    <span>06:00</span>
+                    <span>12:00</span>
+                    <span>18:00</span>
+                    <span>24:00</span>
+                  </div>
+                  
+                  <!-- Overlap Warning Message -->
+                  <div class="cp-timeline-warning" *ngIf="hasScheduleOverlap()">
+                    <i class="material-icons">warning</i>
+                    <span>Schedule intervals overlap! Please adjust times so they do not conflict.</span>
+                  </div>
+                </div>
+
                 <div class="cp-schedule-list">
                   <div class="cp-schedule-row" *ngFor="let iv of thermostatSchedule; let i = index">
                     <div class="cp-schedule-times">
                       <span class="cp-time-wrap">
                         <i class="material-icons cp-time-icon" [style.color]="getClockColor(iv.start)">schedule</i>
-                        <input type="time" [(ngModel)]="iv.start" (ngModelChange)="onScheduleChanged()" class="cp-input-sm cp-input-time">
+                        <input type="text" [(ngModel)]="iv.start" (ngModelChange)="onScheduleChanged()" class="cp-input-sm cp-input-time" placeholder="HH:MM" maxlength="5" pattern="^(2[0-3]|[01]?[0-9]):([0-5][0-9])$">
                       </span>
                       <i class="material-icons" style="color: var(--t3,#5c6675); font-size: 16px">arrow_forward</i>
                       <span class="cp-time-wrap">
                         <i class="material-icons cp-time-icon" [style.color]="getClockColor(iv.end)">schedule</i>
-                        <input type="time" [(ngModel)]="iv.end" (ngModelChange)="onScheduleChanged()" class="cp-input-sm cp-input-time">
+                        <input type="text" [(ngModel)]="iv.end" (ngModelChange)="onScheduleChanged()" class="cp-input-sm cp-input-time" placeholder="HH:MM" maxlength="5" pattern="^(2[0-3]|[01]?[0-9]):([0-5][0-9])$">
                       </span>
                     </div>
                     <div class="cp-schedule-temp">
                       <span class="cp-temp-wrap">
-                        <input type="number" step="0.5" min="16" max="28" [(ngModel)]="iv.temp" (ngModelChange)="onScheduleChanged()" class="cp-input-temp" [style.color]="getTempColor(iv.temp)" [style.background]="getTempBg(iv.temp)" [style.borderColor]="getTempColor(iv.temp)">
+                        <input type="number" step="1" min="16" max="28" [(ngModel)]="iv.temp" (ngModelChange)="onScheduleChanged()" class="cp-input-temp" [style.color]="getTempColor(iv.temp)" [style.background]="getTempBg(iv.temp)" [style.borderColor]="getTempColor(iv.temp)">
                         <span class="cp-temp-unit">°C</span>
                       </span>
                       <button class="cp-icon-btn cp-icon-btn--danger" (click)="removeScheduleInterval(i)" [disabled]="thermostatSchedule.length <= 1">
@@ -248,41 +279,78 @@ import {
                 </button>
               </div>
 
-              <!-- Maintenance Card -->
-              <div class="cp-card">
-                <div class="cp-card-head">
-                  <i class="material-icons" [style.color]="config.thermostat.maintenance.enabled ? 'var(--accent,#5c7cfa)' : 'var(--t3,#5c6675)'">build_circle</i>
-                  <span>{{ t.maintenanceT || 'Valve Maintenance' }}</span>
-                  <div class="cp-knob cp-knob--sm" [class.cp-knob--on]="config.thermostat.maintenance.enabled"
-                    (click)="config.thermostat.maintenance.enabled = !config.thermostat.maintenance.enabled; $event.stopPropagation()">
-                    <span></span>
-                  </div>
-                </div>
-                <p class="cp-card-hint">{{ t.maintenanceHint || 'Periodically fully opens then closes the valve to prevent limescale build-up.' }}</p>
+              <!-- Right Column Stack -->
+              <div class="cp-card-stack">
 
-                <div class="cp-schedule-list">
-                  <div class="cp-schedule-row" *ngFor="let test of config.thermostat.maintenance.tests; let i = index">
-                    <div class="cp-schedule-times">
-                      <select [(ngModel)]="test.day" class="cp-input-sm" [disabled]="!config.thermostat.maintenance.enabled">
-                        <option [value]="1">{{ getWeekdayName('Mon') }}</option>
-                        <option [value]="2">{{ getWeekdayName('Tue') }}</option>
-                        <option [value]="3">{{ getWeekdayName('Wed') }}</option>
-                        <option [value]="4">{{ getWeekdayName('Thu') }}</option>
-                        <option [value]="5">{{ getWeekdayName('Fri') }}</option>
-                        <option [value]="6">{{ getWeekdayName('Sat') }}</option>
-                        <option [value]="7">{{ getWeekdayName('Sun') }}</option>
-                      </select>
-                      <input type="time" [(ngModel)]="test.time" class="cp-input-sm" [disabled]="!config.thermostat.maintenance.enabled">
+                <!-- Maintenance Card -->
+                <div class="cp-card">
+                  <div class="cp-card-head">
+                    <i class="material-icons" [style.color]="config.thermostat.maintenance.enabled ? 'var(--accent,#5c7cfa)' : 'var(--t3,#5c6675)'">build_circle</i>
+                    <span>{{ t.maintenanceT || 'Valve Maintenance' }}</span>
+                    <div class="cp-knob cp-knob--sm" [class.cp-knob--on]="config.thermostat.maintenance.enabled"
+                      (click)="config.thermostat.maintenance.enabled = !config.thermostat.maintenance.enabled; $event.stopPropagation()">
+                      <span></span>
                     </div>
-                    <button class="cp-icon-btn cp-icon-btn--danger" (click)="removeMaintTest(i)"
-                      [disabled]="!config.thermostat.maintenance.enabled || config.thermostat.maintenance.tests.length <= 1">
-                      <i class="material-icons">delete</i>
-                    </button>
+                  </div>
+                  <p class="cp-card-hint">{{ t.maintenanceHint || 'Periodically fully opens then closes the valve to prevent limescale build-up.' }}</p>
+
+                  <div class="cp-schedule-list">
+                    <div class="cp-schedule-row" *ngFor="let test of config.thermostat.maintenance.tests; let i = index">
+                      <div class="cp-schedule-times">
+                        <select [(ngModel)]="test.day" class="cp-input-sm" [disabled]="!config.thermostat.maintenance.enabled">
+                          <option [value]="1">{{ getWeekdayName('Mon') }}</option>
+                          <option [value]="2">{{ getWeekdayName('Tue') }}</option>
+                          <option [value]="3">{{ getWeekdayName('Wed') }}</option>
+                          <option [value]="4">{{ getWeekdayName('Thu') }}</option>
+                          <option [value]="5">{{ getWeekdayName('Fri') }}</option>
+                          <option [value]="6">{{ getWeekdayName('Sat') }}</option>
+                          <option [value]="7">{{ getWeekdayName('Sun') }}</option>
+                        </select>
+                        <input type="text" [(ngModel)]="test.time" class="cp-input-sm" [disabled]="!config.thermostat.maintenance.enabled" placeholder="HH:MM" maxlength="5" pattern="^(2[0-3]|[01]?[0-9]):([0-5][0-9])$" style="width: 70px;">
+                      </div>
+                      <button class="cp-icon-btn cp-icon-btn--danger" (click)="removeMaintTest(i)"
+                        [disabled]="!config.thermostat.maintenance.enabled || config.thermostat.maintenance.tests.length <= 1">
+                        <i class="material-icons">delete</i>
+                      </button>
+                    </div>
+                  </div>
+                  <button class="cp-add-btn" (click)="addMaintTest()" [disabled]="!config.thermostat.maintenance.enabled">
+                    <i class="material-icons">add</i> {{ t.addTest || 'Add Test' }}
+                  </button>
+                </div>
+
+                <!-- Preheating Settings Card -->
+                <div class="cp-card">
+                  <div class="cp-card-head">
+                    <i class="material-icons" style="color: var(--accent,#5c7cfa)">ac_unit</i>
+                    <span>{{ t.cpPreheatingSettings || 'Preheating Settings' }}</span>
+                  </div>
+                  
+                  <div class="cp-preheat-row">
+                    <div class="cp-preheat-label-group">
+                      <span class="cp-preheat-title">{{ t.cpPreheatingTemp || 'Preheating Temperature' }}</span>
+                      <span class="cp-preheat-subtitle">{{ t.cpPreheatingTempHint || 'Target temperature to preheat the room to before check-in' }}</span>
+                    </div>
+                    <div class="cp-mini-stepper">
+                      <button class="cp-step-btn" (click)="bumpPreheatingTemp(-1)"><i class="material-icons">remove</i></button>
+                      <span class="cp-mini-val"><b>{{ config.thermostat.preheatingTemp }}</b><span class="cp-mini-unit">°C</span></span>
+                      <button class="cp-step-btn" (click)="bumpPreheatingTemp(1)"><i class="material-icons">add</i></button>
+                    </div>
+                  </div>
+
+                  <div class="cp-preheat-row">
+                    <div class="cp-preheat-label-group">
+                      <span class="cp-preheat-title">{{ t.cpPreheatingMinutes || 'Preheating Time' }}</span>
+                      <span class="cp-preheat-subtitle">{{ t.cpPreheatingMinutesHint || 'How early to start heating the room before check-in' }}</span>
+                    </div>
+                    <div class="cp-mini-stepper">
+                      <button class="cp-step-btn" (click)="bumpPreheatingMinutes(-15)"><i class="material-icons">remove</i></button>
+                      <span class="cp-mini-val"><b>{{ config.thermostat.preheatingMinutes }}</b><span class="cp-mini-unit">min</span></span>
+                      <button class="cp-step-btn" (click)="bumpPreheatingMinutes(15)"><i class="material-icons">add</i></button>
+                    </div>
                   </div>
                 </div>
-                <button class="cp-add-btn" (click)="addMaintTest()" [disabled]="!config.thermostat.maintenance.enabled">
-                  <i class="material-icons">add</i> {{ t.addTest || 'Add Test' }}
-                </button>
+
               </div>
 
               </div><!-- /cp-card-grid-2 -->
@@ -315,9 +383,9 @@ import {
                     <div>
                       <div class="cp-noise-period-title">{{ period.label }}</div>
                       <div class="cp-noise-period-times">
-                        <input type="time" [(ngModel)]="period.start" (ngModelChange)="onNoisePeriodChanged()" class="cp-input-xs">
+                        <input type="text" [(ngModel)]="period.start" (ngModelChange)="onNoisePeriodChanged()" class="cp-input-xs" placeholder="HH:MM" maxlength="5" pattern="^(2[0-3]|[01]?[0-9]):([0-5][0-9])$">
                         <i class="material-icons" style="font-size: 13px; color: var(--t3,#5c6675)">arrow_forward</i>
-                        <input type="time" [(ngModel)]="period.end" (ngModelChange)="onNoisePeriodChanged()" class="cp-input-xs">
+                        <input type="text" [(ngModel)]="period.end" (ngModelChange)="onNoisePeriodChanged()" class="cp-input-xs" placeholder="HH:MM" maxlength="5" pattern="^(2[0-3]|[01]?[0-9]):([0-5][0-9])$">
                       </div>
                     </div>
                   </div>
@@ -729,7 +797,8 @@ export class ControlPanelComponent implements OnInit, OnDestroy {
       this.config.thermostat = JSON.parse(JSON.stringify(d.thermostat));
     }
     if (this.config.thermostat.valveOpen === undefined) this.config.thermostat.valveOpen = d.thermostat.valveOpen;
-    if (this.config.thermostat.comfortTemp === undefined) this.config.thermostat.comfortTemp = d.thermostat.comfortTemp;
+    if (this.config.thermostat.preheatingTemp === undefined) this.config.thermostat.preheatingTemp = d.thermostat.preheatingTemp;
+    if (this.config.thermostat.preheatingMinutes === undefined) this.config.thermostat.preheatingMinutes = d.thermostat.preheatingMinutes;
     if (!this.config.thermostat.schedule || this.config.thermostat.schedule.length === 0) {
       this.config.thermostat.schedule = JSON.parse(JSON.stringify(d.thermostat.schedule));
     }
@@ -803,7 +872,7 @@ export class ControlPanelComponent implements OnInit, OnDestroy {
 
   private thresholdMeta(metric: string): any {
     const meta: any = {
-      temp:  { icon: 'device_thermostat', iconBg: 'rgba(249,115,22,.15)', iconColor: '#f97316', label: this.t.cpTempMax || 'TEMP MAX LIMIT', unit: '°C', rangeMax: 45, hasMin: true,  sliderMin: 10, sliderMax: 40, sliderStep: 0.5 },
+      temp:  { icon: 'device_thermostat', iconBg: 'rgba(249,115,22,.15)', iconColor: '#f97316', label: this.t.cpTempMax || 'TEMP MAX LIMIT', unit: '°C', rangeMax: 45, hasMin: true,  sliderMin: 10, sliderMax: 40, sliderStep: 1 },
       hum:   { icon: 'water_drop',        iconBg: 'rgba(56,189,248,.15)', iconColor: '#38bdf8', label: this.t.cpHumMax || 'HUMIDITY MAX LIMIT', unit: '%', rangeMax: 95, hasMin: true,  sliderMin: 20, sliderMax: 90, sliderStep: 1 },
       press: { icon: 'compress',          iconBg: 'rgba(168,85,247,.15)', iconColor: '#a855f7', label: this.t.cpPressMax || 'PRESSURE MAX LIMIT', unit: 'hPa', rangeMax: 1200, hasMin: true,  sliderMin: 950, sliderMax: 1150, sliderStep: 1 },
       co2:   { icon: 'co2',               iconBg: 'rgba(52,211,153,.15)', iconColor: '#34d399', label: this.t.cpCo2Limit || 'CO₂ LIMIT', unit: 'ppm', rangeMax: 2000, hasMin: true, sliderMin: 300, sliderMax: 2000, sliderStep: 10 },
@@ -984,6 +1053,20 @@ export class ControlPanelComponent implements OnInit, OnDestroy {
     this.cdr.detectChanges();
   }
 
+  bumpPreheatingTemp(delta: number): void {
+    if (!this.config.thermostat) return;
+    const current = this.config.thermostat.preheatingTemp ?? 22;
+    this.config.thermostat.preheatingTemp = Math.max(16, Math.min(28, current + delta));
+    this.cdr.detectChanges();
+  }
+
+  bumpPreheatingMinutes(delta: number): void {
+    if (!this.config.thermostat) return;
+    const current = this.config.thermostat.preheatingMinutes ?? 180;
+    this.config.thermostat.preheatingMinutes = Math.max(0, Math.min(1440, current + delta));
+    this.cdr.detectChanges();
+  }
+
   syncMewsNow(): void {
     this.mewsLastSyncAgo = 0;
     console.log('[ControlPanel] Mews sync triggered');
@@ -1023,7 +1106,157 @@ export class ControlPanelComponent implements OnInit, OnDestroy {
     this.controlPanelService.navigateTo(section);
   }
 
+  isValidTime(time: string): boolean {
+    return /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(time || '');
+  }
+
+  getTimelineSegments(): any[] {
+    const minutes = new Array(1440).fill(null);
+    const conflicts = new Array(1440).fill(false);
+
+    const parseToMin = (t: string): number => {
+      if (!t) return 0;
+      const parts = t.split(':');
+      const h = parseInt(parts[0], 10) || 0;
+      const m = parseInt(parts[1], 10) || 0;
+      return h * 60 + m;
+    };
+
+    const formatMin = (m: number): string => {
+      const h = Math.floor(m / 60);
+      const min = m % 60;
+      return `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
+    };
+
+    const schedule = this.config?.thermostat?.schedule || [];
+
+    schedule.forEach((iv, index) => {
+      if (!iv.start || !iv.end || !this.isValidTime(iv.start) || !this.isValidTime(iv.end)) return;
+      const startMin = parseToMin(iv.start);
+      const endMin = parseToMin(iv.end);
+
+      const fillMin = (m: number) => {
+        if (m < 0 || m >= 1440) return;
+        if (minutes[m] !== null) {
+          conflicts[m] = true;
+        } else {
+          minutes[m] = { id: iv.id, temp: iv.temp, index };
+        }
+      };
+
+      if (startMin < endMin) {
+        for (let m = startMin; m < endMin; m++) {
+          fillMin(m);
+        }
+      } else if (startMin > endMin) {
+        // Crosses midnight
+        for (let m = startMin; m < 1440; m++) {
+          fillMin(m);
+        }
+        for (let m = 0; m < endMin; m++) {
+          fillMin(m);
+        }
+      }
+    });
+
+    const segments: any[] = [];
+    let currentSegment: any = null;
+
+    for (let m = 0; m < 1440; m++) {
+      const info = minutes[m];
+      const isConflict = conflicts[m];
+      let stateKey = 'empty';
+      if (isConflict) {
+        stateKey = 'conflict';
+      } else if (info !== null) {
+        stateKey = `iv-${info.id}-${info.temp}`;
+      }
+
+      if (currentSegment && currentSegment.stateKey === stateKey) {
+        currentSegment.end = m + 1;
+      } else {
+        if (currentSegment) {
+          segments.push(currentSegment);
+        }
+        currentSegment = {
+          stateKey,
+          start: m,
+          end: m + 1,
+          info,
+          isConflict
+        };
+      }
+    }
+    if (currentSegment) {
+      segments.push(currentSegment);
+    }
+
+    return segments.map(seg => {
+      const duration = seg.end - seg.start;
+      const pct = (duration / 1440) * 100;
+      let bg = 'rgba(255,255,255,0.05)';
+      let label = '';
+      let color = 'var(--t3, #8b97a8)';
+      
+      if (seg.isConflict) {
+        bg = 'var(--alert, #ef4444)';
+        label = 'Overlap!';
+        color = '#ffffff';
+      } else if (seg.info !== null) {
+        bg = this.getTempBg(seg.info.temp);
+        color = this.getTempColor(seg.info.temp);
+        label = `${seg.info.temp}°C`;
+      }
+
+      return {
+        start: seg.start,
+        end: seg.end,
+        startStr: formatMin(seg.start),
+        endStr: formatMin(seg.end),
+        widthPct: pct,
+        bg,
+        color,
+        label,
+        isConflict: seg.isConflict,
+        isEmpty: seg.info === null && !seg.isConflict,
+        info: seg.info
+      };
+    });
+  }
+
+  hasScheduleOverlap(): boolean {
+    const segments = this.getTimelineSegments();
+    return segments.some(seg => seg.isConflict);
+  }
+
   save(): void {
+    // Validate all time entries are in HH:MM format
+    for (const iv of this.config.thermostat.schedule) {
+      if (!this.isValidTime(iv.start) || !this.isValidTime(iv.end)) {
+        alert('Please enter valid times in 24-hour style HH:MM format (e.g., 08:00, 22:30).');
+        return;
+      }
+    }
+    for (const test of this.config.thermostat.maintenance.tests) {
+      if (!this.isValidTime(test.time)) {
+        alert('Please enter valid times in 24-hour style HH:MM format (e.g., 03:00) for valve maintenance.');
+        return;
+      }
+    }
+    if (this.config.noise.enabled) {
+      const day = this.config.noise.dayPeriod;
+      const night = this.config.noise.nightPeriod;
+      if (!this.isValidTime(day.start) || !this.isValidTime(day.end) || !this.isValidTime(night.start) || !this.isValidTime(night.end)) {
+        alert('Please enter valid times in 24-hour style HH:MM format (e.g., 07:00, 22:00) for acoustic noise periods.');
+        return;
+      }
+    }
+
+    if (this.hasScheduleOverlap()) {
+      alert('Cannot save: schedule intervals overlap! Please adjust schedule times so they do not conflict.');
+      return;
+    }
+
     const entityIds = this.resolveRoomEntityIds();
     console.log(
       `[ControlPanel] Saving config to ${entityIds.length} room assets (scope: ${this.config.roomScope})`

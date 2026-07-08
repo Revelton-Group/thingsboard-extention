@@ -203,8 +203,10 @@ export interface TranslationSet {
   cpValveOpen: string;
   cpValveClosed: string;
   cpAddInterval: string;
-  cpComfortTemp: string;
-  cpComfortTempHint: string;
+  cpPreheatingTemp: string;
+  cpPreheatingTempHint: string;
+  cpPreheatingMinutes: string;
+  cpPreheatingMinutesHint: string;
   cpWindowAutoPause: string;
   cpWindowAutoPauseHint: string;
   cpWindowAlertT: string;
@@ -533,8 +535,10 @@ export class TranslationService {
       cpValveOpen: "Valve Open",
       cpValveClosed: "Valve Closed",
       cpAddInterval: "Add Interval",
-      cpComfortTemp: "Comfort Temperature",
-      cpComfortTempHint: "Default setpoint applied on guest check-in",
+      cpPreheatingTemp: "Preheating Temperature",
+      cpPreheatingTempHint: "Target temperature to preheat the room to before check-in",
+      cpPreheatingMinutes: "Preheating Time",
+      cpPreheatingMinutesHint: "How early to start heating the room before check-in (in winter season)",
       cpWindowAutoPause: "Auto-pause Heating",
       cpWindowAutoPauseHint: "Pause the valve automatically while a window is open in the room",
       cpWindowAlertT: "Open-Window Alert",
@@ -613,7 +617,7 @@ export class TranslationService {
       co2Alert: "CO₂",
       noiseAlert: "Noise",
 
-      histSyncing: "Syncing sensors...",
+      histSyncing: "Loading data...",
       histRetry: "Retry",
       histAirQuality: "Air Quality Monitor",
       histTempHum: "Temperature & Humidity history",
@@ -851,8 +855,10 @@ export class TranslationService {
       cpValveOpen: "Клапан открыт",
       cpValveClosed: "Клапан закрыт",
       cpAddInterval: "Добавить интервал",
-      cpComfortTemp: "Комфортная температура",
-      cpComfortTempHint: "Уставка по умолчанию при заезде гостя",
+      cpPreheatingTemp: "Температура предпрогрева",
+      cpPreheatingTempHint: "Целевая температура для прогрева комнаты перед заездом гостя",
+      cpPreheatingMinutes: "Время предпрогрева",
+      cpPreheatingMinutesHint: "За сколько минут до заезда начать прогрев комнаты (в зимний период)",
       cpWindowAutoPause: "Авто-пауза отопления",
       cpWindowAutoPauseHint: "Автоматически приостанавливать клапан, пока окно открыто в комнате",
       cpWindowAlertT: "Оповещение об открытом окне",
@@ -931,7 +937,7 @@ export class TranslationService {
       co2Alert: "CO₂",
       noiseAlert: "Шум",
 
-      histSyncing: "Синхронизация...",
+      histSyncing: "Загрузка данных...",
       histRetry: "Повторить",
       histAirQuality: "Качество воздуха",
       histTempHum: "История температуры и влажности",

@@ -45,10 +45,7 @@
                     <i class="material-icons">remove</i>
                 </button>
                 <div class="thermo-setpoint-value">
-                    <span class="thermo-setpoint-num">
-                        {{ trv.targetTemp != null ? (trv.targetTemp | number:'1.1-1') : '--' }}
-                        <span class="thermo-setpoint-deg">°</span>
-                    </span>
+                    <span class="thermo-setpoint-num">{{ trv.targetTemp != null ? (trv.targetTemp | number:'1.1-1') : '--' }}<span class="thermo-setpoint-deg">°</span></span>
                 </div>
                 <button class="thermo-step-btn" (click)="incrementTemp()" [disabled]="trv.systemMode === 'off'">
                     <i class="material-icons">add</i>
@@ -60,10 +57,7 @@
         <div class="thermo-status-panel">
             <div class="thermo-panel-label">{{ t.statusL | uppercase }}</div>
             <div class="thermo-status-value">
-                <span class="thermo-status-num">
-                    {{ trv.currentTemp != null ? (trv.currentTemp | number:'1.1-1') : '--' }}
-                    <span class="thermo-status-deg">°</span>
-                </span>
+                <span class="thermo-status-num">{{ trv.currentTemp != null ? (trv.currentTemp | number:'1.1-1') : '--' }}<span class="thermo-status-deg">°</span></span>
             </div>
         </div>
     </div>

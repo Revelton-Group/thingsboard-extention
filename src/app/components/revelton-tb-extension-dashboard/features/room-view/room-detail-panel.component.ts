@@ -169,7 +169,7 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
   /** Time range for inline historical section: 24 | 168 | 720 hours */
   histTimeRange: number = 24;
   /** Legacy flag kept for backward compat */
-  showHistoricalData = false;
+  showHistoricalData = true;
 
   setHistTimeRange(hours: number): void {
     this.histTimeRange = hours;
@@ -189,7 +189,7 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   closeHistoricalData(): void {
-    this.showHistoricalData = false;
+    this.showHistoricalData = true;
     this.cdr.detectChanges();
   }
 
@@ -490,10 +490,14 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
     const winDevices = this.data.windowDevices || {};
     for (const [name, data] of Object.entries(winDevices) as any) {
       const isWindowOpen = data.contact === 'open';
+      let displayName = this.data.deviceMeta?.[name]?.location || this.formatDeviceName(name, 'Window');
+      if (displayName) {
+        displayName = displayName.replace(/(window|окно)\s+(\d+)/i, '$1-$2');
+      }
       this.allSensors.push({
         type: 'window',
         entityName: name,
-        displayName: this.data.deviceMeta?.[name]?.location || this.formatDeviceName(name, 'Window'),
+        displayName: displayName,
         isOpen: isWindowOpen,
         statusLabel: isWindowOpen ? this.t.open : this.t.closed,
         statusColor: isWindowOpen ? '#FF9500' : '#34C759',
@@ -543,7 +547,7 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
         iconBg: isLeak ? 'rgba(255,59,48,0.08)' : 'rgba(52,199,89,0.08)',
         battery: this.data.batteryDevices?.[name] ?? null,
         linkquality: this.data.linkQualityDevices?.[name] ?? null,
-        model: 'WS303',
+        model: this.data.deviceMeta?.[name]?.model || 'WS303',
         lastSeen: this.data.lastSeenDevices?.[name] ?? null,
         offline: this.data.offlineDevices?.[name] ?? false,
         snr: data.snr ?? null,
@@ -608,7 +612,7 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
         iconBg: quiet ? 'rgba(52,199,89,0.08)' : 'rgba(255,149,0,0.08)',
         battery: this.data.batteryDevices?.[name] ?? null,
         linkquality: this.data.linkQualityDevices?.[name] ?? null,
-        model: 'WS302',
+        model: this.data.deviceMeta?.[name]?.model || 'WS302',
         lastSeen: this.data.lastSeenDevices?.[name] ?? null,
         offline: this.data.offlineDevices?.[name] ?? false,
         laeq: data.laeq ?? null,
@@ -658,7 +662,7 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
         battery: this.data.batteryDevices?.[name] ?? null,
         batteryLow: this.data.batteryLowDevices?.[name] ?? null,
         linkquality: this.data.linkQualityDevices?.[name] ?? null,
-        model: name.toUpperCase().includes('VS370') ? 'VS370' : (name.toUpperCase().includes('WS301') ? 'WS301' : (this.data.deviceMeta?.[name]?.model || 'WS301')),
+        model: this.data.deviceMeta?.[name]?.model || 'VS370',
         lastSeen: this.data.lastSeenDevices?.[name] ?? null,
         offline: this.data.offlineDevices?.[name] ?? false,
         snr: data.snr ?? null,
@@ -721,11 +725,12 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
 
       this.smartSockets.push({
         entityName: name,
-        displayName: this.data.deviceMeta?.[name]?.location || this.formatDeviceName(name, 'Smart Plug'),
+        displayName: this.data.deviceMeta?.[name]?.location || name,
         state: finalState,
         power: data.power ?? null,
         voltage: data.voltage ?? null,
         current: data.current ?? null,
+        energyToday: data.energyToday ?? null,
         battery: this.data.batteryDevices?.[name] ?? null,
         linkquality: this.data.linkQualityDevices?.[name] ?? null,
         model: this.data.deviceMeta?.[name]?.model ?? 'Smart Plug',
@@ -925,8 +930,8 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
         if (s.type === 'window' && s.isOpen) {
           triggeredAlerts.push({
             id: `window-${s.entityName}`,
-            title: `${this.t.windows}`,
-            message: `${s.displayName} is open`,
+            title: s.displayName,
+            message: this.translationService.activeLangCode === 'RU' ? 'открыто' : 'open',
             time: this.t.justNow || 'Just now',
             severity: 'warning'
           });
@@ -957,9 +962,11 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
 
     // Assign timestamps to active alerts and track when they first occurred
     const now = Date.now();
+    let tsChanged = false;
     for (const alert of this.alerts) {
       if (!this.alertTimestamps.has(alert.id)) {
         this.alertTimestamps.set(alert.id, now);
+        tsChanged = true;
       }
       alert.timestamp = this.alertTimestamps.get(alert.id);
       alert.time = this.timeAgo(alert.timestamp);
@@ -970,7 +977,12 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
     for (const key of Array.from(this.alertTimestamps.keys())) {
       if (!activeIds.has(key)) {
         this.alertTimestamps.delete(key);
+        tsChanged = true;
       }
+    }
+
+    if (tsChanged) {
+      this.saveArchive();
     }
 
     // Sort by timestamp DESC (most recent alerts at the top)
@@ -1008,6 +1020,14 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   private formatDeviceName(name: string, defaultType: string): string {
+    if (/win/i.test(name)) {
+      const match = name.match(/(\d+)$/);
+      if (match) {
+        const winLabel = this.translationService.activeLangCode === 'RU' ? 'Окно' : 'Window';
+        return `${winLabel}-${match[1]}`;
+      }
+    }
+
     // Pattern: type_room_X_Y  (e.g., window_room_6_2, trv_room_6_1, wl_room_5_1)
     const fullMatch = name.match(/^([a-zA-Z]+)_room_(\d+)_(\d+)$/i);
     if (fullMatch) {
@@ -1188,7 +1208,8 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
     );
   }
 
-  timeAgo(ts: number): string {
+  timeAgo(ts: any): string {
+    if (typeof ts === 'string') return ts;
     return this.roomDataService.timeAgo(ts);
   }
 
@@ -1267,6 +1288,7 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
   loadArchive(): void {
     const key = `revelton_alerts_archive_${this.roomNumber}`;
     const ackKey = `revelton_alerts_ack_${this.roomNumber}`;
+    const tsKey = `revelton_alerts_ts_${this.roomNumber}`;
     try {
       const dataStr = localStorage.getItem(key);
       if (dataStr) {
@@ -1286,19 +1308,31 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
       } else {
         this.acknowledgedAlertIds = new Set();
       }
+
+      const tsStr = localStorage.getItem(tsKey);
+      if (tsStr) {
+        const parsed = JSON.parse(tsStr);
+        this.alertTimestamps = new Map(Object.entries(parsed) as any);
+      } else {
+        this.alertTimestamps = new Map();
+      }
     } catch (e) {
       console.error('Failed to load archived/acknowledged alerts', e);
       this.archivedAlerts = [];
       this.acknowledgedAlertIds = new Set();
+      this.alertTimestamps = new Map();
     }
   }
 
   saveArchive(): void {
     const key = `revelton_alerts_archive_${this.roomNumber}`;
     const ackKey = `revelton_alerts_ack_${this.roomNumber}`;
+    const tsKey = `revelton_alerts_ts_${this.roomNumber}`;
     try {
       localStorage.setItem(key, JSON.stringify(this.archivedAlerts));
       localStorage.setItem(ackKey, JSON.stringify(Array.from(this.acknowledgedAlertIds)));
+      const tsObj = Object.fromEntries(this.alertTimestamps.entries());
+      localStorage.setItem(tsKey, JSON.stringify(tsObj));
     } catch (e) {
       console.error('Failed to save archived/acknowledged alerts', e);
     }
@@ -1375,7 +1409,7 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
     const humKeys = Object.keys(this.data.humDevices || {});
     if (humKeys.length > 0) humDeviceId = this.deviceEntityIdMap[humKeys[0]] ?? null;
 
-    const keysToFetch = 'temperature,humidity,co2,temp,hum';
+    const keysToFetch = 'temperature,humidity,co2,temp,hum,data_temperature,data_humidity,data_co2';
     const safeFetch = (id: string | null): Promise<any> => {
       if (!id) return Promise.resolve(null);
       return http.get(`/api/plugins/telemetry/DEVICE/${id}/values/timeseries?keys=${keysToFetch}&startTs=${startTs}&endTs=${endTs}&limit=${limit}&orderBy=ASC`).toPromise().catch(() => null);
@@ -1392,13 +1426,13 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
         if (!resData) return;
 
         if (id === tempDeviceId || (!tempDeviceId && id === aqDeviceId)) {
-          tempPoints = resData['temperature'] || resData['temp'] || [];
+          tempPoints = resData['temperature'] || resData['temp'] || resData['data_temperature'] || [];
         }
         if (id === humDeviceId || (!humDeviceId && id === aqDeviceId)) {
-          humPoints = resData['humidity'] || resData['hum'] || [];
+          humPoints = resData['humidity'] || resData['hum'] || resData['data_humidity'] || [];
         }
         if (id === aqDeviceId) {
-          co2Points = resData['co2'] || [];
+          co2Points = resData['co2'] || resData['data_co2'] || [];
         }
       });
 
@@ -1447,5 +1481,11 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
 
       this.cdr.detectChanges();
     });
+  }
+
+  isMotionActive(val: any): boolean {
+    if (val === null || val === undefined) return false;
+    const s = String(val).toLowerCase().trim();
+    return ['motion', 'active', 'true', '1', 'yes'].includes(s);
   }
 }

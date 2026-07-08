@@ -45,166 +45,6 @@
     <!-- ═══ Scrollable Body ═══ -->
     <div class="room-detail-body">
 
-        <!-- ── Section: Indoor Climate Vitals ── -->
-        <div class="vitals-section-header">
-            <div class="vitals-section-title">
-                <i class="material-icons">vital_signs</i>
-                <span>{{ t.indoorClimate || 'INDOOR CLIMATE' }}</span>
-            </div>
-            <div class="vitals-time-toggles">
-                <button
-                    [class.active]="vitalsTimeRange === 24"
-                    (click)="setVitalsTimeRange(24)">24H</button>
-                <button
-                    [class.active]="vitalsTimeRange === 168"
-                    (click)="setVitalsTimeRange(168)">7D</button>
-                <button
-                    [class.active]="vitalsTimeRange === 720"
-                    (click)="setVitalsTimeRange(720)">30D</button>
-            </div>
-        </div>
-
-        <div class="vitals-grid">
-            <!-- Temperature Card -->
-            <div class="vital-card" (click)="expandVital('temperature')">
-                <div class="vital-card-top">
-                    <div class="vital-icon-box" style="background:rgba(245,181,74,.13);color:#f5b54a">
-                        <i class="material-icons">device_thermostat</i>
-                    </div>
-                    <span class="vital-label">{{ t.temperature }}</span>
-                    <span class="vital-status-badge" [class.warning]="tempStatus === 'warning' || tempStatus === 'danger'" [class.normal]="tempStatus === 'normal'">
-                        {{ tempStatus === 'danger' ? 'CRITICAL' : (tempStatus === 'warning' ? 'WARNING' : 'NORMAL') }}
-                    </span>
-                    <i class="material-icons vital-expand-icon">open_in_full</i>
-                </div>
-                <div class="vital-card-value">
-                    <span class="vital-val-num" [style.color]="tempColor">{{ avgTemp !== null ? (avgTemp | number:'1.1-1') : '--' }}<span class="vital-val-deg">°</span></span>
-                    <span class="vital-val-unit">C</span>
-                </div>
-                <div class="vital-card-sparkline">
-                    <tb-sparkline [data]="tempSparkData" color="#f5b54a" id="temp-vital"></tb-sparkline>
-                </div>
-                <div class="vital-card-footer">
-                    <div class="vital-footer-stat">
-                        <span class="vital-footer-lbl">MIN</span>
-                        <span class="vital-footer-val">{{ tempMin !== null ? (tempMin | number:'1.1-1') : '--' }}</span>
-                    </div>
-                    <div class="vital-footer-stat">
-                        <span class="vital-footer-lbl">AVG</span>
-                        <span class="vital-footer-val" [style.color]="tempColor">{{ tempAvg !== null ? (tempAvg | number:'1.1-1') : '--' }}</span>
-                    </div>
-                    <div class="vital-footer-stat">
-                        <span class="vital-footer-lbl">MAX</span>
-                        <span class="vital-footer-val">{{ tempMax !== null ? (tempMax | number:'1.1-1') : '--' }}</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Humidity Card -->
-            <div class="vital-card" (click)="expandVital('humidity')">
-                <div class="vital-card-top">
-                    <div class="vital-icon-box" style="background:rgba(92,124,250,.14);color:#5c7cfa">
-                        <i class="material-icons">water_drop</i>
-                    </div>
-                    <span class="vital-label">{{ t.humidity }}</span>
-                    <span class="vital-status-badge" [class.warning]="humStatus === 'warning' || humStatus === 'danger'" [class.normal]="humStatus === 'normal'">
-                        {{ humStatus === 'danger' ? 'CRITICAL' : (humStatus === 'warning' ? 'WARNING' : 'NORMAL') }}
-                    </span>
-                    <i class="material-icons vital-expand-icon">open_in_full</i>
-                </div>
-                <div class="vital-card-value">
-                    <span class="vital-val-num" style="color:#5c7cfa">{{ avgHum !== null ? (avgHum | number:'1.0-0') : '--' }}</span>
-                    <span class="vital-val-unit">%</span>
-                </div>
-                <div class="vital-card-sparkline">
-                    <tb-sparkline [data]="humSparkData" color="#5c7cfa" id="hum-vital"></tb-sparkline>
-                </div>
-                <div class="vital-card-footer">
-                    <div class="vital-footer-stat">
-                        <span class="vital-footer-lbl">MIN</span>
-                        <span class="vital-footer-val">{{ humMin !== null ? (humMin | number:'1.0-0') : '--' }}</span>
-                    </div>
-                    <div class="vital-footer-stat">
-                        <span class="vital-footer-lbl">AVG</span>
-                        <span class="vital-footer-val" style="color:#5c7cfa">{{ humAvg !== null ? (humAvg | number:'1.0-0') : '--' }}</span>
-                    </div>
-                    <div class="vital-footer-stat">
-                        <span class="vital-footer-lbl">MAX</span>
-                        <span class="vital-footer-val">{{ humMax !== null ? (humMax | number:'1.0-0') : '--' }}</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- CO₂ Card -->
-            <div class="vital-card" (click)="expandVital('co2')">
-                <div class="vital-card-top">
-                    <div class="vital-icon-box" style="background:rgba(52,211,153,.13);color:#34d399">
-                        <i class="material-icons">co2</i>
-                    </div>
-                    <span class="vital-label">CO₂</span>
-                    <span class="vital-status-badge" [class.warning]="co2Status === 'warning' || co2Status === 'danger'" [class.normal]="co2Status === 'normal'">
-                        {{ co2Status === 'danger' ? 'CRITICAL' : (co2Status === 'warning' ? 'WARNING' : 'NORMAL') }}
-                    </span>
-                    <i class="material-icons vital-expand-icon">open_in_full</i>
-                </div>
-                <div class="vital-card-value">
-                    <span class="vital-val-num" [style.color]="co2Color">{{ co2Value !== null ? (co2Value | number:'1.0-0') : '--' }}</span>
-                    <span class="vital-val-unit">ppm</span>
-                </div>
-                <div class="vital-card-sparkline">
-                    <tb-sparkline [data]="co2SparkData" color="#34d399" id="co2-vital"></tb-sparkline>
-                </div>
-                <div class="vital-card-footer">
-                    <div class="vital-footer-stat">
-                        <span class="vital-footer-lbl">MIN</span>
-                        <span class="vital-footer-val">{{ co2Min !== null ? (co2Min | number:'1.0-0') : '--' }}</span>
-                    </div>
-                    <div class="vital-footer-stat">
-                        <span class="vital-footer-lbl">AVG</span>
-                        <span class="vital-footer-val" [style.color]="co2Color">{{ co2Avg !== null ? (co2Avg | number:'1.0-0') : '--' }}</span>
-                    </div>
-                    <div class="vital-footer-stat">
-                        <span class="vital-footer-lbl">MAX</span>
-                        <span class="vital-footer-val">{{ co2Max !== null ? (co2Max | number:'1.0-0') : '--' }}</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- AQI Card (if air quality sensors present) -->
-            <div class="vital-card" *ngIf="aqSensors.length > 0" (click)="expandVital('aqi')">
-                <div class="vital-card-top">
-                    <div class="vital-icon-box" [style.background]="aqiColorBg" [style.color]="aqiColor">
-                        <i class="material-icons">air</i>
-                    </div>
-                    <span class="vital-label">{{ t.airQuality }}</span>
-                    <span class="vital-status-badge" [class.warning]="aqOverall !== 'Good'" [class.normal]="aqOverall === 'Good'">
-                        {{ aqOverall | uppercase }}
-                    </span>
-                    <i class="material-icons vital-expand-icon">open_in_full</i>
-                </div>
-                <div class="vital-card-value">
-                    <span class="vital-val-num" [style.color]="aqiColor">{{ aqiScore || '--' }}</span>
-                    <span class="vital-val-unit">AQI</span>
-                </div>
-                <div class="vital-card-sparkline">
-                    <tb-sparkline [data]="aqiSparkData" [color]="aqiColor" id="aqi-vital"></tb-sparkline>
-                </div>
-                <div class="vital-card-footer">
-                    <div class="vital-footer-stat">
-                        <span class="vital-footer-lbl">MIN</span>
-                        <span class="vital-footer-val">{{ aqiMin !== null ? aqiMin : '--' }}</span>
-                    </div>
-                    <div class="vital-footer-stat">
-                        <span class="vital-footer-lbl">AVG</span>
-                        <span class="vital-footer-val" [style.color]="aqiColor">{{ aqiAvg !== null ? aqiAvg : '--' }}</span>
-                    </div>
-                    <div class="vital-footer-stat">
-                        <span class="vital-footer-lbl">MAX</span>
-                        <span class="vital-footer-val">{{ aqiMax !== null ? aqiMax : '--' }}</span>
-                    </div>
-                </div>
-            </div>
-        </div>
 
         <!-- ── Section: Sensors & Control Panel ── -->
         <div class="sensors-section-header">
@@ -222,7 +62,7 @@
                     </div>
                     <div class="device-card-title">
                         <div class="device-card-name">{{ t.airQuality }}</div>
-                        <div class="device-card-model">Milesight {{ aq.model || 'AM308' }}</div>
+                        <div class="device-card-model">{{ aq.model || 'AM308' }}</div>
                     </div>
                     <div class="device-card-right">
                         <div class="device-card-badges">
@@ -234,7 +74,7 @@
                             </span>
                         </div>
                         <span class="device-time" *ngIf="aq.lastSeen">
-                            <i class="material-icons">schedule</i>{{ timeAgo(aq.lastSeen) }} {{ t.ago || 'ago' }}
+                            <i class="material-icons">schedule</i>{{ timeAgo(aq.lastSeen) }}
                         </span>
                     </div>
                 </div>
@@ -267,17 +107,17 @@
                 <!-- 3-col secondary metrics -->
                 <div class="aq-secondary-row">
                     <div class="aq-sub-metric">
-                        <div class="aq-sub-label"><span class="aq-sub-dot" style="background:var(--warn, #f5b54a)"></span>TVOC</div>
+                        <div class="aq-sub-label"><i class="material-icons" style="font-size: 12px; color: #f59e0b;">science</i>TVOC</div>
                         <span class="aq-sub-value">{{ aq.tvoc !== null ? (aq.tvoc | number:'1.0-0') : '--' }}</span>
                         <span class="aq-sub-unit">mg/m³</span>
                     </div>
                     <div class="aq-sub-metric">
-                        <div class="aq-sub-label"><span class="aq-sub-dot" style="background:var(--accent, #5c7cfa)"></span>PM2.5</div>
+                        <div class="aq-sub-label"><i class="material-icons" style="font-size: 12px; color: #f87171;">grain</i>PM2.5</div>
                         <span class="aq-sub-value">{{ aq.pm25 !== null ? (aq.pm25 | number:'1.0-0') : '--' }}</span>
                         <span class="aq-sub-unit">µg/m³</span>
                     </div>
                     <div class="aq-sub-metric">
-                        <div class="aq-sub-label"><span class="aq-sub-dot" style="background:var(--accent, #5c7cfa)"></span>PM10</div>
+                        <div class="aq-sub-label"><i class="material-icons" style="font-size: 12px; color: #60a5fa;">blur_on</i>PM10</div>
                         <span class="aq-sub-value">{{ aq.pm10 !== null ? (aq.pm10 | number:'1.0-0') : '--' }}</span>
                         <span class="aq-sub-unit">µg/m³</span>
                     </div>
@@ -296,10 +136,10 @@
                         <span class="aq-inline-unit">hPa</span>
                     </div>
                     <div class="aq-inline-metric">
-                        <i class="material-icons" [style.color]="aq.pir ? '#34d399' : 'var(--t2, #8b97a8)'">
-                            {{ aq.pir ? 'sensors' : 'sensors_off' }}
+                        <i class="material-icons" [style.color]="isMotionActive(aq.pir) ? '#34d399' : 'var(--t2, #8b97a8)'">
+                            {{ isMotionActive(aq.pir) ? 'sensors' : 'sensors_off' }}
                         </i>
-                        <span class="aq-inline-label">{{ aq.pir ? 'Motion' : 'Clear' }}</span>
+                        <span class="aq-inline-label">{{ isMotionActive(aq.pir) ? 'Motion' : 'Idle' }}</span>
                     </div>
                 </div>
             </div>
@@ -312,7 +152,7 @@
                     </div>
                     <div class="device-card-title">
                         <div class="device-card-name">{{ t.presenceSensor || 'Presence Sensor' }}</div>
-                        <div class="device-card-model">Milesight {{ s.model || 'VS370' }}</div>
+                        <div class="device-card-model">{{ s.model || 'VS370' }}</div>
                     </div>
                     <div class="device-card-right">
                         <div class="device-card-badges">
@@ -324,7 +164,7 @@
                             </span>
                         </div>
                         <span class="device-time" *ngIf="s.lastSeen">
-                            <i class="material-icons">schedule</i>{{ timeAgo(s.lastSeen) }} {{ t.ago || 'ago' }}
+                            <i class="material-icons">schedule</i>{{ timeAgo(s.lastSeen) }}
                         </span>
                     </div>
                 </div>
@@ -365,32 +205,41 @@
             </tb-thermostat-card>
 
             <!-- Window Sensors Card -->
-            <div class="device-card" style="order:5" *ngIf="windowSensors.length > 0">
+            <div class="device-card" style="order:6" *ngIf="windowSensors.length > 0">
                 <div class="device-card-header">
-                    <i class="material-icons" style="font-size:16px;color:var(--t2,#8b97a8)">meeting_room</i>
+                    <i class="material-icons" style="font-size:16px;color:var(--t2,#8b97a8)">window</i>
                     <span class="device-card-section-title">{{ t.windowSensorsT || 'Window Sensors' }}</span>
                 </div>
                 <div class="sensor-rows">
-                    <div class="sensor-row" *ngFor="let s of windowSensors; trackBy: trackByEntityName">
-                        <div class="sensor-row-icon" [style.background]="s.isOpen ? 'rgba(255,149,0,.13)' : 'var(--ok-soft, rgba(52,211,153,.13))'" [style.color]="s.isOpen ? '#FF9500' : 'var(--ok, #34d399)'">
+                    <div class="window-sensor-row" *ngFor="let s of windowSensors; trackBy: trackByEntityName">
+                        <div class="window-sensor-icon-container" [style.background]="s.isOpen ? 'rgba(255,149,0,.1)' : 'rgba(52,211,153,.1)'" [style.color]="s.isOpen ? '#FF9500' : '#34d399'">
                             <i class="material-icons">meeting_room</i>
                         </div>
-                        <div class="sensor-row-info">
-                            <div class="sensor-row-top">
-                                <span class="sensor-row-name">{{ s.displayName }}</span>
-                                <span class="sensor-row-status" [style.color]="s.isOpen ? '#FF9500' : 'var(--ok, #34d399)'">{{ s.isOpen ? t.open : t.closed }}</span>
-                                <div class="sensor-row-signals">
-                                    <span class="sensor-sig" [style.color]="getBatteryColor(s.battery)">
+                        
+                        <div style="flex: 1; display: flex; flex-direction: column; min-width: 0; gap: 2px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span class="window-sensor-name" [title]="s.displayName" style="flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ s.displayName }}</span>
+                                <div style="flex: 1; display: flex; justify-content: center;">
+                                    <span class="window-sensor-status" 
+                                          [style.color]="s.isOpen ? '#FF9500' : '#34d399'" 
+                                          [style.background]="s.isOpen ? 'rgba(255,149,0,0.12)' : 'rgba(52,211,153,0.12)'"
+                                          style="padding: 2px 8px; border-radius: 6px; line-height: 1.2;">
+                                        {{ s.isOpen ? t.open : t.closed }}
+                                    </span>
+                                </div>
+                                <div class="window-sensor-signals" style="flex: 1; justify-content: flex-end;">
+                                    <span class="window-sensor-sig" [style.color]="getBatteryColor(s.battery)">
                                         <i class="material-icons">{{ getBatteryIcon(s.battery) }}</i>{{ s.battery ?? '--' }}%
                                     </span>
-                                    <span class="sensor-sig" [style.color]="getSignalColor(s.linkquality)">
+                                    <span class="window-sensor-sig" [style.color]="getSignalColor(s.linkquality)">
                                         <i class="material-icons">wifi</i>{{ getLinkQualityText(s.linkquality) }}
                                     </span>
                                 </div>
                             </div>
-                            <div class="sensor-row-bottom">
-                                <span class="sensor-row-model">{{ s.model || 'Tuya TS0203' }}</span>
-                                <span class="sensor-row-time" *ngIf="s.lastSeen">{{ timeAgo(s.lastSeen) }} {{ t.ago || 'ago' }}</span>
+                            
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span class="window-sensor-model" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ s.model || 'Tuya TS0203' }}</span>
+                                <span class="window-sensor-time" *ngIf="s.lastSeen">{{ timeAgo(s.lastSeen) }}</span>
                             </div>
                         </div>
                     </div>
@@ -398,7 +247,7 @@
             </div>
 
             <!-- Water Leak Sensors Card -->
-            <div class="device-card" style="order:6" *ngIf="waterLeakSensors.length > 0">
+            <div class="device-card" style="order:5" *ngIf="waterLeakSensors.length > 0">
                 <div class="device-card-header">
                     <i class="material-icons" style="font-size:16px;color:var(--t2,#8b97a8)">water_drop</i>
                     <span class="device-card-section-title">{{ t.waterLeakSensorsT || 'Water Leak Sensors' }}</span>
@@ -423,7 +272,7 @@
                             </div>
                             <div class="sensor-row-bottom">
                                 <span class="sensor-row-model">{{ s.model || 'WS303' }}</span>
-                                <span class="sensor-row-time" *ngIf="s.lastSeen">{{ timeAgo(s.lastSeen) }} {{ t.ago || 'ago' }}</span>
+                                <span class="sensor-row-time" *ngIf="s.lastSeen">{{ timeAgo(s.lastSeen) }}</span>
                             </div>
                         </div>
                     </div>
@@ -438,7 +287,7 @@
                     </div>
                     <div class="device-card-title">
                         <div class="device-card-name">{{ t.noiseSensor || 'Noise Sensor' }}</div>
-                        <div class="device-card-model">Milesight {{ s.model || 'WS302' }}</div>
+                        <div class="device-card-model">{{ s.model || 'WS302' }}</div>
                     </div>
                     <div class="device-card-right">
                         <div class="device-card-badges">
@@ -450,7 +299,7 @@
                             </span>
                         </div>
                         <span class="device-time" *ngIf="s.lastSeen">
-                            <i class="material-icons">schedule</i>{{ timeAgo(s.lastSeen) }} {{ t.ago || 'ago' }}
+                            <i class="material-icons">schedule</i>{{ timeAgo(s.lastSeen) }}
                         </span>
                     </div>
                 </div>
@@ -479,44 +328,8 @@
                 </div>
             </div>
 
-            <!-- Smart Sockets Card -->
-            <div class="device-card" style="order:7" *ngIf="smartSockets.length > 0">
-                <div class="device-card-header">
-                    <i class="material-icons" style="font-size:16px;color:var(--t2,#8b97a8)">power</i>
-                    <span class="device-card-section-title">{{ t.smartSockets || 'Smart Sockets' }} ({{ smartSockets.length }})</span>
-                </div>
-                <div class="sensor-rows">
-                    <div class="sensor-row socket-row" *ngFor="let socket of smartSockets; trackBy: trackByEntityName">
-                        <div class="sensor-row-icon" [style.background]="isSocketOn(socket) ? 'rgba(52,199,89,.13)' : 'rgba(142,142,147,.1)'" [style.color]="isSocketOn(socket) ? 'var(--ok, #34d399)' : 'var(--t3, #5c6675)'">
-                            <i class="material-icons">power</i>
-                        </div>
-                        <div class="sensor-row-info">
-                            <div class="sensor-row-top">
-                                <span class="sensor-row-name">{{ socket.displayName }}</span>
-                                <span class="sensor-row-status" [style.color]="isSocketOn(socket) ? 'var(--ok, #34d399)' : 'var(--t3, #5c6675)'">
-                                    {{ isSocketOn(socket) ? 'ON' : 'OFF' }}
-                                    <span *ngIf="isSocketOn(socket) && socket.power !== null" style="margin-left:4px;font-size:10px">{{ socket.power }}W</span>
-                                </span>
-                                <div class="sensor-row-signals">
-                                    <span class="sensor-sig" [style.color]="socket.offline ? 'var(--alert, #f87171)' : getSignalColor(socket.linkquality)">
-                                        <i class="material-icons">{{ socket.offline ? 'wifi_off' : 'wifi' }}</i>{{ socket.offline ? 'Off' : getLinkQualityText(socket.linkquality) }}
-                                    </span>
-                                </div>
-                            </div>
-                            <div class="sensor-row-bottom">
-                                <span class="sensor-row-model">{{ socket.model || 'Smart Plug' }}</span>
-                                <span class="sensor-row-time" *ngIf="socket.lastSeen">{{ timeAgo(socket.lastSeen) }} {{ t.ago || 'ago' }}</span>
-                                <button class="socket-toggle-btn" [class.on]="isSocketOn(socket)" (click)="toggleSocket(socket); $event.stopPropagation()">
-                                    <div class="toggle-thumb"></div>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
             <!-- Alerts Panel -->
-            <div class="device-card alerts-card" style="order:8" *ngIf="alerts.length > 0 || archivedAlerts.length > 0">
+            <div class="device-card alerts-card" style="order:8" *ngIf="alerts.length > 0">
                 <tb-alerts-panel
                     [alerts]="alerts"
                     [archivedAlerts]="archivedAlerts"
@@ -528,6 +341,14 @@
             <div class="empty-state" *ngIf="thermostats.length === 0 && aqSensors.length === 0 && allRawSensors.length === 0 && smartSockets.length === 0">
                 {{ t.loading || 'Loading devices...' }}
             </div>
+        </div>
+
+        <!-- ── Section: Smart Sockets ── -->
+        <div class="smart-sockets-container" style="order: 3; width: 100%;" *ngIf="smartSockets.length > 0">
+            <tb-smart-sockets-panel
+                [smartSockets]="smartSockets"
+                (socketToggled)="toggleSocket($event)">
+            </tb-smart-sockets-panel>
         </div>
 
         <!-- ── Historical Telemetry (collapsible) ── -->
@@ -553,10 +374,12 @@
                 [windowDevices]="data?.windowDevices || {}"
                 [leakDevices]="data?.leakDevices || {}"
                 [noiseDevices]="data?.noiseDevices || {}"
+                [plugDevices]="data?.plugDevices || {}"
                 [checkedIn]="data?.sensorData?.checkedIn || false"
                 [timeRangeHours]="histTimeRange">
             </tb-room-historical-data>
         </div>
+
     </div>
 </div>
 
@@ -596,6 +419,7 @@
                     [windowDevices]="data?.windowDevices || {}"
                     [leakDevices]="data?.leakDevices || {}"
                     [noiseDevices]="data?.noiseDevices || {}"
+                    [plugDevices]="data?.plugDevices || {}"
                     [checkedIn]="data?.sensorData?.checkedIn || false"
                     [timeRangeHours]="vitalsTimeRange">
                 </tb-room-historical-data>

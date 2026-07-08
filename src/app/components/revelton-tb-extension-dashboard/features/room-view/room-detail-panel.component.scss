@@ -635,7 +635,7 @@
 .aq-metric-unit {
   font: 600 9.5px Manrope;
   color: var(--t3, #5c6675);
-  margin-left: 2px;
+  margin-left: 4px;
 }
 
 .aq-secondary-row {
@@ -676,6 +676,7 @@
 .aq-sub-unit {
   font: 600 8.5px Manrope;
   color: var(--t3, #5c6675);
+  margin-left: 4px;
 }
 
 .aq-tertiary-row {
@@ -706,6 +707,7 @@
 .aq-inline-unit {
   font: 600 9px Manrope;
   color: var(--t3, #5c6675);
+  margin-left: 4px;
 }
 
 .aq-inline-label {
@@ -1011,6 +1013,8 @@
   }
 }
 
+
+
 /* ===== Historical Telemetry Section ===== */
 .hist-section {
   order: 10;
@@ -1018,11 +1022,6 @@
 
   tb-room-historical-data {
     display: block;
-    background: var(--panel, #141b25);
-    border: 1px solid var(--border, #27313f);
-    border-radius: 0 0 14px 14px;
-    overflow: hidden;
-    padding: 16px;
   }
 }
 
@@ -1032,26 +1031,21 @@
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 12px;
-  padding: 14px 20px;
-  background: var(--panel, #141b25);
-  border: 1px solid var(--border, #27313f);
-  border-radius: 14px 14px 0 0;
-  border-bottom: none;
+  margin: 0 0 13px;
 
   .hist-header-left {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 7px;
 
     i {
-      font-size: 18px;
+      font-size: 17px;
       color: var(--accent, #5c7cfa);
     }
 
     span {
-      font-size: 11px;
-      font-weight: 800;
-      letter-spacing: .12em;
+      font: 700 11px Manrope, sans-serif;
+      letter-spacing: .7px;
       color: var(--t2, #8b97a8);
       text-transform: uppercase;
     }
@@ -1310,6 +1304,26 @@
     gap: 8px;
   }
 
+  .room-header-left {
+    width: 100%;
+  }
+
+  .room-header-right {
+    flex-wrap: wrap;
+    width: 100%;
+    row-gap: 8px;
+  }
+
+  .overdue-warning-pill {
+    order: 1;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .header-action-btn.close-dialog-btn {
+    order: 2;
+  }
+
   .room-header-dates {
     border-left: none;
     border-right: none;
@@ -1362,6 +1376,16 @@
     }
   }
 
+  .overdue-warning-pill {
+    padding: 6px 10px;
+    font-size: 11px;
+    line-height: 1.3;
+
+    i {
+      font-size: 14px;
+    }
+  }
+
   .aq-primary-row,
   .aq-secondary-row,
   .aq-tertiary-row {
@@ -1369,3 +1393,119 @@
     gap: 4px;
   }
 }
+
+/* ===== New Compact Window Sensor Layout ===== */
+.window-sensor-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    background: var(--panel2, #161e2b);
+    border-radius: 12px;
+    padding: 10px 14px;
+    transition: all 0.2s ease;
+    border: 1px solid var(--border, rgba(255, 255, 255, 0.03));
+
+    [data-mode="light"] & {
+        background: var(--panel2, #f1f5f9);
+        border-color: var(--border, rgba(0, 0, 0, 0.03));
+    }
+
+    &:hover {
+        background: var(--hover, rgba(255, 255, 255, 0.02));
+        border-color: var(--border-hover, rgba(255, 255, 255, 0.06));
+
+        [data-mode="light"] & {
+            background: var(--hover, rgba(0, 0, 0, 0.01));
+            border-color: var(--border-hover, rgba(0, 0, 0, 0.06));
+        }
+    }
+}
+
+.window-sensor-icon-container {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+
+    i {
+        font-size: 20px;
+    }
+}
+
+.window-sensor-name-group {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    flex: 1;
+    min-width: 0;
+}
+
+.window-sensor-name {
+    font: 700 12.5px Manrope, -apple-system, BlinkMacSystemFont, sans-serif;
+    color: var(--tx, #eceef2);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    [data-mode="light"] & {
+        color: var(--tx, #0f172a);
+    }
+}
+
+.window-sensor-model {
+    font-size: 10px;
+    color: var(--t3, #8b97a8);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.window-sensor-status {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: lowercase;
+    flex-shrink: 0;
+}
+
+.window-sensor-right-group {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+.window-sensor-signals {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.window-sensor-sig {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    font: 600 10px 'IBM Plex Mono', monospace;
+
+    i {
+        font-size: 12px;
+    }
+}
+
+.window-sensor-status-time {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-top: 2px;
+}
+
+.window-sensor-time {
+    font-size: 10px;
+    color: var(--t3, #8b97a8);
+    white-space: nowrap;
+}
+

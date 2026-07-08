@@ -1,0 +1,46 @@
+<div class="sockets-section" *ngIf="smartSockets.length > 0">
+    <div class="sockets-section-header">
+        <div class="sockets-title-wrap">
+            <i class="material-icons">power</i>
+            <span>{{ t.smartSockets || 'SMART SOCKETS' | uppercase }}</span>
+        </div>
+        <span class="sockets-count">{{ getOnSocketsCount() }}/{{ smartSockets.length }} on</span>
+    </div>
+    
+    <div class="sockets-grid">
+        <div class="socket-card" *ngFor="let socket of smartSockets; trackBy: trackByEntityName">
+            <div class="socket-card-top">
+                <div class="socket-card-icon" [style.background]="isSocketOn(socket) ? 'rgba(52,211,153,.15)' : 'rgba(139,151,168,.1)'" [style.color]="isSocketOn(socket) ? 'var(--ok, #34d399)' : 'var(--t3, #8b97a8)'">
+                    <i class="material-icons">{{ getSocketIcon(socket) }}</i>
+                </div>
+                <div class="socket-card-info">
+                    <div class="socket-name">{{ socket.displayName }}</div>
+                    <div class="socket-model">{{ socket.model || 'Milesight WS523' }}</div>
+                </div>
+                <div class="socket-toggle-col">
+                    <button class="socket-toggle-btn" [class.on]="isSocketOn(socket)" (click)="toggleSocket(socket, $event)">
+                        <div class="toggle-thumb"></div>
+                    </button>
+                    <span class="socket-sig" [style.color]="socket.offline ? 'var(--alert, #f87171)' : getSignalColor(socket.linkquality)">
+                        <i class="material-icons">{{ socket.offline ? 'wifi_off' : 'wifi' }}</i>{{ socket.offline ? 'Off' : getLinkQualityText(socket.linkquality) }}
+                    </span>
+                </div>
+            </div>
+            
+            <div class="socket-card-bottom">
+                <div class="socket-metric">
+                    <span class="socket-metric-lbl">POWER</span>
+                    <span class="socket-metric-val">{{ socket.power || 0 }} <small>W</small></span>
+                </div>
+                <div class="socket-metric">
+                    <span class="socket-metric-lbl">VOLT / AMP</span>
+                    <span class="socket-metric-val">{{ socket.voltage || 0 }}V <small>/</small> {{ socket.current || 0 }}A</span>
+                </div>
+                <div class="socket-metric">
+                    <span class="socket-metric-lbl">TOTAL ENERGY</span>
+                    <span class="socket-metric-val">{{ socket.energyToday || '0.00' }} <small>Wh</small></span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

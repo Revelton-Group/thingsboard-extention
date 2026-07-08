@@ -190,11 +190,9 @@
 }
 
 .thermo-setpoint-deg {
-  position: absolute;
-  top: 1px;
-  right: -11px;
-  font-size: 10px;
-  line-height: 1;
+  font-size: 11px;
+  vertical-align: super;
+  margin-left: 1px;
 }
 
 /* Status Value */
@@ -216,11 +214,9 @@
 }
 
 .thermo-status-deg {
-  position: absolute;
-  top: 1px;
-  right: -11px;
-  font-size: 10px;
-  line-height: 1;
+  font-size: 11px;
+  vertical-align: super;
+  margin-left: 1px;
   color: var(--t3, #5c6675);
 }
 

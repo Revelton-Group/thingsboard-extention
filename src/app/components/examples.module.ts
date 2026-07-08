@@ -9,7 +9,7 @@ import {
 } from "@home/components/public-api";
 import { RoomCardComponent } from "./revelton-tb-extension-dashboard/features/room-view/room-card.component";
 import { RoomDetailPanelComponent } from "./revelton-tb-extension-dashboard/features/room-view/room-detail-panel.component";
-import { RoomHistoricalDataComponent } from "./revelton-tb-extension-dashboard/features/room-view/room-historical-data.component";
+import { RoomHistoricalDataComponent, ExpandedChartDialogComponent } from "./revelton-tb-extension-dashboard/features/room-view/room-historical-data.component";
 import { ThermostatCardComponent } from "./revelton-tb-extension-dashboard/shared/components/thermostat-card/thermostat-card.component";
 import { AirQualitySensorComponent } from "./revelton-tb-extension-dashboard/shared/components/air-quality-sensor/air-quality-sensor.component";
 import { SensorTileComponent } from "./revelton-tb-extension-dashboard/shared/components/sensor-tile/sensor-tile.component";
@@ -20,6 +20,7 @@ import { OccupancySensorComponent } from "./revelton-tb-extension-dashboard/shar
 import { AlertsPanelComponent } from "./revelton-tb-extension-dashboard/shared/components/alerts-panel/alerts-panel.component";
 import { ActivityLogsComponent } from "./revelton-tb-extension-dashboard/shared/components/activity-logs/activity-logs.component";
 import { MetricCellComponent } from "./revelton-tb-extension-dashboard/shared/components/metric-cell/metric-cell.component";
+import { SmartSocketsPanelComponent } from "./revelton-tb-extension-dashboard/shared/components/smart-sockets-panel/smart-sockets-panel.component";
 import { ReveltonDashboardComponent } from "./revelton-tb-extension-dashboard/features/hotel-dashboard/revelton-hotel.component";
 import { OtherDevicesPanelComponent } from "./revelton-tb-extension-dashboard/features/other-devices-panel/other-devices-panel.component";
 import { CompactThermostatComponent } from "./revelton-tb-extension-dashboard/shared/components/compact-thermostat/compact-thermostat.component";
@@ -77,6 +78,7 @@ const UTILITY_FEATURES = [
     RoomCardComponent,
     RoomDetailPanelComponent,
     RoomHistoricalDataComponent,
+    ExpandedChartDialogComponent,
     ThermostatCardComponent,
     AirQualitySensorComponent,
     SensorTileComponent,
@@ -87,6 +89,7 @@ const UTILITY_FEATURES = [
     AlertsPanelComponent,
     ActivityLogsComponent,
     MetricCellComponent,
+    SmartSocketsPanelComponent,
     ReveltonDashboardComponent,
     OtherDevicesPanelComponent,
     CompactThermostatComponent,
@@ -115,6 +118,7 @@ const UTILITY_FEATURES = [
     RoomCardComponent,
     RoomDetailPanelComponent,
     RoomHistoricalDataComponent,
+    ExpandedChartDialogComponent,
     ThermostatCardComponent,
     AirQualitySensorComponent,
     SensorTileComponent,
@@ -125,6 +129,7 @@ const UTILITY_FEATURES = [
     AlertsPanelComponent,
     ActivityLogsComponent,
     MetricCellComponent,
+    SmartSocketsPanelComponent,
     ReveltonDashboardComponent,
     OtherDevicesPanelComponent,
     CompactThermostatComponent,

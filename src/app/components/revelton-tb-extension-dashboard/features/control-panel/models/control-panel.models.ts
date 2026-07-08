@@ -54,8 +54,8 @@ export interface ThermostatMaintenanceTest {
 export interface ThermostatAutomationConfig {
   /** Heating valve open (master toggle) */
   valveOpen: boolean;
-  /** Comfort temperature setpoint (°C) */
-  comfortTemp: number;
+  /** Preheating temperature setpoint (°C) */
+  preheatingTemp: number;
   /** Schedule intervals with per-interval temperature */
   schedule: ThermostatScheduleInterval[];
   /** Valve maintenance (anti-seize) */
@@ -63,6 +63,8 @@ export interface ThermostatAutomationConfig {
     enabled: boolean;
     tests: ThermostatMaintenanceTest[];
   };
+  /** Preheating minutes before guest check-in */
+  preheatingMinutes: number;
 }
 
 /** ── Window Alert ── */
@@ -182,7 +184,8 @@ export const DEFAULT_CONTROL_PANEL_CONFIG: ControlPanelConfig = {
   },
   thermostat: {
     valveOpen: true,
-    comfortTemp: 22,
+    preheatingTemp: 22,
+    preheatingMinutes: 180,
     schedule: [
       { id: 1, start: '08:00', end: '20:00', temp: 21 },
       { id: 2, start: '20:00', end: '08:00', temp: 22 },

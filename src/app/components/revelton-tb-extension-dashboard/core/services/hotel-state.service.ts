@@ -69,11 +69,12 @@ export interface HotelStats {
   checkInsToday: number;
   checkOutsToday: number;
   inHouseGuests: number;
-  checkInsList: { room: string; guest: string; time: string }[];
+  checkInsList: { room: string; guest: string; time: string; location: string }[];
   checkOutsList: {
     room: string;
     guest: string;
     time: string;
+    location: string;
     isOverdue?: boolean;
   }[];
   otherDevicesCount: number;
@@ -638,8 +639,6 @@ export class HotelStateService implements OnDestroy {
       this.roomLocationNames.add(roomNumber);
     });
 
-    let roomsUpdated = false;
-
     // Update or create rooms
     dataByRoom.forEach((filteredData, roomNumber) => {
       const datasources = dsByRoom.get(roomNumber);
@@ -664,7 +663,6 @@ export class HotelStateService implements OnDestroy {
           roomData: roomData,
           activeDialogRef: null,
         });
-        roomsUpdated = true;
       } else {
         const room = this.roomMap.get(roomNumber)!;
         room.mockCtx.data = filteredData;
@@ -672,18 +670,17 @@ export class HotelStateService implements OnDestroy {
       }
     });
 
-    let rooms: InlineRoom[];
-    if (roomsUpdated) {
-      // Sort rooms numerically if possible
-      rooms = Array.from(this.roomMap.values()).sort((a, b) => {
-        const numA = parseInt(a.id, 10);
-        const numB = parseInt(b.id, 10);
-        if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
-        return a.id.localeCompare(b.id);
-      });
-    } else {
-      rooms = Array.from(this.roomMap.values());
-    }
+    // Always sort numerically — this is a cheap sort of a copy (roomMap's own
+    // insertion order reflects arbitrary ThingsBoard datasource ordering, not
+    // room number, and Map insertion order can't be changed in place). Sorting
+    // only when roomsUpdated was true left every routine telemetry-only
+    // refresh (the common case) emitting the stale, unsorted Map order.
+    const rooms: InlineRoom[] = Array.from(this.roomMap.values()).sort((a, b) => {
+      const numA = parseInt(a.id, 10);
+      const numB = parseInt(b.id, 10);
+      if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+      return a.id.localeCompare(b.id);
+    });
 
     // Process telemetry for each room
     for (const room of rooms) {
@@ -740,11 +737,12 @@ export class HotelStateService implements OnDestroy {
     let checkInsToday = 0;
     let checkOutsToday = 0;
     let inHouseGuests = 0;
-    const checkInsList: { room: string; guest: string; time: string }[] = [];
+    const checkInsList: { room: string; guest: string; time: string; location: string }[] = [];
     const checkOutsList: {
       room: string;
       guest: string;
       time: string;
+      location: string;
       isOverdue?: boolean;
     }[] = [];
 
@@ -794,6 +792,7 @@ export class HotelStateService implements OnDestroy {
             room: room.roomData.sensorData.roomNumber?.toString() || "Unknown",
             guest: room.roomData.reservation.guestName || "Unknown Guest",
             time: checkInPrague.timeStr,
+            location: room.roomData.sensorData.roomTitle || "",
           });
         }
         if (
@@ -807,6 +806,7 @@ export class HotelStateService implements OnDestroy {
             room: room.roomData.sensorData.roomNumber?.toString() || "Unknown",
             guest: room.roomData.reservation.guestName || "Unknown Guest",
             time: checkOutPrague.timeStr,
+            location: room.roomData.sensorData.roomTitle || "",
             isOverdue: isOverdue,
           });
         }
@@ -1312,6 +1312,30 @@ export class HotelStateService implements OnDestroy {
     entityType: string = "DEVICE",
     isRoom: boolean = true
   ): void {
+    // Devices found purely via "Contains" relations (i.e. not configured as their
+    // own widget datasource) never go through the deviceProfileMap population in
+    // processDataUpdate — fetch the profile here too so isPlugDevice() etc. can
+    // key off the ThingsBoard device profile name instead of the entity's display name.
+    if (entityType === "DEVICE" && !this.deviceProfileMap.has(entityName)) {
+      this.httpGetWithRetry(ctx, `/api/device/info/${entityId}`, 1)
+        .then((deviceInfo: any) => {
+          if (deviceInfo?.deviceProfileName) {
+            this.deviceProfileMap.set(entityName, deviceInfo.deviceProfileName);
+            log(`Loaded device profile for ${entityName}: ${deviceInfo.deviceProfileName}`);
+          }
+        })
+        .catch(() => {
+          this.httpGetWithRetry(ctx, `/api/device/${entityId}`, 1)
+            .then((device: any) => {
+              if (device?.type) {
+                this.deviceProfileMap.set(entityName, device.type);
+                log(`Loaded device type for ${entityName}: ${device.type}`);
+              }
+            })
+            .catch(() => {});
+        });
+    }
+
     const keysUrl = `/api/plugins/telemetry/${entityType}/${entityId}/keys/timeseries`;
 
     ctx.http.get(keysUrl).subscribe(

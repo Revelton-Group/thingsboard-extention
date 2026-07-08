@@ -99,6 +99,12 @@ export class HistoricalChartComponent implements OnInit, OnChanges, OnDestroy {
   @Input() type: "line" | "bar" = "line";
 
   /**
+   * Render a step line instead of a smoothed/straight line (for on/off style
+   * binary series such as window open/closed). false disables stepping.
+   */
+  @Input() step: "start" | "middle" | "end" | false = false;
+
+  /**
    * Whether to render with area fill (gradient)
    */
   @Input() area: boolean = false;
@@ -122,6 +128,12 @@ export class HistoricalChartComponent implements OnInit, OnChanges, OnDestroy {
   @Input() yAxisPosition: 'left' | 'right' = 'left';
   @Input() yAxisUnit = '';
   @Input() yAxisMin?: number;
+
+  /**
+   * Optional override for the tooltip's value text (e.g. render a binary
+   * 1/0 series as "Open"/"Closed" instead of the raw number).
+   */
+  @Input() valueFormatter?: (val: number) => string;
   @Input() yAxisMax?: number;
   @Input() yAxisInterval?: number;
 
@@ -146,7 +158,7 @@ export class HistoricalChartComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if ((changes["data"] || changes["title"] || changes["colors"]) && this.chart) {
+    if ((changes["data"] || changes["title"] || changes["colors"] || changes["step"]) && this.chart) {
       this.updateChart();
     }
   }
@@ -196,46 +208,46 @@ export class HistoricalChartComponent implements OnInit, OnChanges, OnDestroy {
       backgroundColor: "transparent",
       tooltip: {
         trigger: "axis",
-        backgroundColor: tooltipBg,
-        borderWidth: 1,
-        borderColor: isDark ? "#1a2228" : "#e2e8f0",
-        shadowBlur: 20,
-        shadowColor: "rgba(0,0,0,0.15)",
-        textStyle: { color: tooltipText },
-        padding: [12, 16],
+        backgroundColor: "#1e293b", // Dark Slate background as in design
+        borderWidth: 0,
+        borderRadius: 8,
+        shadowBlur: 10,
+        shadowColor: "rgba(0,0,0,0.2)",
+        textStyle: { color: "#f8fafc" },
+        padding: [8, 12],
+        axisPointer: {
+          type: "line",
+          lineStyle: {
+            color: this.colors[0] || "#94a3b8", // Vertical line matching series color
+            width: 1,
+            type: "solid"
+          }
+        },
         formatter: (params: any) => {
           if (!params || !params.length) return '';
 
-          let dateStr = '';
+          let timeLabel = '';
           if (params[0].value && params[0].value[0]) {
             const date = new Date(params[0].value[0]);
-            const now = new Date();
-            const diffMs = now.getTime() - date.getTime();
-            const showDate = diffMs > 86_400_000; // show date if older than 24h
-
-            const month = date.toLocaleString('default', { month: 'short' });
-            const day = date.getDate();
-            const hours = date.getHours().toString().padStart(2, '0');
+            const hours = date.getHours();
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+            const h = hours % 12 || 12;
             const minutes = date.getMinutes().toString().padStart(2, '0');
-            const timeLabel = showDate
-              ? `${month} ${day}, ${hours}:${minutes}`
-              : `${hours}:${minutes}`;
-
-            dateStr = `<div style="font-weight:600; margin-bottom:10px; font-size:13px; color:${tooltipText}; border-bottom:1px solid ${splitLineColor}; padding-bottom:8px;">${timeLabel}</div>`;
+            const dateLabel = date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+            timeLabel = `${dateLabel}, ${h.toString().padStart(2, '0')}:${minutes} ${ampm}`;
           }
 
-          const itemsStr = params
-            .map((p: any) => {
-              const val = p.value && p.value[1] !== undefined ? p.value[1] : '';
-              return `<div style="display:flex; align-items:center; gap:8px; margin-bottom:5px; font-size:12px;">
-                <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:${p.color};"></span>
-                <span style="color:${tooltipText}; flex:1;">${p.seriesName}</span>
-                <span style="color:${p.color}; font-weight:600;">${val}</span>
-              </div>`;
-            })
-            .join('');
+          const rawVal = params[0].value && params[0].value[1] !== undefined ? params[0].value[1] : 0;
+          const color = params[0].color;
+          const unit = this.yAxisUnit || '';
+          const val = this.valueFormatter ? this.valueFormatter(rawVal) : `${rawVal} ${unit}`;
 
-          return dateStr + itemsStr;
+          return `
+            <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;">
+              <span style="font-size:11px; font-weight:500; color:#cbd5e1;">${timeLabel}</span>
+              <span style="font-size:13px; font-weight:700; color:${color};">${val}</span>
+            </div>
+          `;
         },
       },
       legend: {
@@ -310,11 +322,11 @@ export class HistoricalChartComponent implements OnInit, OnChanges, OnDestroy {
               show: this.showYAxisLabels && !this.sparkline,
               color: textColor,
               fontSize: 10,
-              formatter: this.yAxisUnit ? `{value}${this.yAxisUnit}` : undefined,
+              formatter: this.valueFormatter ? ((val: any) => this.valueFormatter!(val)) : (this.yAxisUnit ? `{value}${this.yAxisUnit}` : undefined),
             },
             position: this.yAxisPosition,
             min: this.yAxisMin !== undefined ? this.yAxisMin : (this.type === "bar" ? 0 : undefined),
-            max: this.yAxisMax !== undefined ? this.yAxisMax : (this.type === "bar" ? 1 : undefined),
+            max: this.yAxisMax,
             interval: this.yAxisInterval ?? undefined,
             minInterval: 1,
 
@@ -333,14 +345,15 @@ export class HistoricalChartComponent implements OnInit, OnChanges, OnDestroy {
           type: this.type,
           data: s.values,
           yAxisIndex: this.dualAxis && index === 1 ? 1 : 0,
-          smooth: !isBar,
+          step: !isBar && this.step ? this.step : undefined,
+          smooth: !isBar && !this.step,
           showSymbol: !isBar && s.values && s.values.length === 1,
-          symbolSize: 8,
+          symbolSize: 10,
           symbol: "circle",
           lineStyle: isBar
             ? undefined
             : {
-                width: 2.5,
+                width: 2.0,
                 type: isDashed ? "dashed" : "solid",
               },
           itemStyle: {
@@ -358,6 +371,10 @@ export class HistoricalChartComponent implements OnInit, OnChanges, OnDestroy {
               }
               return baseColor;
             },
+            borderColor: color,
+            borderWidth: 2,
+            shadowBlur: 10,
+            shadowColor: color,
             borderRadius: isBar ? [2, 2, 0, 0] : 0,
           },
           barWidth: isBar ? "35%" : undefined,

@@ -29,6 +29,7 @@ export * from "./revelton-tb-extension-dashboard/shared/components/occupancy-sen
 export * from "./revelton-tb-extension-dashboard/shared/components/alerts-panel/alerts-panel.component";
 export * from "./revelton-tb-extension-dashboard/shared/components/activity-logs/activity-logs.component";
 export * from "./revelton-tb-extension-dashboard/shared/components/metric-cell/metric-cell.component";
+export * from "./revelton-tb-extension-dashboard/shared/components/smart-sockets-panel/smart-sockets-panel.component";
 
 // Historical Dashboard — Orchestrator + Shared
 export * from "./revelton-tb-extension-historical-dashboard/revelton-tb-extension-historical-dashboard.component";
