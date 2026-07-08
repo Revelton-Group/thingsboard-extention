@@ -104,7 +104,7 @@ export class ThermostatCardComponent {
   incrementTemp(): void {
     if (!this.trv || this.trv.systemMode === 'off') return;
     const cur = this.trv.targetTemp ?? 20;
-    const next = Math.min(30, +(cur + 0.5).toFixed(1));
+    const next = Math.min(30, +(cur + 1).toFixed(1));
     this.trv.targetTemp = next;
     this.cdr.detectChanges();
     this.tempChange.emit(next);
@@ -113,7 +113,7 @@ export class ThermostatCardComponent {
   decrementTemp(): void {
     if (!this.trv || this.trv.systemMode === 'off') return;
     const cur = this.trv.targetTemp ?? 20;
-    const next = Math.max(5, +(cur - 0.5).toFixed(1));
+    const next = Math.max(5, +(cur - 1).toFixed(1));
     this.trv.targetTemp = next;
     this.cdr.detectChanges();
     this.tempChange.emit(next);

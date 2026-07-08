@@ -562,6 +562,8 @@ export class RoomDataService {
         case 'state':
         case 'socket_state':
         case 'plug_state':
+        case 'data_device_status':
+        case 'data_socket_status':
           if (entityName !== 'unknown' && this.isPlugDevice(entityName, newData.deviceMeta)) {
             if (!newData.plugDevices[entityName]) newData.plugDevices[entityName] = {};
             newData.plugDevices[entityName].state = String(value);
@@ -570,9 +572,30 @@ export class RoomDataService {
         case 'power':
         case 'load_power':
         case 'active_power':
+        case 'data_active_power':
           if (entityName !== 'unknown' && this.isPlugDevice(entityName, newData.deviceMeta)) {
             if (!newData.plugDevices[entityName]) newData.plugDevices[entityName] = {};
             newData.plugDevices[entityName].power = parseFloat(value);
+          }
+          break;
+        case 'voltage':
+        case 'data_voltage':
+          if (entityName !== 'unknown' && this.isPlugDevice(entityName, newData.deviceMeta)) {
+            if (!newData.plugDevices[entityName]) newData.plugDevices[entityName] = {};
+            newData.plugDevices[entityName].voltage = parseFloat(value);
+          }
+          break;
+        case 'current':
+        case 'data_current':
+          if (entityName !== 'unknown' && this.isPlugDevice(entityName, newData.deviceMeta)) {
+            if (!newData.plugDevices[entityName]) newData.plugDevices[entityName] = {};
+            newData.plugDevices[entityName].current = parseFloat(value);
+          }
+          break;
+        case 'data_power_consumption':
+          if (entityName !== 'unknown' && this.isPlugDevice(entityName, newData.deviceMeta)) {
+            if (!newData.plugDevices[entityName]) newData.plugDevices[entityName] = {};
+            newData.plugDevices[entityName].energyToday = parseFloat(value);
           }
           break;
         case 'booked':
@@ -837,16 +860,20 @@ export class RoomDataService {
     const n = name.toUpperCase();
     const l = label.toUpperCase();
     const m = model.toUpperCase();
-    return n.includes('PLUG') || n.includes('SOCKET') ||
-           l.includes('PLUG') || l.includes('SOCKET') ||
-           m.includes('PLUG') || m.includes('SOCKET') ||
+    return n.includes('PLUG') || n.includes('SOCKET') || n.includes('WS523') ||
+           l.includes('PLUG') || l.includes('SOCKET') || l.includes('WS523') ||
+           m.includes('PLUG') || m.includes('SOCKET') || m.includes('WS523') ||
            meta[name]?.type === 'Plug';
   }
 
   private aggregateAll(data: RoomData) {
-    // Temp — Prefer dedicated sensors over TRV internal sensors
+    // Temp — Prefer dedicated sensors over TRV internal sensors. isTRV() is a
+    // name-based fallback (TRV_*/*THERMOSTAT*); data.trvDevices is the reliable
+    // signal since it's populated from actual TRV-only telemetry keys
+    // (current_heating_setpoint/system_mode), so it catches TRVs whose entity
+    // name doesn't follow that naming convention.
     const allTempKeys = Object.keys(data.tempDevices);
-    const sensorTempKeys = allTempKeys.filter(k => !this.isTRV(k));
+    const sensorTempKeys = allTempKeys.filter(k => !this.isTRV(k) && !data.trvDevices[k]);
 
     if (sensorTempKeys.length > 0) {
       data.sensorData.temperature = parseFloat((sensorTempKeys.reduce((s, k) => s + data.tempDevices[k], 0) / sensorTempKeys.length).toFixed(1));

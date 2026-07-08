@@ -1,53 +1,16 @@
 /* ══════════════════════════════════════════════════════════════
-   Room Historical Data — Compact 3×2 Premium Panel Layout
-   Matches the high-fidelity aesthetics of the Emergent Agent UI
+   Room Historical Data — 1:1 Reference Copy Layout
    ══════════════════════════════════════════════════════════════ */
 
-/* ── CSS Variables ───────────────────────────────────────── */
 .room-hist-container {
-  --rhd-bg-main:   var(--bg, #0D0F14);
-  --rhd-bg-panel:  var(--panel, #13161E);
-  --rhd-border:    var(--border, rgba(255, 255, 255, 0.06));
-  --rhd-text:      var(--text, #F3F4F6);
-  --rhd-muted:     var(--text-secondary, #6B7280);
-  --green:     #22C55E;
-  --blue:      #3B82F6;
-  --cyan:      #06B6D4;
-  --orange:    #F97316;
-  --purple:    #A855F7;
-  --yellow:    #EAB308;
-  --red:       #EF4444;
-
-  :host-context([data-mode="light"]) &,
-  :host-context(.light-theme) &,
-  :host-context(.light-mode) & {
-    --rhd-bg-main:   #f4f7fa;
-    --rhd-bg-panel:  #ffffff;
-    --rhd-border:    #cbd5e1;
-    --rhd-text:      #0f172a;
-    --rhd-muted:     #64748b;
-  }
-
   display: flex;
   flex-direction: column;
   flex: 1;
   min-height: 0;
   height: 100%;
-  background: var(--rhd-bg-main);
-  color: var(--rhd-text);
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  font-size: 13px;
-  overflow-y: auto;
+  color: var(--tx, #F3F4F6);
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
   * { box-sizing: border-box; }
-
-  &::-webkit-scrollbar { width: 6px; }
-  &::-webkit-scrollbar-track { background: var(--rhd-bg-main); }
-  &::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 10px; }
-  &::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.2); }
-}
-
-.full-height {
-  height: 100%;
 }
 
 :host {
@@ -56,596 +19,392 @@
   height: 100%;
 }
 
-/* ── Loading ─────────────────────────────────────────────── */
+/* ── Loading & Error ─────────────────────────────────────── */
 .hist-loading {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  flex: 1;
+  height: 200px;
   gap: 16px;
-  background: var(--rhd-bg-main);
-}
 
-.modern-loader {
-  position: relative;
-  width: 56px;
-  height: 56px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  .modern-loader {
+    position: relative;
+    width: 64px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 
-  i {
-    font-size: 22px;
-    width: 22px;
-    height: 22px;
-    color: var(--blue);
-    animation: rhd-spin 2s linear infinite;
-    z-index: 2;
+    .glow-ring {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      border: 2px solid transparent;
+      border-top-color: var(--accent, #5c7cfa);
+      animation: spin 1.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
+
+      &:nth-child(2) {
+        inset: 8px;
+        border-top-color: var(--ok, #34d399);
+        animation-duration: 2s;
+        animation-direction: reverse;
+      }
+
+      &:nth-child(3) {
+        inset: 16px;
+        border-top-color: var(--warn, #fbbf24);
+        animation-duration: 1s;
+      }
+    }
+
+    i {
+      color: var(--tx, #fff);
+      font-size: 20px;
+      z-index: 1;
+    }
   }
 
-  .glow-ring {
-    position: absolute;
-    inset: 0;
-    border-radius: 50%;
-    border: 2px solid transparent;
-    border-top-color: var(--blue);
-    border-right-color: var(--purple);
-    animation: rhd-spin 1.5s cubic-bezier(.68,-0.55,.265,1.55) infinite;
-    &:nth-child(2) { inset: 7px; border-top-color: var(--pink); border-right-color: transparent; animation-duration: 2s; animation-direction: reverse; }
-    &:nth-child(3) { inset: 14px; border-top-color: var(--green); border-right-color: transparent; animation-duration: 1s; }
+  .loading-text {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--t2, #8b97a8);
+    letter-spacing: 0.5px;
   }
 }
 
-@keyframes rhd-spin { to { transform: rotate(360deg); } }
-
-.loading-text {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--rhd-muted);
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-  animation: rhd-pulse 1.5s ease infinite;
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
-@keyframes rhd-pulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
 
-/* ── Error State ─────────────────────────────────────────── */
 .empty-state {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  flex: 1;
+  height: 200px;
   gap: 12px;
-  text-align: center;
-  padding: 24px;
-  background: var(--rhd-bg-main);
-  i { font-size: 42px; color: var(--red); opacity: 0.8; }
-  p { font-size: 14px; font-weight: 500; color: var(--rhd-text); margin: 0; }
-}
-
-.retry-btn {
-  padding: 8px 24px;
-  border-radius: 20px;
-  background: var(--blue);
-  color: #fff;
-  font-size: 12px;
-  font-weight: 700;
-  border: none;
-  cursor: pointer;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  transition: transform 0.2s, opacity 0.2s;
-  &:hover { opacity: 0.9; transform: translateY(-1px); }
-  &:active { transform: translateY(0); }
-}
-
-/* ═══════════════════════════════════════════════════════════
-   GLOBAL ACTIONS (Time Toggles)
-   ═══════════════════════════════════════════════════════════ */
-/* ═══════════════════════════════════════════════════════════
-   GRID LAYOUT — 2-column top section + 3-column bottom row
-   ═══════════════════════════════════════════════════════════ */
-
-.hist-row {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr)); /* Force 3 equal columns */
-  padding: 8px 24px;
-  gap: 16px;
-  min-height: 0;
-
-  &.top-row {
-    flex: 0 0 320px;
-    height: 320px;
-    overflow: visible;
-  }
-
-  &.bottom-row {
-    flex: 0 0 auto;
-    padding-bottom: 24px;
-  }
-
-  ::ng-deep .panel { padding: 16px; }
-
-  @media (max-width: 1200px) {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    &.top-row {
-      flex: none;
-      height: auto;
-      min-height: 280px;
-      overflow: visible;
-    }
-    &.bottom-row {
-      flex: none;
-      height: auto;
-    }
-  }
-  @media (max-width: 768px) {
-    grid-template-columns: minmax(0, 1fr);
-    padding: 8px 12px;
-    gap: 12px;
-    &.top-row {
-      flex: none;
-      height: auto;
-      min-height: auto;
-      overflow: visible;
-    }
-    &.bottom-row {
-      flex: none;
-      height: auto;
-    }
-  }
-}
-
-/* ═══════════════════════════════════════════════════════════
-   LOCAL PANEL CARD STYLES
-   ═══════════════════════════════════════════════════════════ */
-.panel {
-  background: var(--rhd-bg-panel);
-  border: 1px solid var(--rhd-border);
-  border-radius: 16px;
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  min-width: 0;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.2);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  color: var(--t3, #5c6675);
   
-  &:hover {
-    border-color: var(--blue, #3B82F6);
-    background: rgba(59, 130, 246, 0.04);
-    box-shadow: 0 12px 32px rgba(59, 130, 246, 0.15);
-  }
-}
-
-.panel-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-  min-height: 32px;
-
-  .title-area {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    mat-icon { font-size: 20px; width: 20px; height: 20px; color: var(--blue); }
-    .titles {
-      h3 { margin: 0; font-size: 14px; font-weight: 700; color: var(--rhd-text); letter-spacing: 0.5px; }
-      p  { margin: 2px 0 0; font-size: 9px; font-weight: 700; text-transform: uppercase; color: var(--rhd-muted); letter-spacing: 1px; }
-    }
-  }
-}
-
-/* ── Temp & Humidity stat pills ──────────────────────────── */
-.aq-pills {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 20px;
-}
-
-.aq-pill {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  padding: 12px 20px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid var(--rhd-border);
-  border-radius: 32px;
-
-  .live-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    margin-right: 12px;
-    flex-shrink: 0;
-  }
-
-  .pill-body {
-    display: flex;
-    flex: 1;
-    justify-content: space-between;
-    align-items: baseline;
-
-    .pill-label { font-size: 10px; font-weight: 800; text-transform: uppercase; color: var(--muted); letter-spacing: 1.2px; }
-    .pill-val   { font-size: 24px; font-weight: 800; letter-spacing: -1px; 
-      small { font-size: 14px; font-weight: 600; margin-left: 2px; opacity: 0.7; } 
-    }
-  }
-
-  &.temp { .live-dot { background: var(--orange); box-shadow: 0 0 10px var(--orange); } .pill-val { color: var(--orange); } }
-  &.hum  { .live-dot { background: var(--blue);   box-shadow: 0 0 10px var(--blue);   } .pill-val { color: var(--blue);   } }
-}
-
-/* ── Chart wrapper ───────────────────────────────────────── */
-.chart-wrapper {
-  flex: 1;
-  min-height: 110px; 
-  position: relative;
-  overflow: hidden;
-  border-radius: 8px;
-  background: rgba(0, 0, 0, 0.1);
-  margin-bottom: 8px;
-  ::ng-deep revelton-historical-chart { display: block; width: 100%; height: 100%; }
-
-  @media (max-width: 1200px) {
-    min-height: 180px;
-    height: 180px;
-    flex: none;
-  }
-}
-
-.chart-time-labels {
-  display: flex;
-  justify-content: space-between;
-  padding: 12px 30px 0;
-  span { font-size: 10px; font-weight: 700; color: var(--rhd-muted); letter-spacing: 0.5px; }
-}
-
-/* ── AQ Pills Horizontal (New) ───────────────────────────── */
-.aq-pills-horizontal {
-  display: flex;
-  gap: 16px;
-}
-.aq-pill-compact {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  justify-content: center;
-  .label { font-size: 8px; font-weight: 800; color: var(--rhd-muted); letter-spacing: 0.8px; margin-bottom: 1px; }
-  .val { font-size: 14px; font-weight: 800; }
-  &.temp .val { color: var(--orange); }
-  &.hum .val { color: var(--cyan); }
-}
-
-/* ── Pollutants Redesign (Donut & Sparkline) ──────────────── */
-.aq-metrics-panel {
-  .panel-header { margin-bottom: 8px; }
+  i { font-size: 32px; color: var(--alert, #f87171); }
+  p { font-size: 14px; margin: 0; }
   
-  &:hover {
-    border-color: var(--purple, #A855F7);
-    background: rgba(168, 85, 247, 0.04);
-    box-shadow: 0 12px 32px rgba(168, 85, 247, 0.15);
-  }
-}
-
-.pollutant-main {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-  gap: 8px;
-
-  .val-group {
-    display: flex;
-    flex-direction: column;
-    .val { font-size: 20px; font-weight: 800; line-height: 1; letter-spacing: normal; color: var(--purple); }
-    .unit { font-size: 10px; font-weight: 800; color: var(--rhd-muted); text-transform: uppercase; margin-top: 2px; }
-  }
-}
-
-.donut-wrapper {
-  width: 64px;
-  height: 64px;
-}
-
-.donut-chart {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  background: conic-gradient(var(--color, #A855F7) calc(var(--percent) * 1%), rgba(255, 255, 255, 0.05) 0);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-
-  .donut-inner {
-    width: 80%;
-    height: 80%;
-    background: var(--rhd-bg-panel);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    .pct { font-size: 12px; font-weight: 800; color: var(--rhd-text, #fff); }
-  }
-}
-
-.status-bar-modern {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: rgba(168, 85, 247, 0.08);
-  padding: 4px 8px;
-  border-radius: 4px;
-  border: 1px solid rgba(168, 85, 247, 0.15);
-  transition: background 0.3s, border-color 0.3s;
-  flex: 1;
-  justify-content: center;
-  max-width: fit-content;
-
-  .dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--purple);
-    box-shadow: 0 0 8px var(--purple);
-    transition: background 0.3s, box-shadow 0.3s;
-  }
-
-  .label {
-    font-size: 9px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-
-  &.good {
-    background: rgba(34, 197, 94, 0.1);
-    border-color: rgba(34, 197, 94, 0.2);
-    .dot { background: #22C55E; box-shadow: 0 0 8px #22C55E; }
-    .label { color: #22C55E; }
-  }
-
-  &.moderate {
-    background: rgba(249, 115, 22, 0.1);
-    border-color: rgba(249, 115, 22, 0.2);
-    .dot { background: #F97316; box-shadow: 0 0 8px #F97316; }
-    .label { color: #F97316; }
-  }
-
-  &.bad {
-    background: rgba(239, 68, 68, 0.1);
-    border-color: rgba(239, 68, 68, 0.2);
-    .dot { background: #EF4444; box-shadow: 0 0 8px #EF4444; }
-    .label { color: #EF4444; }
-  }
-
-  &.pressure {
-    background: rgba(59, 130, 246, 0.1);
-    border-color: rgba(59, 130, 246, 0.2);
-    .dot { background: #3B82F6; box-shadow: 0 0 8px #3B82F6; }
-    .label { color: #3B82F6; }
-  }
-}
-
-.sparkline-wrapper {
-  flex: 1;
-  min-height: 90px;
-  background: rgba(0, 0, 0, 0.1);
-  border-radius: 8px;
-  overflow: hidden;
-  ::ng-deep revelton-historical-chart { height: 100%; }
-
-  @media (max-width: 1200px) {
-    min-height: 160px;
-    height: 160px;
-    flex: none;
-  }
-}
-
-.metric-tabs-minimal {
-  display: flex;
-  gap: 6px;
-  button {
-    background: var(--rhd-bg-main);
-    border: 1px solid var(--rhd-border);
-    border-radius: 12px;
-    font-size: 9px;
-    font-weight: 800;
-    color: var(--rhd-muted);
+  .retry-btn {
+    margin-top: 8px;
+    padding: 6px 16px;
+    border-radius: 6px;
+    border: 1px solid var(--border, #27313f);
+    background: transparent;
+    color: var(--tx, #e6ecf3);
     cursor: pointer;
-    padding: 4px 10px;
-    text-transform: uppercase;
-    transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 0.1s ease;
-    outline: none;
-    user-select: none;
-    -webkit-tap-highlight-color: transparent;
+    &:hover { background: rgba(255,255,255,0.05); }
+  }
+}
 
-    &:hover { background: rgba(255, 255, 255, 0.08); color: var(--rhd-text, #fff); }
-    &.active { 
-      background: var(--purple); 
-      border-color: var(--purple); 
-      color: #fff; 
+/* ── 6-Column Reference Grid ─────────────────────────────── */
+.hist-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 12px;
+  width: 100%;
+  
+  @media (max-width: 1400px) {
+    grid-template-columns: repeat(4, 1fr);
+  }
+  @media (max-width: 1000px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  @media (max-width: 600px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.hist-card {
+  background: var(--panel, #141b25);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border, #27313f);
+  position: relative;
+  overflow: hidden;
+  height: 270px; /* Match mockup proportions */
+
+  /* Card Header */
+  .hist-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    
+    .hist-card-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+
+      .hist-icon-box {
+        width: 28px;
+        height: 28px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        
+        .card-icon {
+          font-size: 16px;
+          width: 16px;
+          height: 16px;
+        }
+      }
+
+      span {
+        font: 500 13px "Inter", sans-serif;
+        color: var(--t2, #9ca3af);
+      }
+    }
+
+    .hist-card-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      .hist-badge {
+        font: 700 9px "Inter", sans-serif;
+        padding: 3px 6px;
+        border-radius: 4px;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+
+        &.normal, &.good, &.quiet {
+          background: rgba(52, 211, 153, 0.12);
+          color: #34d399;
+          border: 1px solid rgba(52, 211, 153, 0.2);
+        }
+        &.warning {
+          background: rgba(251, 191, 36, 0.12);
+          color: #fbbf24;
+          border: 1px solid rgba(251, 191, 36, 0.2);
+        }
+        &.critical {
+          background: rgba(248, 113, 113, 0.12);
+          color: #f87171;
+          border: 1px solid rgba(248, 113, 113, 0.2);
+        }
+        &.occupied {
+          background: rgba(59, 130, 246, 0.12);
+          color: #60a5fa;
+          border: 1px solid rgba(59, 130, 246, 0.2);
+        }
+        &.nodata {
+          background: rgba(156, 163, 175, 0.12);
+          color: var(--t2, #9ca3af);
+          border: 1px solid rgba(156, 163, 175, 0.2);
+        }
+      }
+
+      .expand-icon {
+        font-size: 14px;
+        width: 14px;
+        height: 14px;
+        color: var(--t3, #4b5563);
+        cursor: pointer;
+        transition: color 0.2s;
+
+        &:hover {
+          color: var(--t2, #9ca3af);
+        }
+      }
+    }
+  }
+
+  /* Large Value (+ window device picker on the same row) */
+  .hist-card-value {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 4px;
+    margin-bottom: 8px;
+
+    .val {
+      font: 700 26px "Inter", sans-serif;
+      letter-spacing: -0.5px;
+    }
+
+    .unit {
+      font: 500 11px "Inter", sans-serif;
+      color: var(--t3, #6b7280);
+    }
+  }
+
+  /* Window device picker (which physical window sensor to chart) */
+  .hist-window-picker {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+    margin-left: auto;
+
+    .picker-chip {
+      font: 700 11px "Inter", sans-serif;
+      width: 20px;
+      height: 20px;
+      padding: 0;
+      border-radius: 50%;
+      border: 1px solid var(--border, #27313f);
+      background: transparent;
+      color: var(--t2, #8b97a8);
+      cursor: pointer;
+      transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+
       &:hover {
-        background: var(--purple);
-        border-color: var(--purple);
+        color: var(--tx, #e6ecf3);
+        border-color: var(--t2, #8b97a8);
+      }
+
+      &.active {
+        background: var(--accent, #5c7cfa);
+        border-color: var(--accent, #5c7cfa);
         color: #fff;
       }
     }
-    &:focus { outline: none; }
-    &:active { transform: scale(0.95); }
   }
-}
 
-/* ══════════════════════════════════════════════════════════════
-   ::ng-deep — Child component overrides for compact room view
-   Host elements need display:flex so internal .panel { flex:1 }
-   can fill the grid cell / flex container height.
-   ══════════════════════════════════════════════════════════════ */
+  /* Chart Area */
+  .hist-card-chart {
+    height: 120px; /* Match mockup chart height perfectly */
+    width: 100%;
+    margin-bottom: 8px;
+    position: relative;
 
-/* Host display — required for child panels to fill their allocated space */
-revelton-acoustics-panel,
-revelton-window-panel,
-revelton-water-leak-panel,
-revelton-occupancy-panel {
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-}
-
-/* Base .panel card styling for child component panels
-   (parent .panel class does not pierce Angular view encapsulation) */
-::ng-deep .panel {
-  background: var(--rhd-bg-panel);
-  border: 1px solid var(--rhd-border);
-  border-radius: 16px;
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  min-width: 0;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  
-  &:hover {
-    border-color: var(--blue, #3B82F6);
-    background: rgba(59, 130, 246, 0.04);
-    box-shadow: 0 12px 32px rgba(59, 130, 246, 0.15);
-    transform: none; /* Remove any default translateY */
-  }
-}
-
-revelton-window-panel ::ng-deep .panel:hover {
-  border-color: var(--yellow, #EAB308);
-  background: rgba(234, 179, 8, 0.04);
-  box-shadow: 0 12px 32px rgba(234, 179, 8, 0.15);
-}
-
-revelton-acoustics-panel ::ng-deep .panel:hover {
-  border-color: var(--blue, #3B82F6);
-  background: rgba(59, 130, 246, 0.04);
-  box-shadow: 0 12px 32px rgba(59, 130, 246, 0.15);
-}
-
-revelton-water-leak-panel ::ng-deep .panel:hover {
-  border-color: var(--cyan, #06B6D4);
-  background: rgba(6, 182, 212, 0.04);
-  box-shadow: 0 12px 32px rgba(6, 182, 212, 0.15);
-}
-
-revelton-occupancy-panel ::ng-deep .panel:hover {
-  border-color: var(--cyan, #06B6D4);
-  background: rgba(6, 182, 212, 0.04);
-  box-shadow: 0 12px 32px rgba(6, 182, 212, 0.15);
-}
-
-/* Panel header in child components */
-::ng-deep .panel .panel-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-
-  .title-area {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-
-    mat-icon {
-      font-size: 18px;
-      width: 18px;
-      height: 18px;
+    ::ng-deep revelton-historical-chart {
+      height: 100%;
+      width: 100%;
+      display: block;
     }
 
-    h3 {
-      margin: 0;
-      font-size: 14px;
-      font-weight: 700;
-      color: var(--rhd-text);
+    .no-data-msg {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font: 500 11px "Inter", sans-serif;
+      color: var(--t3, #4b5563);
+      background: var(--inner, rgba(0, 0, 0, 0.15));
+      border-radius: 6px;
     }
 
-    p {
-      margin: 2px 0 0;
-      font-size: 9px;
-      font-weight: 700;
-      text-transform: uppercase;
-      color: var(--rhd-muted);
-      letter-spacing: 1px;
-    }
-  }
-}
+    .binary-timeline {
+      position: relative;
+      height: 100%;
+      width: 100%;
+      padding-bottom: 5px;
+      overflow: visible;
 
-/* Acoustics panel — only overrides needed for compact context */
-::ng-deep .acoustics-panel {
-  .panel-header {
-    margin-bottom: 12px;
-  }
+      .dot-grid {
+        position: absolute;
+        inset: 0 0 5px 0;
+        border-radius: 6px;
+        background-image: radial-gradient(circle, var(--border, #e5e7eb) 1px, transparent 1px);
+        background-size: 10px 10px;
+        background-position: 4px 4px;
+      }
 
-  .quiet-badge {
-    background: rgba(34, 197, 94, 0.1);
-    color: #22C55E;
-    padding: 4px 10px;
-    border-radius: 20px;
-    font-size: 9px;
-    font-weight: 800;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    letter-spacing: 0.5px;
+      .event-marker {
+        position: absolute;
+        top: 0;
+        bottom: 5px;
+        border-radius: 2px;
+        opacity: 0.9;
+        transition: opacity 0.2s, filter 0.2s;
+        cursor: pointer;
 
-    .dot {
-      width: 4px;
-      height: 4px;
-      background: #22C55E;
-      border-radius: 50%;
-      box-shadow: 0 0 6px #22C55E;
+        .binary-tooltip {
+          position: absolute;
+          bottom: calc(100% + 8px);
+          left: 50%;
+          transform: translateX(-50%);
+          background: #1e293b;
+          color: #f8fafc;
+          padding: 8px 12px;
+          border-radius: 8px;
+          box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+          display: none;
+          flex-direction: column;
+          align-items: center;
+          gap: 2px;
+          z-index: 100;
+          white-space: nowrap;
+          pointer-events: none;
+
+          .tt-time {
+            font-size: 11px;
+            font-weight: 500;
+            color: #cbd5e1;
+          }
+
+          .tt-val {
+            font-size: 13px;
+            font-weight: 700;
+          }
+        }
+
+        &:hover {
+          opacity: 1;
+          filter: brightness(0.85);
+
+          .binary-tooltip {
+            display: flex;
+          }
+        }
+      }
     }
   }
 
-  .acoustics-main {
-    margin-bottom: 12px;
-  }
+  /* Footer Stats (Stacked) */
+  .hist-card-footer {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    border-top: 1px solid var(--border, #27313f);
+    padding-top: 10px;
+    margin-top: auto;
 
-  .chart-container-bottom {
-    height: 50px;
-    background: rgba(0, 0, 0, 0.1);
-    border-radius: 4px;
-    overflow: hidden;
+    .footer-stat {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      text-align: center;
 
-    ::ng-deep revelton-historical-chart { height: 100%; }
+      .lbl {
+        font: 600 8px "Inter", sans-serif;
+        color: var(--t3, #4b5563);
+        letter-spacing: 0.5px;
+      }
+
+      .val {
+        font: 700 11px "Inter", sans-serif;
+        color: var(--tx, #d1d5db);
+      }
+    }
   }
 }
 
-/* Window / Water Leak / Occupancy — ensure panels fill host */
-::ng-deep .window-panel,
-::ng-deep .water-leak-panel,
-::ng-deep .occupancy-panel {
-  flex: 1;
-}
-
-.no-data-msg {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  color: var(--rhd-muted);
-  gap: 8px;
-  background: rgba(0, 0, 0, 0.15);
-  border-radius: 8px;
-  z-index: 5;
-
-  i {
-    font-size: 32px;
-    color: var(--rhd-muted);
-    opacity: 0.6;
-  }
-
-  span {
-    font-size: 12px;
-    font-weight: 500;
-    opacity: 0.8;
+::ng-deep .tb-expanded-chart-panel {
+  &.mat-dialog-container,
+  &.mat-mdc-dialog-container,
+  .mat-dialog-container,
+  .mat-mdc-dialog-container,
+  .mdc-dialog__surface,
+  .mat-dialog-surface {
+    background: transparent !important;
+    background-color: transparent !important;
+    padding: 0 !important;
+    border-radius: 16px !important;
+    box-shadow: none !important;
   }
 }

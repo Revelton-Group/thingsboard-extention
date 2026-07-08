@@ -185,7 +185,8 @@ export class ControlPanelService {
 
       // ── Thermostat ──
       thermostat_valveOpen: config.thermostat.valveOpen,
-      thermostat_comfortTemp: config.thermostat.comfortTemp,
+      thermostat_preheatingTemp: config.thermostat.preheatingTemp,
+      thermostat_preheatingMinutes: config.thermostat.preheatingMinutes,
       thermostat_schedule: JSON.stringify(config.thermostat.schedule),
       thermostat_maintenance_enabled: config.thermostat.maintenance.enabled,
       thermostat_maintenance_tests: JSON.stringify(config.thermostat.maintenance.tests),

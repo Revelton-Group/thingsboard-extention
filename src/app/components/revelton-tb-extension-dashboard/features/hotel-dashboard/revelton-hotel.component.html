@@ -101,9 +101,12 @@
           </div>
           <div class="kpi-dropdown-list">
             <div class="kpi-list-item" *ngFor="let item of hotelStats?.checkInsList">
+              <div class="kpi-item-avatar">
+                <i class="material-icons">person</i>
+              </div>
               <div class="kpi-item-left">
-                <span class="room-badge">{{ t.room }} {{ item.room }}</span>
                 <span class="guest-name">{{ item.guest }}</span>
+                <span class="room-badge">{{ t.room }} {{ item.room }} &middot; {{ formatRoomTitle(item.location) }}</span>
               </div>
               <div class="kpi-item-right">{{ item.time }}</div>
             </div>
@@ -139,9 +142,12 @@
           </div>
           <div class="kpi-dropdown-list">
             <div class="kpi-list-item" *ngFor="let item of hotelStats?.checkOutsList">
+              <div class="kpi-item-avatar">
+                <i class="material-icons">person</i>
+              </div>
               <div class="kpi-item-left">
-                <span class="room-badge">{{ t.room }} {{ item.room }}</span>
                 <span class="guest-name">{{ item.guest }}</span>
+                <span class="room-badge">{{ t.room }} {{ item.room }} &middot; {{ formatRoomTitle(item.location) }}</span>
               </div>
               <div class="kpi-item-right" [class.overdue]="item.isOverdue">
                 {{ item.time }}

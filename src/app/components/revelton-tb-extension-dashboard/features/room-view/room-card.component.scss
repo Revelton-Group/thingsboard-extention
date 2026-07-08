@@ -60,24 +60,13 @@
 .custom-room-widget.status-warning {
     border-color: var(--color-warning);
     box-shadow: 0 0 0 1px var(--color-warning), 0 4px 12px rgba(245, 158, 11, 0.15);
+    animation: widget-pulse-warning 2s ease-in-out infinite;
 }
 
 .custom-room-widget.status-danger {
     border-color: var(--color-danger);
     box-shadow: 0 0 0 1px var(--color-danger), 0 4px 12px rgba(239, 68, 68, 0.15);
     animation: widget-pulse 2s ease-in-out infinite;
-}
-
-.custom-room-widget.status-danger::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: linear-gradient(90deg, var(--color-danger), transparent, var(--color-danger));
-    background-size: 200% 100%;
-    animation: sweep 1.5s ease-in-out infinite;
 }
 
 @keyframes widget-pulse {
@@ -92,13 +81,15 @@
     }
 }
 
-@keyframes sweep {
-    0% {
-        background-position: 200% 0;
+@keyframes widget-pulse-warning {
+
+    0%,
+    100% {
+        box-shadow: 0 0 0 1px var(--color-warning);
     }
 
-    100% {
-        background-position: -200% 0;
+    50% {
+        box-shadow: 0 0 14px 3px rgba(245, 158, 11, 0.3);
     }
 }
 
