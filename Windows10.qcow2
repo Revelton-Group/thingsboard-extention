@@ -1,0 +1,416 @@
+# 🔍 Production Readiness Audit — Revelton TB Extension Dashboard
+
+> **Auditor perspective**: Senior Full-Stack Developer + IoT Engineer  
+> **Audit date**: 2026-07-09  
+> **Scope**: Complete codebase under `revelton-tb-extension-dashboard/`  
+> **Files reviewed**: 15+ TypeScript files (~6,500 lines), templates, SCSS
+
+---
+
+## Executive Summary
+
+| Area | Rating | Notes |
+|------|--------|-------|
+| Architecture | ⭐⭐⭐⭐ | Solid layered design (core/features/shared) |
+| Type Safety | ⭐⭐ | Heavy `any` usage undermines TypeScript benefits |
+| Memory Management | ⭐⭐⭐ | Most intervals cleared, but subscription leaks present |
+| Security | ⭐⭐ | DEBUG flag left on, no input sanitization on RPC calls |
+| Error Handling | ⭐⭐⭐ | Basic error handling exists, but inconsistent |
+| Performance | ⭐⭐⭐ | Debouncing present, but excessive HTTP calls on discovery |
+| Test Coverage | ⭐ | No tests found |
+| Production Config | ⭐⭐ | Mock data, hardcoded values, debug logging |
+| IoT Best Practices | ⭐⭐⭐ | Good device discovery, weak offline/resilience handling |
+
+**Overall verdict**: 🟡 **Not production-ready** — 8 critical issues and 14 major issues must be addressed before deployment.
+
+---
+
+## 🔴 CRITICAL Issues (Must fix before production)
+
+### C1. DEBUG flag is `true` in production service
+
+**File**: [hotel-state.service.ts](file:///home/nurlansarkhanov/Desktop/code/Revelton/thingsboard-extention/src/app/components/revelton-tb-extension-dashboard/core/services/hotel-state.service.ts#L9)
+
+```typescript
+const DEBUG = true; // TEMPORARY: enable to debug Mews Bridge data flow
+```
+
+This floods the browser console with hundreds of log messages per second across 1,792-line file. Every `log()` call (50+ occurrences) triggers. In production this will:
+- Degrade performance (console serialization is expensive)
+- Expose internal architecture to anyone with dev tools open
+- Fill up browser memory over time
+
+> [!CAUTION]
+> **Fix**: Set `const DEBUG = false;` immediately. Better: use an environment variable or ThingsBoard widget setting.
+
+---
+
+### C2. Mock guest count in production statistics
+
+**File**: [hotel-state.service.ts](file:///home/nurlansarkhanov/Desktop/code/Revelton/thingsboard-extention/src/app/components/revelton-tb-extension-dashboard/core/services/hotel-state.service.ts#L815-L819)
+
+```typescript
+// Mock guest count: 1 for odd rooms, 2 for even rooms
+const rn = parseInt(room.roomData.sensorData.roomNumber?.toString() || "1");
+inHouseGuests += rn % 2 === 0 ? 2 : 1;
+```
+
+The "In-House Guests" KPI displayed on the hotel dashboard is **entirely fake**. This is production-visible data that hotel staff will rely on for operational decisions.
+
+> [!CAUTION]
+> **Fix**: Either source actual guest count from MEWS API, or remove the metric entirely. Displaying fake data to hotel staff is worse than showing `N/A`.
+
+---
+
+### C3. Hardcoded test devices in production component
+
+**File**: [other-devices-panel.component.ts](file:///home/nurlansarkhanov/Desktop/code/Revelton/thingsboard-extention/src/app/components/revelton-tb-extension-dashboard/features/other-devices-panel/other-devices-panel.component.ts#L157-L172)
+
+```typescript
+/** Hardcoded test device — remove once real data renders correctly */
+readonly testDevice = {
+  name: "trv_office_1",
+  type: "Thermostat",
+  // ...fake data
+};
+```
+
+Test fixtures left in production code. If referenced in the template, users see phantom devices.
+
+> [!CAUTION]
+> **Fix**: Remove `testDevice` and `testDevice2` entirely.
+
+---
+
+### C4. No input validation on RPC commands
+
+**File**: [room-detail-panel.component.ts](file:///home/nurlansarkhanov/Desktop/code/Revelton/thingsboard-extention/src/app/components/revelton-tb-extension-dashboard/features/room-view/room-detail-panel.component.ts#L1249-L1281)
+
+```typescript
+private saveAttribute(trv: any, key: string, value: any): void {
+  // No validation of key or value
+  ctx.http.post(`/api/plugins/telemetry/DEVICE/${deviceId}/SHARED_SCOPE`, { [key]: value }).subscribe(...)
+  ctx.http.post(`/api/rpc/oneway/${deviceId}`, { method: methods[key], params: value }).subscribe();
+}
+```
+
+The `saveAttribute` method sends arbitrary values directly to ThingsBoard without validation:
+- Temperature setpoint has no bounds checking (user could send `999°C` or `-50°C`)
+- System mode has no whitelist validation
+- No rate limiting on RPC calls (rapid UI clicks → rapid device commands)
+
+> [!CAUTION]
+> **Fix**: Add validation: `if (key === 'current_heating_setpoint') { value = Math.max(5, Math.min(35, value)); }`. Whitelist modes to `['auto', 'heat', 'off']`. Add RPC debouncing.
+
+---
+
+### C5. Hardcoded timezone (`Europe/Prague`) across 5+ files
+
+**Files**: [hotel-state.service.ts](file:///home/nurlansarkhanov/Desktop/code/Revelton/thingsboard-extention/src/app/components/revelton-tb-extension-dashboard/core/services/hotel-state.service.ts#L476), [revelton-hotel.component.ts](file:///home/nurlansarkhanov/Desktop/code/Revelton/thingsboard-extention/src/app/components/revelton-tb-extension-dashboard/features/hotel-dashboard/revelton-hotel.component.ts#L511), [room-detail-panel.component.ts](file:///home/nurlansarkhanov/Desktop/code/Revelton/thingsboard-extention/src/app/components/revelton-tb-extension-dashboard/features/room-view/room-detail-panel.component.ts#L1191), [room-data.service.ts](file:///home/nurlansarkhanov/Desktop/code/Revelton/thingsboard-extention/src/app/components/revelton-tb-extension-dashboard/core/services/room-data.service.ts#L744)
+
+`'Europe/Prague'` appears as a string literal in **4 separate files**. If this dashboard is deployed at any other hotel (even within Europe), all timestamps, check-in/check-out times, and weather data will be wrong.
+
+> [!IMPORTANT]
+> **Fix**: Extract to a single `HOTEL_TIMEZONE` constant in a config file, or read from ThingsBoard widget settings.
+
+---
+
+### C6. Hardcoded weather coordinates
+
+**File**: [revelton-hotel.component.ts](file:///home/nurlansarkhanov/Desktop/code/Revelton/thingsboard-extention/src/app/components/revelton-tb-extension-dashboard/features/hotel-dashboard/revelton-hotel.component.ts#L538-L540)
+
+```typescript
+const url = "https://api.open-meteo.com/v1/forecast?latitude=50.2327&longitude=12.8712&current_weather=true";
+```
+
+Coordinates are for Karlovy Vary. Any other deployment shows wrong weather.
+
+> [!IMPORTANT]
+> **Fix**: Make coordinates configurable via widget settings.
+
+---
+
+### C7. `providedIn: 'root'` on `HotelStateService` — singleton leak risk
+
+**File**: [hotel-state.service.ts](file:///home/nurlansarkhanov/Desktop/code/Revelton/thingsboard-extention/src/app/components/revelton-tb-extension-dashboard/core/services/hotel-state.service.ts#L156)
+
+```typescript
+@Injectable({ providedIn: 'root' })
+export class HotelStateService implements OnDestroy { ... }
+```
+
+As a root singleton, this service persists for the entire app lifecycle. If a user navigates away and back:
+- The `discoveryDone = true` flag prevents re-discovery
+- `roomMap`, `discoveredDevices`, `ctxOtherDevices` retain stale data
+- `refreshTimer` keeps firing with a potentially stale `ctx`
+
+In ThingsBoard widget context, this is especially dangerous because `ctx.http` may become invalid when the widget is destroyed.
+
+> [!WARNING]
+> **Fix**: Either scope the service to the dashboard component module, or implement proper reset/cleanup when the widget context changes.
+
+---
+
+### C8. No unit tests anywhere
+
+There are **zero test files** in the entire codebase. For a system that controls physical HVAC equipment (thermostats), this is a serious risk. A bug in `saveAttribute()` could set all thermostats to maximum temperature.
+
+> [!CAUTION]
+> **Fix**: At minimum, write tests for:
+> - `RoomDataService.calculateAirQuality()` — pure function, easy to test
+> - `RoomDataService.updateFromTelemetry()` — core data pipeline
+> - `extractRoomNumber()` — regex parsing, edge cases matter
+> - `saveAttribute()` — validates bounds before RPC
+> - `calcStatus()` — threshold logic
+
+---
+
+## 🟡 MAJOR Issues (Should fix before production)
+
+### M1. Massive `any` type usage (100+ occurrences)
+
+**Files**: Across the entire codebase, particularly [room-data.service.ts](file:///home/nurlansarkhanov/Desktop/code/Revelton/thingsboard-extention/src/app/components/revelton-tb-extension-dashboard/core/services/room-data.service.ts#L66-L94)
+
+The `RoomData` interface has **18 `any`-typed fields**:
+```typescript
+windowDevices: any;
+trvDevices: any;
+tempDevices: any;
+// ... 15 more
+```
+
+Additionally, `ctx: any` is passed everywhere with no typing. This defeats TypeScript's purpose and makes refactoring dangerous.
+
+> [!IMPORTANT]
+> **Fix**: Replace with proper types:
+> ```typescript
+> windowDevices: Record<string, { contact: 'open' | 'closed' }>;
+> trvDevices: Record<string, TrvDeviceData>;
+> tempDevices: Record<string, number>;
+> ```
+
+---
+
+### M2. Unsubscribed HTTP observables in discovery pipeline
+
+**File**: [hotel-state.service.ts](file:///home/nurlansarkhanov/Desktop/code/Revelton/thingsboard-extention/src/app/components/revelton-tb-extension-dashboard/core/services/hotel-state.service.ts#L361-L377)
+
+```typescript
+this.httpGetWithRetry(ctx, `/api/device/info/${entityId}`, 1)
+  .then((deviceInfo: any) => { ... })
+  .catch(() => {
+    this.httpGetWithRetry(ctx, `/api/device/${entityId}`, 1)
+      .then(...)
+      .catch(() => {}); // ← silently swallowed
+  });
+```
+
+Fire-and-forget HTTP calls during datasource scanning. For a hotel with 20 rooms × 5 devices = 100 device profile lookups **per data update cycle**. These calls are not tracked, not cancellable, and not debounced.
+
+---
+
+### M3. `console.log` in production data path
+
+**File**: [hotel-state.service.ts](file:///home/nurlansarkhanov/Desktop/code/Revelton/thingsboard-extention/src/app/components/revelton-tb-extension-dashboard/core/services/hotel-state.service.ts#L487)
+
+```typescript
+console.log(`[Mews] key="${item.dataKey?.name}" val="${val}" → status=${stats.mewsStatus} ...`);
+```
+
+This is an unconditional `console.log` (not behind the `DEBUG` flag) that fires on every Mews telemetry update. Also [room-data.service.ts:1004-1018](file:///home/nurlansarkhanov/Desktop/code/Revelton/thingsboard-extention/src/app/components/revelton-tb-extension-dashboard/core/services/room-data.service.ts#L1004-L1018) has unconditional room status logging.
+
+---
+
+### M4. `toPromise()` is deprecated in RxJS 7+
+
+**File**: [room-detail-panel.component.ts](file:///home/nurlansarkhanov/Desktop/code/Revelton/thingsboard-extention/src/app/components/revelton-tb-extension-dashboard/features/room-view/room-detail-panel.component.ts#L1530)
+
+```typescript
+return http.get(`...`).toPromise().catch(() => null);
+```
+
+`toPromise()` was deprecated in RxJS 7 and may be removed in future versions. Use `firstValueFrom()` or `lastValueFrom()` instead.
+
+---
+
+### M5. Escaped regex in `formatDeviceName` — will never match
+
+**File**: [hotel-state.service.ts](file:///home/nurlansarkhanov/Desktop/code/Revelton/thingsboard-extention/src/app/components/revelton-tb-extension-dashboard/core/services/hotel-state.service.ts#L961)
+
+```typescript
+const fullMatch = name.match(/^([a-zA-Z]+)_room_(\\d+)_(\\d+)$/i);
+```
+
+The double-escaped `\\d` will look for a literal `\d` in the string, not a digit. This means the `formatDeviceName` method in `HotelStateService` **never matches** any device name pattern. The function always falls through to `return name;`.
+
+> [!WARNING]
+> **Fix**: Use single backslash: `/^([a-zA-Z]+)_room_(\d+)_(\d+)$/i`
+
+---
+
+### M6. Multiple competing refresh timers
+
+The codebase has **4 separate `setInterval` refresh cycles** running simultaneously:
+
+| Timer | Location | Interval | Purpose |
+|-------|----------|----------|---------|
+| `refreshTimer` | HotelStateService | 30s | Re-fetch all device telemetry |
+| `refreshInterval` | ReveltonDashboardComponent | 10s | Periodic UI refresh + dialog sync |
+| `refreshInterval` | RoomDetailPanelComponent | 10s | Rebuild + re-fetch historical vitals |
+| `timeInterval` | ReveltonDashboardComponent | 60s | Clock update |
+
+The first three all trigger HTTP calls. Combined with ThingsBoard's own WebSocket subscription pushing data, this creates a thundering herd problem:
+- Every 10s: UI rebuilds + historical vitals fetch
+- Every 30s: Full device telemetry refresh (100+ HTTP calls)
+- Continuous: TB WebSocket pushes trigger `onDataUpdated()`
+
+---
+
+### M7. Fragile device identification via entity name regex
+
+**File**: [room-data.service.ts](file:///home/nurlansarkhanov/Desktop/code/Revelton/thingsboard-extention/src/app/components/revelton-tb-extension-dashboard/core/services/room-data.service.ts#L823-L882)
+
+Device type detection relies on string matching against entity names:
+```typescript
+return n.startsWith('AQ') || n.startsWith('AIR') || n.startsWith('AM') || 
+       n.includes('AM308') || n.includes('MILESIGHT') || ...
+```
+
+If a device is named differently (e.g., renamed by hotel staff in ThingsBoard), it silently falls through to the wrong category. The occupancy sensor detection at [line 867](file:///home/nurlansarkhanov/Desktop/code/Revelton/thingsboard-extention/src/app/components/revelton-tb-extension-dashboard/core/services/room-data.service.ts#L867) matches `n.includes('370')` which could match room 370.
+
+---
+
+### M8. `Object.assign` mutation on dialog data
+
+**File**: [revelton-hotel.component.ts](file:///home/nurlansarkhanov/Desktop/code/Revelton/thingsboard-extention/src/app/components/revelton-tb-extension-dashboard/features/hotel-dashboard/revelton-hotel.component.ts#L414-L416)
+
+```typescript
+Object.assign(room.activeDialogRef.componentInstance.data, room.roomData);
+```
+
+This mutates the dialog component's data in-place, bypassing Angular's change detection. Combined with the `OnPush` strategy (if used), this can cause stale UI.
+
+---
+
+### M9. `@Input() data: any` — the entire room detail panel is untyped
+
+**File**: [room-detail-panel.component.ts](file:///home/nurlansarkhanov/Desktop/code/Revelton/thingsboard-extention/src/app/components/revelton-tb-extension-dashboard/features/room-view/room-detail-panel.component.ts#L24)
+
+```typescript
+@Input() data: any;
+```
+
+This is the primary data input for a 1,607-line component. Every property access is unchecked (`this.data.trvDevices`, `this.data.ctx`, `this.data.windowDevices`). A single missing field causes a silent `undefined` propagation.
+
+---
+
+### M10. `localStorage` as alert persistence layer
+
+**File**: [room-detail-panel.component.ts](file:///home/nurlansarkhanov/Desktop/code/Revelton/thingsboard-extention/src/app/components/revelton-tb-extension-dashboard/features/room-view/room-detail-panel.component.ts#L1403-L1454)
+
+Alert acknowledgements and history are stored in `localStorage`. This means:
+- Data is lost if the user clears browser data or uses a different browser
+- No cross-device sync (mobile staff won't see acknowledged alerts)
+- `localStorage` has a ~5MB limit; with 50 alerts × many rooms, this grows
+- For a **hotel operations dashboard**, alert state should be server-side
+
+---
+
+### M11. Duplicate code: `extractRoomNumber` and `formatDeviceName`
+
+The `extractRoomNumber` method exists identically in `HotelStateService` (with comment "1:1 copy from revelton-hotel.component.ts"). `formatDeviceName` is duplicated between `HotelStateService` and `RoomDetailPanelComponent` with slightly different implementations.
+
+---
+
+### M12. `fetchHistoricalVitals` fires on every `updateData()` call
+
+**File**: [room-detail-panel.component.ts](file:///home/nurlansarkhanov/Desktop/code/Revelton/thingsboard-extention/src/app/components/revelton-tb-extension-dashboard/features/room-view/room-detail-panel.component.ts#L456-L463)
+
+```typescript
+public updateData(): void {
+  this.buildFromPassedData();
+  this.fetchHistoricalVitals(); // ← HTTP call every 10 seconds
+  // ...
+}
+```
+
+`updateData()` is called every 10 seconds by the `refreshInterval`. `fetchHistoricalVitals` has a cache key check, but the key only changes on room or time range change — however, it still enters the function, creates promises, and checks conditions on every cycle.
+
+---
+
+### M13. No error boundary in the data processing pipeline
+
+If `RoomDataService.updateFromTelemetry()` throws for one room, the entire `_doProcessDataUpdate` loop aborts, and no other rooms get updated. There's a top-level try/catch in the debounce subscriber, but it catches the error and logs — leaving all rooms stale.
+
+---
+
+### M14. `settings-panel/` directory exists but is empty
+
+Listed in the architecture docs as "reserved for future use." Empty directories in production builds are noise and signal incomplete work.
+
+---
+
+## 🟢 Strengths — What's Done Well
+
+1. **Solid architectural separation**: `core/services`, `features/`, `shared/components` — clean layer boundaries
+2. **Debounced data processing**: `PROCESS_DEBOUNCE_MS = 300` prevents rapid TB `onDataUpdated` from flooding the pipeline
+3. **HTTP retry with timeout**: `httpGetWithRetry` is well-implemented with exponential backoff
+4. **Optimistic UI with lock mechanism**: Thermostat controls use `modeLockUntil`/`presetLockUntil` to prevent UI flicker during RPC roundtrip
+5. **Configurable thresholds**: Air quality, noise, temperature thresholds are driven by `ControlPanelService` config
+6. **AQI calculation**: EPA breakpoint-based linear interpolation is scientifically sound
+7. **Multi-language support**: EN/RU translation system with reactive `BehaviorSubject`
+8. **Theme system**: CSS variable injection with multiple palettes (light/dark per theme)
+9. **Smart device classification**: Falls back through multiple strategies (profile name → entity name → regex)
+10. **Reservation state machine**: Mews integration covers all states (started, confirmed, optional, processed, canceled) with proper edge cases (overdue, late arrival)
+
+---
+
+## 📋 Prioritized Fix Plan
+
+### Phase 1: "Stop the Bleeding" (1–2 days)
+- [ ] **C1**: Set `DEBUG = false`
+- [ ] **C2**: Remove or flag mock guest count
+- [ ] **C3**: Remove test devices from `other-devices-panel`
+- [ ] **M3**: Remove/guard unconditional `console.log` statements
+- [ ] **M5**: Fix escaped regex in `formatDeviceName`
+
+### Phase 2: "Safety Guards" (3–5 days)
+- [ ] **C4**: Add input validation on RPC commands (temperature bounds, mode whitelist)
+- [ ] **C5+C6**: Extract hardcoded timezone/coordinates to a config constant
+- [ ] **M6**: Consolidate refresh timers to a single orchestrated refresh cycle
+- [ ] **M4**: Replace `toPromise()` with `firstValueFrom()`
+- [ ] **M13**: Add per-room try/catch in the processing loop
+
+### Phase 3: "Type Safety & Reliability" (1–2 weeks)
+- [ ] **M1**: Replace `any` types with proper interfaces (start with `RoomData`)
+- [ ] **M9**: Type the `@Input() data` in `RoomDetailPanelComponent`
+- [ ] **M7**: Add device profile-based identification alongside name-based fallback
+- [ ] **C7**: Scope `HotelStateService` to dashboard module or add proper reset
+- [ ] **M11**: Extract shared utilities to prevent code duplication
+
+### Phase 4: "Production Grade" (2–3 weeks)
+- [ ] **C8**: Write tests for core services and critical paths
+- [ ] **M10**: Move alert persistence to server-side (ThingsBoard attributes or custom DB)
+- [ ] **M2**: Track and cancel in-flight HTTP calls during discovery
+- [ ] **M14**: Remove empty `settings-panel/` or implement it
+- [ ] Add proper error boundaries and user-facing error states
+- [ ] Add performance monitoring (track refresh cycle duration)
+
+---
+
+## IoT-Specific Recommendations
+
+| Concern | Current State | Recommendation |
+|---------|--------------|----------------|
+| Device offline detection | 24h stale threshold | Add configurable timeout per device profile (TRV: 30min, LoRaWAN: 2h) |
+| Command confirmation | Fire-and-forget RPC | Implement read-back verification: set temp → wait 5s → read back → confirm |
+| Batch operations | One-at-a-time | Add "Set all TRVs to eco mode" batch command |
+| Data export | Not available | Add CSV/PDF export for historical data (hotel compliance) |
+| Audit trail | Client-side only | Log all RPC commands server-side with user ID, timestamp, old/new value |
+| Connectivity | No detection | Add visual indicator when TB WebSocket disconnects |
+| Stale data | No visual cue | Add "Last updated X seconds ago" badge per room card |
+
+---
+
+> [!NOTE]
+> This audit covers code quality and production-readiness. A separate **security audit** covering authentication flows, API endpoint authorization, and cross-site scripting (XSS) in template bindings is recommended before public deployment.

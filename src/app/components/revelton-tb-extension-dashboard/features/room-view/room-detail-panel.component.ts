@@ -166,14 +166,111 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   // ── Inline Historical Telemetry State ──────────────────────────────
-  /** Time range for inline historical section: 24 | 168 | 720 hours */
-  histTimeRange: number = 24;
+  /** Time range for inline historical section: 24 | 168 | 720 hours or 'custom' */
+  histTimeRange: number | 'custom' = 24;
+  histCustomStartDate: string = '';
+  histCustomStartHour: string = '00';
+  histCustomStartMin: string = '00';
+  histCustomEndDate: string = '';
+  histCustomEndHour: string = '00';
+  histCustomEndMin: string = '00';
+
+  hoursArray = Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0'));
+  minutesArray = Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, '0'));
+
+  get histCustomStart(): string {
+    return this.histCustomStartDate ? `${this.histCustomStartDate}T${this.histCustomStartHour}:${this.histCustomStartMin}` : '';
+  }
+  set histCustomStart(val: string) {
+    if (!val) return;
+    const [date, time] = val.split('T');
+    this.histCustomStartDate = date;
+    if (time) {
+      const parts = time.split(':');
+      this.histCustomStartHour = parts[0] || '00';
+      this.histCustomStartMin = parts[1] || '00';
+    }
+  }
+
+  get histCustomEnd(): string {
+    return this.histCustomEndDate ? `${this.histCustomEndDate}T${this.histCustomEndHour}:${this.histCustomEndMin}` : '';
+  }
+  set histCustomEnd(val: string) {
+    if (!val) return;
+    const [date, time] = val.split('T');
+    this.histCustomEndDate = date;
+    if (time) {
+      const parts = time.split(':');
+      this.histCustomEndHour = parts[0] || '00';
+      this.histCustomEndMin = parts[1] || '00';
+    }
+  }
+
+  histAppliedCustomStart: string = '';
+  histAppliedCustomEnd: string = '';
+  showHistCustomPicker = false;
   /** Legacy flag kept for backward compat */
   showHistoricalData = true;
 
-  setHistTimeRange(hours: number): void {
-    this.histTimeRange = hours;
+  get hasHistCustomRangeChanged(): boolean {
+    const startTs = this.parseDatetimeLocal(this.histCustomStart);
+    const endTs = this.parseDatetimeLocal(this.histCustomEnd);
+    if (!startTs || !endTs || startTs >= endTs) return false;
+    return this.histCustomStart !== this.histAppliedCustomStart || this.histCustomEnd !== this.histAppliedCustomEnd;
+  }
+
+  formatDatetimeLocal(d: Date): string {
+    return `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getDate().toString().padStart(2, '0')}T${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+  }
+
+  formatNum(val: any, max: number): string {
+    let num = parseInt(val, 10);
+    if (isNaN(num)) num = 0;
+    if (num < 0) num = 0;
+    if (num > max) num = max;
+    return num.toString().padStart(2, '0');
+  }
+
+  parseDatetimeLocal(str: string): number {
+    if (!str) return 0;
+    const d = new Date(str);
+    return isNaN(d.getTime()) ? 0 : d.getTime();
+  }
+
+  setHistTimeRange(hours: number | 'custom'): void {
+    if (hours === 'custom') {
+      if (!this.histCustomStart) {
+        const now = new Date();
+        const yesterday = new Date(now.getTime() - 24 * 3600 * 1000);
+        this.histCustomEnd = this.formatDatetimeLocal(now);
+        this.histCustomStart = this.formatDatetimeLocal(yesterday);
+      }
+      this.showHistCustomPicker = !this.showHistCustomPicker;
+    } else {
+      this.showHistCustomPicker = false;
+      this.histTimeRange = hours;
+    }
     this.cdr.detectChanges();
+  }
+
+  applyHistCustomRange(): void {
+    if (!this.histCustomStart || !this.histCustomEnd || !this.hasHistCustomRangeChanged) return;
+    const startTs = this.parseDatetimeLocal(this.histCustomStart);
+    const endTs = this.parseDatetimeLocal(this.histCustomEnd);
+    if (!startTs || !endTs || startTs >= endTs) return;
+    this.histAppliedCustomStart = this.histCustomStart;
+    this.histAppliedCustomEnd = this.histCustomEnd;
+    this.histTimeRange = 'custom';
+    this.showHistCustomPicker = false;
+    this.cdr.detectChanges();
+  }
+
+  get histCustomStartTs(): number | undefined {
+    return this.histTimeRange === 'custom' && this.histAppliedCustomStart ? this.parseDatetimeLocal(this.histAppliedCustomStart) : undefined;
+  }
+
+  get histCustomEndTs(): number | undefined {
+    return this.histTimeRange === 'custom' && this.histAppliedCustomEnd ? this.parseDatetimeLocal(this.histAppliedCustomEnd) : undefined;
   }
 
   openHistoricalData(): void {
@@ -374,17 +471,22 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
       const deviceId = this.deviceEntityIdMap[trv.entityName];
       if (!deviceId) continue;
 
-      const url = `/api/plugins/telemetry/DEVICE/${deviceId}/SHARED_SCOPE`;
-      const body: any = {};
-      if (trv.targetTemp != null) body['current_heating_setpoint'] = trv.targetTemp;
-      if (trv.systemMode != null) body['system_mode'] = trv.systemMode;
-      if (trv.preset != null) body['preset'] = trv.preset;
-
-      if (Object.keys(body).length === 0) continue;
-
-      ctx.http.post(url, body).subscribe(
-        () => { if (DEBUG) console.log(`Init attrs OK: ${trv.entityName}`); },
-        (err: any) => console.warn(`Init attrs failed: ${trv.entityName}`, err?.status)
+      ctx.http.get(`/api/plugins/telemetry/DEVICE/${deviceId}/values/attributes/SHARED_SCOPE?keys=current_heating_setpoint,system_mode,preset`).subscribe(
+        (res: any) => {
+          if (!this.data.trvDevices || !this.data.trvDevices[trv.entityName]) return;
+          const trvData = this.data.trvDevices[trv.entityName];
+          
+          const setPointObj = res.find((r: any) => r.key === 'current_heating_setpoint');
+          if (setPointObj !== undefined && setPointObj.value !== undefined) {
+             trvData.sharedSetPoint = parseFloat(setPointObj.value);
+             trv.targetTemp = trvData.sharedSetPoint;
+          }
+          
+          this.cdr.detectChanges();
+        },
+        (err: any) => {
+          console.error("Failed to fetch shared attributes for", trv.entityName, err);
+        }
       );
     }
   }
@@ -454,7 +556,8 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
       const now = Date.now();
       const serverMode = data.system_mode || 'auto';
       const serverPreset = data.preset || 'manual';
-      const serverTarget = data.setPoint ?? null;
+      const serverTarget = data.sharedSetPoint ?? data.setPoint ?? null;
+      const clientTarget = data.clientSetPoint ?? data.setPoint ?? null;
 
       const finalMode = trv && now < (trv.modeLockUntil || 0) ? trv.systemMode : serverMode;
       const finalPreset = trv && now < (trv.presetLockUntil || 0) ? trv.preset : serverPreset;
@@ -465,6 +568,7 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
         displayName: this.formatTrvDisplayName(name, this.data.deviceMeta?.[name]?.location),
         currentTemp: this.data.tempDevices?.[name] ?? null,
         targetTemp: finalTarget,
+        clientTargetTemp: clientTarget,
         systemMode: finalMode,
         runningState: data.status || 'unknown',
         preset: finalPreset,
@@ -1151,6 +1255,17 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
 
     trv.rpcPending = true;
     this.cdr.detectChanges();
+
+    // Persist locally so it survives dialog close even if websocket doesn't immediately push it
+    if (this.data && this.data.trvDevices && this.data.trvDevices[trv.entityName]) {
+      if (key === 'current_heating_setpoint') {
+        this.data.trvDevices[trv.entityName].sharedSetPoint = value;
+      } else if (key === 'system_mode') {
+        this.data.trvDevices[trv.entityName].system_mode = value;
+      } else if (key === 'preset') {
+        this.data.trvDevices[trv.entityName].preset = value;
+      }
+    }
 
     // Sync Shared Attribute
     ctx.http.post(`/api/plugins/telemetry/DEVICE/${deviceId}/SHARED_SCOPE`, { [key]: value }).subscribe(

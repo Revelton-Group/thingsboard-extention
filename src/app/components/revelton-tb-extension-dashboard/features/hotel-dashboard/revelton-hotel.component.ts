@@ -38,7 +38,7 @@ export class ReveltonDashboardComponent implements OnInit, OnDestroy {
   hotelLocation: string = "Jaltská 9, 360 01 Karlovy Vary 1, Czechia";
 
   rooms: InlineRoom[] = [];
-  timeRangeHours: number = 24;
+  timeRangeHours: number | 'custom' = 24;
   hotelStats: HotelStats = {
     totalRooms: 0,
     totalDevices: 0,
@@ -67,8 +67,66 @@ export class ReveltonDashboardComponent implements OnInit, OnDestroy {
   showCheckInsList = false;
   showCheckOutsList = false;
   showMewsList = false;
+  showCustomPicker = false;
   selectedRoom: InlineRoom | null = null;
   selectedHistoricalRoom: InlineRoom | null = null;
+  customStart: string = '';
+  customEnd: string = '';
+  appliedCustomStart: string = '';
+  appliedCustomEnd: string = '';
+
+  get hasCustomRangeChanged(): boolean {
+    const startTs = this.parseDateStr(this.customStart);
+    const endTs = this.parseDateStr(this.customEnd);
+    if (!startTs || !endTs || startTs >= endTs) return false;
+    return this.customStart !== this.appliedCustomStart || this.customEnd !== this.appliedCustomEnd;
+  }
+
+  cleanDate(str: string): string {
+    if (!str) return '';
+    const parts = str.split(/[-\s/:]+/);
+    if (parts.length >= 5) {
+      let y = parseInt(parts[2], 10) || new Date().getFullYear();
+      if (y < 100) y += 2000;
+      let m = parseInt(parts[1], 10) || 1;
+      if (m < 1) m = 1; else if (m > 12) m = 12;
+      let d = parseInt(parts[0], 10) || 1;
+      if (d < 1) d = 1; else if (d > 31) d = 31;
+      let h = parseInt(parts[3], 10) || 0;
+      if (h < 0) h = 0; else if (h > 23) h = 23;
+      let min = parseInt(parts[4], 10) || 0;
+      if (min < 0) min = 0; else if (min > 59) min = 59;
+      return `${d.toString().padStart(2, '0')}-${m.toString().padStart(2, '0')}-${y} ${h.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`;
+    }
+    return str;
+  }
+
+  formatDateStr(d: Date): string {
+    return `${d.getDate().toString().padStart(2, '0')}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getFullYear()} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+  }
+
+  parseDateStr(str: string): number {
+    const parts = (str || '').split(/[-\s/:]+/);
+    if (parts.length >= 5) {
+      let y = parseInt(parts[2], 10);
+      if (y < 100) y += 2000;
+      const m = parseInt(parts[1], 10) - 1;
+      const d = parseInt(parts[0], 10);
+      const h = parseInt(parts[3], 10);
+      const min = parseInt(parts[4], 10);
+      if (isNaN(y) || isNaN(m) || isNaN(d) || isNaN(h) || isNaN(min)) return 0;
+      return new Date(y, m, d, h, min).getTime();
+    }
+    return 0;
+  }
+
+  get customStartTs(): number | undefined {
+    return this.timeRangeHours === 'custom' && this.appliedCustomStart ? this.parseDateStr(this.appliedCustomStart) : undefined;
+  }
+
+  get customEndTs(): number | undefined {
+    return this.timeRangeHours === 'custom' && this.appliedCustomEnd ? this.parseDateStr(this.appliedCustomEnd) : undefined;
+  }
 
   otherDevices: OtherDevice[] = [];
   groupedOtherDevices: { [type: string]: OtherDevice[] } = {};
@@ -591,6 +649,8 @@ export class ReveltonDashboardComponent implements OnInit, OnDestroy {
     this.cd.detectChanges();
   }
 
+
+
   closeHistoricalData(): void {
     this.hotelState.closeHistoricalData();
   }
@@ -679,7 +739,31 @@ export class ReveltonDashboardComponent implements OnInit, OnDestroy {
     }));
   }
 
-  setHistoricalTimeRange(hours: number): void {
-    this.timeRangeHours = hours;
+  setHistoricalTimeRange(hours: number | 'custom'): void {
+    if (hours === 'custom') {
+      if (!this.customStart) {
+        const now = new Date();
+        const yesterday = new Date(now.getTime() - 24 * 3600 * 1000);
+        this.customEnd = this.formatDateStr(now);
+        this.customStart = this.formatDateStr(yesterday);
+      }
+      this.showCustomPicker = !this.showCustomPicker;
+    } else {
+      this.showCustomPicker = false;
+      this.timeRangeHours = hours;
+    }
+    this.cd.detectChanges();
+  }
+
+  applyCustomRange(): void {
+    if (!this.customStart || !this.customEnd || !this.hasCustomRangeChanged) return;
+    const startTs = this.parseDateStr(this.customStart);
+    const endTs = this.parseDateStr(this.customEnd);
+    if (!startTs || !endTs || startTs >= endTs) return;
+    this.appliedCustomStart = this.customStart;
+    this.appliedCustomEnd = this.customEnd;
+    this.timeRangeHours = 'custom';
+    this.showCustomPicker = false;
+    this.cd.detectChanges();
   }
 }
