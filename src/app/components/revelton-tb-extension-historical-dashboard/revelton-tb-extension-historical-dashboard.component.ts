@@ -61,10 +61,56 @@ export class ReveltonTbExtensionHistoricalDashboardComponent implements OnInit, 
   /** Time range options exposed to template — driven by constants (no hardcoded arrays) */
   readonly timeRangeOptions: TimeRangeOption[] = TIME_RANGE_LIST;
 
-  /** Controls whether the custom date picker dropdown is visible */
   showCustomPicker = false;
   customStart = '';
   customEnd = '';
+  appliedCustomStart = '';
+  appliedCustomEnd = '';
+
+  get hasCustomRangeChanged(): boolean {
+    const startTs = this.parseDateStr(this.customStart);
+    const endTs = this.parseDateStr(this.customEnd);
+    if (!startTs || !endTs || startTs >= endTs) return false;
+    return this.customStart !== this.appliedCustomStart || this.customEnd !== this.appliedCustomEnd;
+  }
+
+  cleanDate(str: string): string {
+    if (!str) return '';
+    const parts = str.split(/[-\s/:]+/);
+    if (parts.length >= 5) {
+      let y = parseInt(parts[2], 10) || new Date().getFullYear();
+      if (y < 100) y += 2000;
+      let m = parseInt(parts[1], 10) || 1;
+      if (m < 1) m = 1; else if (m > 12) m = 12;
+      let d = parseInt(parts[0], 10) || 1;
+      if (d < 1) d = 1; else if (d > 31) d = 31;
+      let h = parseInt(parts[3], 10) || 0;
+      if (h < 0) h = 0; else if (h > 23) h = 23;
+      let min = parseInt(parts[4], 10) || 0;
+      if (min < 0) min = 0; else if (min > 59) min = 59;
+      return `${d.toString().padStart(2, '0')}-${m.toString().padStart(2, '0')}-${y} ${h.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`;
+    }
+    return str;
+  }
+
+  formatDateStr(d: Date): string {
+    return `${d.getDate().toString().padStart(2, '0')}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getFullYear()} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+  }
+
+  parseDateStr(str: string): number {
+    const parts = (str || '').split(/[-\s/:]+/);
+    if (parts.length >= 5) {
+      let y = parseInt(parts[2], 10);
+      if (y < 100) y += 2000;
+      const m = parseInt(parts[1], 10) - 1;
+      const d = parseInt(parts[0], 10);
+      const h = parseInt(parts[3], 10);
+      const min = parseInt(parts[4], 10);
+      if (isNaN(y) || isNaN(m) || isNaN(d) || isNaN(h) || isNaN(min)) return 0;
+      return new Date(y, m, d, h, min).getTime();
+    }
+    return 0;
+  }
 
   constructor(
     private state: HistoricalStateService,
@@ -96,8 +142,8 @@ export class ReveltonTbExtensionHistoricalDashboardComponent implements OnInit, 
       // Pre-fill with current range bounds
       const now = new Date();
       const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-      if (!this.customStart) this.customStart = this.toDatetimeLocal(weekAgo);
-      if (!this.customEnd) this.customEnd = this.toDatetimeLocal(now);
+      if (!this.customStart) this.customStart = this.formatDateStr(weekAgo);
+      if (!this.customEnd) this.customEnd = this.formatDateStr(now);
       this.showCustomPicker = !this.showCustomPicker;
       return;
     }
@@ -106,19 +152,18 @@ export class ReveltonTbExtensionHistoricalDashboardComponent implements OnInit, 
   }
 
   applyCustomRange(): void {
-    if (!this.customStart || !this.customEnd) return;
-    const startTs = new Date(this.customStart).getTime();
-    const endTs = new Date(this.customEnd).getTime();
-    if (isNaN(startTs) || isNaN(endTs) || startTs >= endTs) return;
+    if (!this.customStart || !this.customEnd || !this.hasCustomRangeChanged) return;
+    const startTs = this.parseDateStr(this.customStart);
+    const endTs = this.parseDateStr(this.customEnd);
+    if (!startTs || !endTs || startTs >= endTs) return;
+    this.appliedCustomStart = this.customStart;
+    this.appliedCustomEnd = this.customEnd;
     this.showCustomPicker = false;
     this.state.setCustomTimeRange(startTs, endTs);
     this.cdr.markForCheck();
   }
 
-  private toDatetimeLocal(d: Date): string {
-    const pad = (n: number) => n.toString().padStart(2, '0');
-    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-  }
+
 
   toggleTheme(): void {
     this.state.toggleTheme();

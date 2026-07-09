@@ -253,9 +253,22 @@ export class RoomDataService {
           break;
         }
         case 'current_heating_setpoint':
+        case 'shared_current_heating_setpoint':
+        case 'client_current_heating_setpoint': {
           if (!newData.trvDevices[entityName]) newData.trvDevices[entityName] = {};
-          newData.trvDevices[entityName].setPoint = parseFloat(value) || 0;
+          const keyLower = key.toLowerCase();
+          const labelLower = String(item.dataKey?.label || '').toLowerCase();
+          
+          if (keyLower.includes('shared') || labelLower.includes('shared')) {
+            newData.trvDevices[entityName].sharedSetPoint = parseFloat(value) || 0;
+          } else if (keyLower.includes('client') || labelLower.includes('client')) {
+            newData.trvDevices[entityName].clientSetPoint = parseFloat(value) || 0;
+          } else {
+            // Default behavior if neither is explicitly specified
+            newData.trvDevices[entityName].setPoint = parseFloat(value) || 0;
+          }
           break;
+        }
         case 'running_state':
           if (!newData.trvDevices[entityName]) newData.trvDevices[entityName] = {};
           const mode = String(value).toLowerCase();
@@ -392,10 +405,12 @@ export class RoomDataService {
           newData.hasData.checkedIn = true;
           break;
         case 'waterLeak':
+        case 'leak':
+        case 'water_leak':
         case 'data_leakage_status': {
           if (this.isLeakSensor(entityName, newData.deviceMeta)) {
-            const isLeak = key === 'waterLeak' ? 
-              (value === true || value === 'true' || value === 1) : 
+            const isLeak = (key === 'waterLeak' || key === 'leak' || key === 'water_leak') ? 
+              (value === true || value === 'true' || value === 1 || String(value).toLowerCase() === 'leak' || String(value).toLowerCase() === 'leakage') : 
               (String(value).toLowerCase() !== 'normal');
             newData.sensorData.waterLeak = isLeak;
             newData.hasData.waterLeak = true;

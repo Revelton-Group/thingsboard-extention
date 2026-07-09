@@ -137,7 +137,7 @@
                     </div>
                     <div class="aq-inline-metric">
                         <i class="material-icons" [style.color]="isMotionActive(aq.pir) ? '#34d399' : 'var(--t2, #8b97a8)'">
-                            {{ isMotionActive(aq.pir) ? 'sensors' : 'sensors_off' }}
+                            {{ isMotionActive(aq.pir) ? 'person' : 'person_off' }}
                         </i>
                         <span class="aq-inline-label">{{ isMotionActive(aq.pir) ? 'Motion' : 'Idle' }}</span>
                     </div>
@@ -148,7 +148,7 @@
             <div class="device-card" style="order:3" *ngFor="let s of occupancySensors; trackBy: trackByEntityName">
                 <div class="device-card-header">
                     <div class="device-card-icon" style="background:var(--accent-soft, rgba(92,124,250,.14));color:var(--accent, #5c7cfa)">
-                        <i class="material-icons">radar</i>
+                        <i class="material-icons">person</i>
                     </div>
                     <div class="device-card-title">
                         <div class="device-card-name">{{ t.presenceSensor || 'Presence Sensor' }}</div>
@@ -358,17 +358,47 @@
                     <i class="material-icons">show_chart</i>
                     <span>HISTORICAL TELEMETRY</span>
                 </div>
-                <div class="hist-time-toggles">
-                    <button [class.active]="histTimeRange === 24" (click)="setHistTimeRange(24)">24H</button>
-                    <button [class.active]="histTimeRange === 168" (click)="setHistTimeRange(168)">7D</button>
-                    <button [class.active]="histTimeRange === 720" (click)="setHistTimeRange(720)">30D</button>
+                <div class="hist-time-toggles" style="position: relative; display: flex; align-items: center; justify-content: flex-end;">
+                    <div style="display: flex; gap: 4px;">
+                        <button [class.active]="histTimeRange === 24 && !showHistCustomPicker" (click)="setHistTimeRange(24)">24H</button>
+                        <button [class.active]="histTimeRange === 168 && !showHistCustomPicker" (click)="setHistTimeRange(168)">7D</button>
+                        <button [class.active]="histTimeRange === 720 && !showHistCustomPicker" (click)="setHistTimeRange(720)">30D</button>
+                        <button [class.active]="histTimeRange === 'custom' || showHistCustomPicker" (click)="setHistTimeRange('custom')">Custom</button>
+                    </div>
+
+                    <div *ngIf="showHistCustomPicker" style="position: absolute; top: calc(100% + 8px); right: 0; background: var(--inner, #ffffff); border: 1px solid var(--border, #e5e7eb); padding: 12px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); z-index: 50; display: flex; flex-direction: column; gap: 8px; min-width: 250px;">
+                        <span style="font-size: 12px; font-weight: 700; color: var(--tx, #111827);">Custom Range</span>
+                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                            <span style="font-size: 11px; color: var(--t2, #4b5563); font-weight: 600;">Start</span>
+                            <div style="display: flex; gap: 4px; align-items: center;">
+                                <input type="date" [(ngModel)]="histCustomStartDate" style="flex: 1; min-width: 0; border: 1px solid var(--border, #e5e7eb); padding: 6px 8px; border-radius: 6px; font-size: 12px; font-family: inherit; background: var(--inner, #ffffff); color: var(--tx, #111827);">
+                                <input type="text" maxlength="2" inputmode="numeric" [(ngModel)]="histCustomStartHour" (change)="histCustomStartHour = formatNum(histCustomStartHour, 23)" style="width: 35px; border: 1px solid var(--border, #e5e7eb); padding: 6px 4px; border-radius: 6px; font-size: 12px; font-family: inherit; background: var(--inner, #ffffff); color: var(--tx, #111827); text-align: center; outline: none;">
+                                <span style="color: var(--t2, #4b5563); font-weight: bold;">:</span>
+                                <input type="text" maxlength="2" inputmode="numeric" [(ngModel)]="histCustomStartMin" (change)="histCustomStartMin = formatNum(histCustomStartMin, 59)" style="width: 35px; border: 1px solid var(--border, #e5e7eb); padding: 6px 4px; border-radius: 6px; font-size: 12px; font-family: inherit; background: var(--inner, #ffffff); color: var(--tx, #111827); text-align: center; outline: none;">
+                            </div>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                            <span style="font-size: 11px; color: var(--t2, #4b5563); font-weight: 600;">End</span>
+                            <div style="display: flex; gap: 4px; align-items: center;">
+                                <input type="date" [(ngModel)]="histCustomEndDate" style="flex: 1; min-width: 0; border: 1px solid var(--border, #e5e7eb); padding: 6px 8px; border-radius: 6px; font-size: 12px; font-family: inherit; background: var(--inner, #ffffff); color: var(--tx, #111827);">
+                                <input type="text" maxlength="2" inputmode="numeric" [(ngModel)]="histCustomEndHour" (change)="histCustomEndHour = formatNum(histCustomEndHour, 23)" style="width: 35px; border: 1px solid var(--border, #e5e7eb); padding: 6px 4px; border-radius: 6px; font-size: 12px; font-family: inherit; background: var(--inner, #ffffff); color: var(--tx, #111827); text-align: center; outline: none;">
+                                <span style="color: var(--t2, #4b5563); font-weight: bold;">:</span>
+                                <input type="text" maxlength="2" inputmode="numeric" [(ngModel)]="histCustomEndMin" (change)="histCustomEndMin = formatNum(histCustomEndMin, 59)" style="width: 35px; border: 1px solid var(--border, #e5e7eb); padding: 6px 4px; border-radius: 6px; font-size: 12px; font-family: inherit; background: var(--inner, #ffffff); color: var(--tx, #111827); text-align: center; outline: none;">
+                            </div>
+                        </div>
+                        <button type="button" (click)="applyHistCustomRange()" [disabled]="!hasHistCustomRangeChanged" [style.background]="hasHistCustomRangeChanged ? 'var(--accent, #7c88ff)' : '#9ca3af'" [style.cursor]="hasHistCustomRangeChanged ? 'pointer' : 'default'" style="margin-top: 4px; color: white; border: none; padding: 8px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; width: 100%;">Apply</button>
+                    </div>
                 </div>
             </div>
             <tb-room-historical-data
                 [ctx]="data?.ctx"
+                [timeRangeHours]="histTimeRange"
+                [customStartTs]="histCustomStartTs"
+                [customEndTs]="histCustomEndTs"
                 [deviceEntityIdMap]="deviceEntityIdMap"
                 [thermostats]="thermostats"
                 [aqSensors]="aqSensors"
+                [deviceMeta]="data?.deviceMeta || {}"
                 [tempDevices]="data?.tempDevices || {}"
                 [humDevices]="data?.humDevices || {}"
                 [windowDevices]="data?.windowDevices || {}"

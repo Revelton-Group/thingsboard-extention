@@ -37,8 +37,10 @@
 
       <!-- Card Value (+ window device picker on the same row, when applicable) -->
       <div class="hist-card-value">
-        <span class="val" [style.color]="card.color">{{ card.hasData ? card.current : '--' }}</span>
-        <span class="unit" *ngIf="card.unit && card.hasData">{{ card.unit }}</span>
+        <div style="display: flex; align-items: baseline; gap: 4px;">
+          <span class="val" [style.color]="card.color">{{ card.hasData ? card.current : '--' }}</span>
+          <span class="unit" *ngIf="card.unit && card.hasData">{{ card.unit }}</span>
+        </div>
 
         <div class="hist-window-picker" *ngIf="card.key === 'window' && windowDeviceOptions.length > 1" (click)="$event.stopPropagation()">
           <button type="button"
@@ -46,6 +48,16 @@
                   class="picker-chip"
                   [class.active]="opt.entityName === selectedWindowEntity"
                   (click)="selectWindowDevice(opt.entityName)">
+            {{ opt.label }}
+          </button>
+        </div>
+
+        <div class="hist-window-picker" *ngIf="card.key === 'leak' && leakDeviceOptions.length > 1" (click)="$event.stopPropagation()">
+          <button type="button"
+                  *ngFor="let opt of leakDeviceOptions"
+                  class="picker-chip"
+                  [class.active]="opt.entityName === selectedLeakEntity"
+                  (click)="selectLeakDevice(opt.entityName)">
             {{ opt.label }}
           </button>
         </div>
@@ -62,7 +74,7 @@
           [step]="card.useLineChart ? 'start' : false"
           [yAxisMin]="card.useLineChart ? 0 : undefined"
           [yAxisMax]="card.useLineChart ? 1 : undefined"
-          [valueFormatter]="card.useLineChart ? windowTooltipFormatter : undefined"
+          [valueFormatter]="card.useLineChart ? getBinaryFormatter(card.key) : undefined"
           [sparkline]="true"
           [area]="true"
           [showLegend]="false">
@@ -71,14 +83,18 @@
         <!-- Custom Binary Timeline for Presence/Leak -->
         <div class="binary-timeline" *ngIf="card.hasData && card.isBinary && !card.useLineChart">
            <div class="dot-grid"></div>
+           
+           <div class="top-tooltip" *ngIf="card.hoveredEvent">
+              <div class="tt-time">{{ card.hoveredEvent.timeLabel }}</div>
+              <div class="tt-val" [style.color]="card.hoveredEvent.color">{{ card.hoveredEvent.label }} &middot; {{ card.hoveredEvent.durationStr }}</div>
+           </div>
+
            <div class="event-marker" *ngFor="let b of card.eventMarkers"
                 [style.left]="b.leftPct + '%'"
                 [style.width]="'max(3px, ' + b.widthPct + '%)'"
-                [style.background]="b.color">
-              <div class="binary-tooltip">
-                 <div class="tt-time">{{ b.timeLabel }}</div>
-                 <div class="tt-val" [style.color]="b.color">{{ b.label }} &middot; {{ b.durationStr }}</div>
-              </div>
+                [style.background]="b.color"
+                (mouseenter)="card.hoveredEvent = b"
+                (mouseleave)="card.hoveredEvent = null">
            </div>
         </div>
 

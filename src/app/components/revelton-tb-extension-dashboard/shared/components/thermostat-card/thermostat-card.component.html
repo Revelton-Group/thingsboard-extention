@@ -44,8 +44,14 @@
                 <button class="thermo-step-btn" (click)="decrementTemp()" [disabled]="trv.systemMode === 'off'">
                     <i class="material-icons">remove</i>
                 </button>
-                <div class="thermo-setpoint-value">
+                <div class="thermo-setpoint-value" style="display: flex; flex-direction: column; align-items: center;">
                     <span class="thermo-setpoint-num">{{ trv.targetTemp != null ? (trv.targetTemp | number:'1.1-1') : '--' }}<span class="thermo-setpoint-deg">°</span></span>
+                    <span class="thermo-client-target" *ngIf="trv.clientTargetTemp != null && trv.clientTargetTemp !== trv.targetTemp" style="font-size: 11px; color: var(--warn, #f5b54a); margin-top: -2px; text-align: center; line-height: 1.1; white-space: nowrap;">
+                        Waiting:<br/>current {{ trv.clientTargetTemp | number:'1.1-1' }}°
+                    </span>
+                    <span class="thermo-client-target" *ngIf="trv.clientTargetTemp != null && trv.clientTargetTemp === trv.targetTemp" style="font-size: 11px; color: var(--ok, #34d399); margin-top: -2px;">
+                        Synced
+                    </span>
                 </div>
                 <button class="thermo-step-btn" (click)="incrementTemp()" [disabled]="trv.systemMode === 'off'">
                     <i class="material-icons">add</i>

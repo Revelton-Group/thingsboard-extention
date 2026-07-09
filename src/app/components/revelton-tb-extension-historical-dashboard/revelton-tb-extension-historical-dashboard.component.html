@@ -90,16 +90,16 @@
             <div class="picker-body">
               <div class="picker-field">
                 <label>From</label>
-                <input type="datetime-local" [(ngModel)]="customStart" />
+                <input type="text" [(ngModel)]="customStart" placeholder="DD-MM-YYYY HH:mm" />
               </div>
               <div class="picker-field">
                 <label>To</label>
-                <input type="datetime-local" [(ngModel)]="customEnd" />
+                <input type="text" [(ngModel)]="customEnd" placeholder="DD-MM-YYYY HH:mm" />
               </div>
             </div>
             <div class="picker-actions">
               <button class="picker-cancel" (click)="showCustomPicker = false">Cancel</button>
-              <button class="picker-apply" (click)="applyCustomRange()">
+              <button class="picker-apply" (click)="applyCustomRange()" [disabled]="!hasCustomRangeChanged" [style.background]="hasCustomRangeChanged ? 'var(--accent, #7c88ff)' : '#9ca3af'" [style.cursor]="hasCustomRangeChanged ? 'pointer' : 'default'">
                 <mat-icon>check</mat-icon> Apply
               </button>
             </div>
