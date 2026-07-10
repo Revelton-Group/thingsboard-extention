@@ -4,6 +4,8 @@ import { RoomDataService } from '../../core/services/room-data.service';
 import { TranslationService } from '../../core/services/translation.service';
 import { HotelStateService, InlineRoom } from '../../core/services/hotel-state.service';
 import { ControlPanelService } from '../control-panel/services/control-panel.service';
+import { firstValueFrom } from 'rxjs';
+import { HOTEL_TIMEZONE, clampTemperature, isValidSystemMode, isValidPreset } from '../../core/models/dashboard.config';
 
 /** Set to true to enable verbose console logging during development */
 const DEBUG = false;
@@ -454,8 +456,14 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
   private attributesInitialized = false;
 
   public updateData(): void {
+    if (this.data?.deviceEntityIdMap) {
+      Object.assign(this.deviceEntityIdMap, this.data.deviceEntityIdMap);
+    }
     this.buildFromPassedData();
-    this.fetchHistoricalVitals();
+    const cacheKey = `${this.roomNumber}_${this.vitalsTimeRange}`;
+    if (cacheKey !== this.lastFetchedRoom) {
+      this.fetchHistoricalVitals();
+    }
     if (!this.attributesInitialized && this.thermostats.length > 0) {
       this.attributesInitialized = true;
       this.initializeSharedAttributes();
@@ -501,10 +509,7 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
   public buildFromPassedData(): void {
     if (!this.data) return;
 
-    const prevThermostats = this.thermostats;
-    const prevSockets = this.smartSockets;
-    this.thermostats = [];
-    this.smartSockets = [];
+    // Sensor arrays are read-only (no interactive UI state) — safe to rebuild
     this.aqSensors = [];
     this.allSensors = [];
     this.leftSensors = [];
@@ -515,6 +520,7 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
     this.noiseSensors = [];
     this.allRawSensors = [];
     this.logs = [];
+    // NOTE: thermostats & smartSockets are mutated in-place below (not cleared)
 
     const sd = this.data.sensorData || {};
     const hd = this.data.hasData || {};
@@ -549,10 +555,12 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
       this.checkoutRemaining = res.checkoutRemaining || '';
     }
 
-    // Thermostats
+    // Thermostats — in-place mutation to preserve UI state (_modeDropOpen, locks, etc.)
     const trvData = this.data.trvDevices || {};
+    const seenTrvNames = new Set<string>();
     for (const [name, data] of Object.entries(trvData) as any) {
-      let trv = prevThermostats.find(t => t.entityName === name);
+      seenTrvNames.add(name);
+      let trv = this.thermostats.find(t => t.entityName === name);
       const now = Date.now();
       const serverMode = data.system_mode || 'auto';
       const serverPreset = data.preset || 'manual';
@@ -584,9 +592,14 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
 
       if (trv) {
         Object.assign(trv, freshData);
-        this.thermostats.push(trv);
       } else {
         this.thermostats.push({ ...freshData, modeOpen: false, presetOpen: false, rpcPending: false, modeLockUntil: 0, presetLockUntil: 0, tempLockUntil: 0 });
+      }
+    }
+    // Remove stale thermostats (devices that disappeared)
+    for (let i = this.thermostats.length - 1; i >= 0; i--) {
+      if (!seenTrvNames.has(this.thermostats[i].entityName)) {
+        this.thermostats.splice(i, 1);
       }
     }
 
@@ -819,18 +832,21 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
       });
     }
 
-    // Smart Sockets
+    // Smart Sockets — in-place mutation to preserve UI state (stateLockUntil, etc.)
     const plugData = this.data.plugDevices || {};
+    const seenSocketNames = new Set<string>();
     for (const [name, data] of Object.entries(plugData) as any) {
-      let socket = prevSockets.find(s => s.entityName === name);
+      seenSocketNames.add(name);
+      let socket = this.smartSockets.find(s => s.entityName === name);
       const now = Date.now();
       const serverState = data.state ?? 'OFF';
       const finalState = socket && now < (socket.stateLockUntil || 0) ? socket.state : serverState;
 
-      this.smartSockets.push({
+      const freshSocketData = {
         entityName: name,
         displayName: this.data.deviceMeta?.[name]?.location || name,
         state: finalState,
+        telemetryState: serverState,
         power: data.power ?? null,
         voltage: data.voltage ?? null,
         current: data.current ?? null,
@@ -841,8 +857,19 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
         lastSeen: this.data.lastSeenDevices?.[name] ?? null,
         offline: this.data.offlineDevices?.[name] ?? false,
         controlKey: data.controlKey || 'state',
-        stateLockUntil: socket ? socket.stateLockUntil : 0
-      });
+      };
+
+      if (socket) {
+        Object.assign(socket, freshSocketData);
+      } else {
+        this.smartSockets.push({ ...freshSocketData, stateLockUntil: 0 });
+      }
+    }
+    // Remove stale sockets (devices that disappeared)
+    for (let i = this.smartSockets.length - 1; i >= 0; i--) {
+      if (!seenSocketNames.has(this.smartSockets[i].entityName)) {
+        this.smartSockets.splice(i, 1);
+      }
     }
 
     // Sorting
@@ -1188,7 +1215,7 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
       if (isNaN(d.getTime())) return isoString;
       
       const formatter = new Intl.DateTimeFormat('en-US', {
-        timeZone: 'Europe/Prague',
+        timeZone: HOTEL_TIMEZONE,
         year: 'numeric', month: '2-digit', day: '2-digit',
         hour: '2-digit', minute: '2-digit', hour12: false
       });
@@ -1239,19 +1266,38 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   onTempChange(trv: any, newTemp: number): void {
-    trv.targetTemp = newTemp;
+    const clampedTemp = clampTemperature(newTemp);
+    trv.targetTemp = clampedTemp;
     trv.tempLockUntil = Date.now() + 10000;
     if (!this.presetMemory[trv.entityName]) this.presetMemory[trv.entityName] = {};
-    this.presetMemory[trv.entityName][trv.preset || 'manual'] = newTemp;
-    this.saveAttribute(trv, 'current_heating_setpoint', newTemp);
+    this.presetMemory[trv.entityName][trv.preset || 'manual'] = clampedTemp;
+    this.saveAttribute(trv, 'current_heating_setpoint', clampedTemp);
   }
 
   private saveAttribute(trv: any, key: string, value: any): void {
+    // Validate bounds and whitelists
+    if (key === 'current_heating_setpoint') {
+      value = clampTemperature(value);
+    } else if (key === 'system_mode') {
+      if (!isValidSystemMode(value)) {
+        console.warn(`[RoomDetail] Invalid system_mode: ${value}`);
+        return;
+      }
+    } else if (key === 'preset') {
+      if (!isValidPreset(value)) {
+        console.warn(`[RoomDetail] Invalid preset: ${value}`);
+        return;
+      }
+    }
+
     const ctx = this.data?.ctx;
     if (!ctx?.http) return;
 
     const deviceId = this.deviceEntityIdMap[trv.entityName];
-    if (!deviceId) return;
+    if (!deviceId) {
+      console.warn(`[RoomDetail] saveAttribute: No deviceId for "${trv.entityName}" — skipping ${key}=${value}`);
+      return;
+    }
 
     trv.rpcPending = true;
     this.cdr.detectChanges();
@@ -1307,7 +1353,10 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
     const isBool = typeof socket.state === 'boolean' || socket.state === 'true' || socket.state === 'false';
     const valueToSend = isBool ? (nextState === 'ON') : nextState;
 
-    ctx.http.post(`/api/plugins/telemetry/DEVICE/${deviceId}/SHARED_SCOPE`, { [controlKey]: valueToSend }).subscribe(
+    ctx.http.post(`/api/plugins/telemetry/DEVICE/${deviceId}/SHARED_SCOPE`, { 
+      [controlKey]: valueToSend,
+      relayState: nextState === 'ON'
+    }).subscribe(
       () => { this.cdr.detectChanges(); },
       (err) => {
         socket.state = isCurrentlyOn ? 'ON' : 'OFF';
@@ -1527,7 +1576,7 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
     const keysToFetch = 'temperature,humidity,co2,temp,hum,data_temperature,data_humidity,data_co2';
     const safeFetch = (id: string | null): Promise<any> => {
       if (!id) return Promise.resolve(null);
-      return http.get(`/api/plugins/telemetry/DEVICE/${id}/values/timeseries?keys=${keysToFetch}&startTs=${startTs}&endTs=${endTs}&limit=${limit}&orderBy=ASC`).toPromise().catch(() => null);
+      return firstValueFrom(http.get(`/api/plugins/telemetry/DEVICE/${id}/values/timeseries?keys=${keysToFetch}&startTs=${startTs}&endTs=${endTs}&limit=${limit}&orderBy=ASC`)).catch(() => null);
     };
 
     const uniqueIds = [...new Set([aqDeviceId, tempDeviceId, humDeviceId].filter(Boolean))];

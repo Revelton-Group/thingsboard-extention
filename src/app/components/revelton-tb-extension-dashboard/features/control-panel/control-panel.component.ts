@@ -25,17 +25,16 @@ import {
 
       <!-- Header -->
       <div class="cp-header">
-        <div class="cp-header-title">
-          <i class="material-icons">settings</i>
-          <span>{{ t.controlConfig || 'Control Settings' }}</span>
-        </div>
-        <div class="cp-header-right">
-          <!-- Room scope selector -->
-          <div class="cp-scope-row">
-            <span class="cp-scope-label">{{ t.appliesTo || 'Applies to' }}</span>
+        <!-- Header top row: title | scope pill | close -->
+        <div class="cp-header-top">
+          <div class="cp-header-title">
+            <i class="material-icons">settings</i>
+            <span>{{ t.controlConfig || 'Control Settings' }}</span>
+          </div>
+          <div class="cp-header-actions">
+            <!-- Room scope pill -->
             <div class="cp-scope-btn-container">
               <button class="cp-scope-btn" (click)="toggleScopeDropdown()">
-                <i class="material-icons">tune</i>
                 <span>{{ scopeSummary }}</span>
                 <i class="material-icons cp-scope-chevron" [class.cp-scope-chevron--open]="scopeDropdownOpen">expand_more</i>
               </button>
@@ -70,22 +69,13 @@ import {
                 </div>
               </div>
             </div>
-            <span class="cp-scope-summary">
-              {{ t.appliesTo || 'Applies to' }} <b>{{ roomScopeCount }}</b> {{ t.ofRooms || 'of' }} {{ totalRooms }} {{ t.roomsTargeted || 'rooms' }}
-            </span>
+            <button class="cp-close-btn" (click)="close()">
+              <i class="material-icons">close</i>
+            </button>
           </div>
-          <button class="cp-close-btn" (click)="close()">
-            <i class="material-icons">close</i>
-          </button>
         </div>
-      </div>
 
-      <div class="cp-scope-backdrop" *ngIf="scopeDropdownOpen" (click)="scopeDropdownOpen = false"></div>
-
-      <!-- Body -->
-      <div class="cp-body">
-
-        <!-- Sidebar -->
+        <!-- Nav tabs row -->
         <nav class="cp-top-nav">
           <button
             class="cp-nav-item"
@@ -97,6 +87,12 @@ import {
             <span>{{ getSidebarLabel(s.id) }}</span>
           </button>
         </nav>
+      </div>
+
+      <div class="cp-scope-backdrop" *ngIf="scopeDropdownOpen" (click)="scopeDropdownOpen = false"></div>
+
+      <!-- Body -->
+      <div class="cp-body">
 
         <!-- Content -->
         <div class="cp-content" [class.cp-content--dark]="isDark">
@@ -149,11 +145,11 @@ import {
                     <div class="cp-th-inputs">
                       <div class="cp-th-input-grp" *ngIf="th.hasMin">
                         <span class="cp-th-input-lbl">MIN</span>
-                        <input class="cp-th-num" type="number" [(ngModel)]="th.minLimit" (ngModelChange)="onThresholdChange()">
+                        <input class="cp-th-num" type="number" (focus)="$event.target.select()" [(ngModel)]="th.minLimit" (ngModelChange)="onThresholdChange()">
                       </div>
                       <div class="cp-th-input-grp cp-th-input-grp--max">
                         <span class="cp-th-input-lbl">MAX</span>
-                        <input class="cp-th-num cp-th-num--max" type="number" [(ngModel)]="th.maxLimit" (ngModelChange)="onThresholdChange()">
+                        <input class="cp-th-num cp-th-num--max" type="number" (focus)="$event.target.select()" [(ngModel)]="th.maxLimit" (ngModelChange)="onThresholdChange()">
                       </div>
                     </div>
                   </div>
@@ -180,11 +176,11 @@ import {
                     <div class="cp-th-inputs">
                       <div class="cp-th-input-grp" *ngIf="th.hasMin">
                         <span class="cp-th-input-lbl">MIN</span>
-                        <input class="cp-th-num" type="number" [(ngModel)]="th.minLimit" (ngModelChange)="onThresholdChange()">
+                        <input class="cp-th-num" type="number" (focus)="$event.target.select()" [(ngModel)]="th.minLimit" (ngModelChange)="onThresholdChange()">
                       </div>
                       <div class="cp-th-input-grp cp-th-input-grp--max">
                         <span class="cp-th-input-lbl">MAX</span>
-                        <input class="cp-th-num cp-th-num--max" type="number" [(ngModel)]="th.maxLimit" (ngModelChange)="onThresholdChange()">
+                        <input class="cp-th-num cp-th-num--max" type="number" (focus)="$event.target.select()" [(ngModel)]="th.maxLimit" (ngModelChange)="onThresholdChange()">
                       </div>
                     </div>
                   </div>
@@ -375,7 +371,7 @@ import {
               <div [class.cp-disabled-section]="!config.noise.enabled">
 
                 <!-- Day Period -->
-                <div class="cp-noise-block" *ngFor="let period of noisePeriods">
+                <div class="cp-noise-block" *ngFor="let period of noisePeriods; trackBy: trackByKey">
                   <div class="cp-noise-period-hdr">
                     <div class="cp-noise-icon" [style.background]="period.iconBg" [style.color]="period.iconColor">
                       <i class="material-icons">{{ period.icon }}</i>
@@ -404,10 +400,11 @@ import {
                           <span class="cp-th-val" [style.color]="th.statusColor">{{ th.current }}<span class="cp-th-unit"> {{ th.unit }}</span></span>
                           <span class="cp-th-sub">{{ t.cpCurrent || 'Current' }}</span>
                         </div>
-                        <div class="cp-stepper">
-                          <button class="cp-step-btn" (click)="bumpNoiseLimit(period.key, th.key, -1)"><i class="material-icons">remove</i></button>
-                          <div class="cp-step-val"><span>{{ th.limit }}</span><span class="cp-step-lbl">{{ t.limitW || 'LIMIT' }}</span></div>
-                          <button class="cp-step-btn" (click)="bumpNoiseLimit(period.key, th.key, 1)"><i class="material-icons">add</i></button>
+                        <div class="cp-th-inputs">
+                          <div class="cp-th-input-grp cp-th-input-grp--max">
+                            <span class="cp-th-input-lbl">MAX</span>
+                            <input class="cp-th-num cp-th-num--max" type="number" (focus)="$event.target.select()" [(ngModel)]="th.limit" (ngModelChange)="onNoiseThresholdChange(period.key, th.key, th.limit)">
+                          </div>
                         </div>
                       </div>
                       <div class="cp-th-bar">
@@ -874,8 +871,8 @@ export class ControlPanelComponent implements OnInit, OnDestroy {
     const meta: any = {
       temp:  { icon: 'device_thermostat', iconBg: 'rgba(249,115,22,.15)', iconColor: '#f97316', label: this.t.cpTempMax || 'TEMP MAX LIMIT', unit: '°C', rangeMax: 45, hasMin: true,  sliderMin: 10, sliderMax: 40, sliderStep: 1 },
       hum:   { icon: 'water_drop',        iconBg: 'rgba(56,189,248,.15)', iconColor: '#38bdf8', label: this.t.cpHumMax || 'HUMIDITY MAX LIMIT', unit: '%', rangeMax: 95, hasMin: true,  sliderMin: 20, sliderMax: 90, sliderStep: 1 },
-      press: { icon: 'compress',          iconBg: 'rgba(168,85,247,.15)', iconColor: '#a855f7', label: this.t.cpPressMax || 'PRESSURE MAX LIMIT', unit: 'hPa', rangeMax: 1200, hasMin: true,  sliderMin: 950, sliderMax: 1150, sliderStep: 1 },
-      co2:   { icon: 'co2',               iconBg: 'rgba(52,211,153,.15)', iconColor: '#34d399', label: this.t.cpCo2Limit || 'CO₂ LIMIT', unit: 'ppm', rangeMax: 2000, hasMin: true, sliderMin: 300, sliderMax: 2000, sliderStep: 10 },
+      press: { icon: 'compress',          iconBg: 'rgba(168,85,247,.15)', iconColor: '#a855f7', label: this.t.cpPressMax || 'PRESSURE MAX LIMIT', unit: 'hPa', rangeMax: 1200, hasMin: false,  sliderMin: 950, sliderMax: 1150, sliderStep: 1 },
+      co2:   { icon: 'co2',               iconBg: 'rgba(52,211,153,.15)', iconColor: '#34d399', label: this.t.cpCo2Limit || 'CO₂ LIMIT', unit: 'ppm', rangeMax: 2000, hasMin: false, sliderMin: 300, sliderMax: 2000, sliderStep: 10 },
       pm25:  { icon: 'blur_on',           iconBg: 'rgba(251,191,36,.15)',  iconColor: '#fbbf24', label: this.t.cpPm25Limit || 'PM2.5 LIMIT', unit: 'µg/m³', rangeMax: 150, hasMin: false, sliderMin: 5, sliderMax: 150, sliderStep: 1 },
       pm10:  { icon: 'grain',             iconBg: 'rgba(245,158,11,.15)', iconColor: '#f59e0b', label: this.t.cpPm10Limit || 'PM10 LIMIT', unit: 'µg/m³', rangeMax: 300, hasMin: false, sliderMin: 10, sliderMax: 300, sliderStep: 1 },
       tvoc:  { icon: 'science',           iconBg: 'rgba(239,68,68,.15)',  iconColor: '#ef4444', label: this.t.cpTvocLimit || 'TVOC LIMIT', unit: 'ppb', rangeMax: 1500, hasMin: false, sliderMin: 100, sliderMax: 1500, sliderStep: 10 },
@@ -952,9 +949,9 @@ export class ControlPanelComponent implements OnInit, OnDestroy {
         start: period?.start || '',
         end: period?.end || '',
         levels: [
-          this._buildNoiseCard(key, 'laeq', limits?.laeq ?? 60),
-          this._buildNoiseCard(key, 'lai', limits?.lai ?? 65),
-          this._buildNoiseCard(key, 'laimax', limits?.laimax ?? 70),
+          this._buildNoiseCard(key, 'laeq', limits?.laeq !== undefined ? limits.laeq : 60),
+          this._buildNoiseCard(key, 'lai', limits?.lai !== undefined ? limits.lai : 65),
+          this._buildNoiseCard(key, 'laimax', limits?.laimax !== undefined ? limits.laimax : 70),
         ],
       };
     };
@@ -979,10 +976,10 @@ export class ControlPanelComponent implements OnInit, OnDestroy {
     };
   }
 
-  bumpNoiseLimit(periodKey: string, metric: string, delta: number): void {
+  onNoiseThresholdChange(periodKey: string, metric: string, newLimit: number): void {
     const limits = periodKey === 'day' ? this.config.noise.day : this.config.noise.night;
     const key = metric === 'laeq' ? 'laeq' : metric === 'lai' ? 'lai' : 'laimax';
-    (limits as any)[key] = Math.min(100, Math.max(20, ((limits as any)[key] || 60) + delta));
+    (limits as any)[key] = newLimit;
     this.rebuildDerived();
     this.cdr.detectChanges();
   }
@@ -1069,7 +1066,6 @@ export class ControlPanelComponent implements OnInit, OnDestroy {
 
   syncMewsNow(): void {
     this.mewsLastSyncAgo = 0;
-    console.log('[ControlPanel] Mews sync triggered');
     this.cdr.detectChanges();
   }
 
@@ -1258,9 +1254,6 @@ export class ControlPanelComponent implements OnInit, OnDestroy {
     }
 
     const entityIds = this.resolveRoomEntityIds();
-    console.log(
-      `[ControlPanel] Saving config to ${entityIds.length} room assets (scope: ${this.config.roomScope})`
-    );
     this.controlPanelService.saveConfig(this.config, entityIds);
     this.originalConfig = JSON.parse(JSON.stringify(this.config));
     this.controlPanelService.close();

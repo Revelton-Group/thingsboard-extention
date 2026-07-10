@@ -6,7 +6,7 @@
         </div>
         <div class="thermo-header-info">
             <div class="thermo-header-row">
-                <span class="thermo-name">TRV-{{ index }}</span>
+                <span class="thermo-name">{{ trv.displayName || ('TRV-' + index) }}</span>
                 <span class="thermo-state-badge" [style.color]="getTrvColor()" *ngIf="trv.runningState">
                     <span class="state-dot" [style.background]="getTrvColor()"></span>
                     {{ getRunningStateLabel(trv.runningState) | uppercase }}
@@ -70,23 +70,47 @@
 
     <!-- ═══ Mode / Preset Selects ═══ -->
     <div class="thermo-selects-row">
+
+        <!-- Mode custom dropdown -->
         <div class="thermo-select-group">
             <label class="thermo-select-label">{{ t.modeL | uppercase }}</label>
-            <select
-                class="thermo-select"
-                [value]="trv.systemMode"
-                (change)="onModeSelect($event)">
-                <option *ngFor="let m of modes" [value]="m.id">{{ m.label }}</option>
-            </select>
+            <div class="tc-dropdown" [class.tc-dropdown--open]="trv._modeDropOpen">
+                <button class="tc-drop-trigger" (click)="toggleModeDropdown()">
+                    <span>{{ getModeLabelById(trv.systemMode) }}</span>
+                    <i class="material-icons tc-drop-chevron">expand_more</i>
+                </button>
+                <div class="tc-drop-menu" *ngIf="trv._modeDropOpen">
+                    <button class="tc-drop-item"
+                        *ngFor="let m of modes; trackBy: trackById"
+                        [class.tc-drop-item--active]="trv.systemMode === m.id"
+                        (click)="selectMode(m.id)">
+                        {{ m.label }}
+                    </button>
+                </div>
+                <div class="tc-drop-backdrop" *ngIf="trv._modeDropOpen" (click)="trv._modeDropOpen = false"></div>
+            </div>
         </div>
+
+        <!-- Preset custom dropdown -->
         <div class="thermo-select-group">
             <label class="thermo-select-label">{{ t.presetL | uppercase }}</label>
-            <select
-                class="thermo-select"
-                [value]="trv.preset"
-                (change)="onPresetSelect($event)">
-                <option *ngFor="let p of presets" [value]="p.id">{{ p.label }}</option>
-            </select>
+            <div class="tc-dropdown" [class.tc-dropdown--open]="trv._presetDropOpen">
+                <button class="tc-drop-trigger" (click)="togglePresetDropdown()">
+                    <span>{{ getPresetLabelById(trv.preset) }}</span>
+                    <i class="material-icons tc-drop-chevron">expand_more</i>
+                </button>
+                <div class="tc-drop-menu" *ngIf="trv._presetDropOpen">
+                    <button class="tc-drop-item"
+                        *ngFor="let p of presets; trackBy: trackById"
+                        [class.tc-drop-item--active]="trv.preset === p.id"
+                        (click)="selectPreset(p.id)">
+                        {{ p.label }}
+                    </button>
+                </div>
+                <div class="tc-drop-backdrop" *ngIf="trv._presetDropOpen" (click)="trv._presetDropOpen = false"></div>
+            </div>
         </div>
+
     </div>
 </div>
+

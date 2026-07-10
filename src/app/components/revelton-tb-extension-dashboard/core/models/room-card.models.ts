@@ -32,6 +32,8 @@ export interface ThermostatDevice {
 
   modeOpen?: boolean;
   presetOpen?: boolean;
+  _modeDropOpen?: boolean;
+  _presetDropOpen?: boolean;
   rpcPending?: boolean;
   modeLockUntil?: number;
   presetLockUntil?: number;

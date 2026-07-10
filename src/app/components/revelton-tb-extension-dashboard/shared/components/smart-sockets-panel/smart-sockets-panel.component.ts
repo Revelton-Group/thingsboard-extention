@@ -23,6 +23,12 @@ export class SmartSocketsPanelComponent {
     return s === 'on' || s === 'true' || s === '1';
   }
 
+  isTelemetryOn(socket: any): boolean {
+    if (!socket || socket.telemetryState == null) return false;
+    const s = String(socket.telemetryState).toLowerCase();
+    return s === 'on' || s === 'true' || s === '1';
+  }
+
   getOnSocketsCount(): number {
     return this.smartSockets.filter(s => this.isSocketOn(s)).length;
   }

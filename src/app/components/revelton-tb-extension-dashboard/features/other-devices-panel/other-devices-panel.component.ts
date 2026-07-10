@@ -154,39 +154,6 @@ export class OtherDevicesPanelComponent {
     );
   }
 
-  /** Hardcoded test device — remove once real data renders correctly */
-  readonly testDevice = {
-    name: "trv_office_1",
-    type: "Thermostat",
-    status: "online",
-    room: "JLT-Office",
-    data: {
-      local_temperature: 22.5,
-      current_heating_setpoint: 20.0,
-      system_mode: "heat",
-      running_state: "heating",
-      battery: 75,
-      linkquality: 120,
-      model: "Tuya TS0601",
-    },
-  };
-
-  readonly testDevice2 = {
-    name: "trv_mop_1",
-    type: "Thermostat",
-    status: "online",
-    room: "JLT-Public Places",
-    data: {
-      local_temperature: 18.4,
-      current_heating_setpoint: 19.0,
-      system_mode: "heat",
-      running_state: "idle",
-      battery: 60,
-      linkquality: 100,
-      model: "Tuya TS0601",
-    },
-  };
-
   getIcon(type: string): string {
     const icons: Record<string, string> = {
       "Window Sensor": "sensor_window",

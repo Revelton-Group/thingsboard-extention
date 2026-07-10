@@ -121,7 +121,6 @@ export class ControlPanelService {
             const merged = this.deepMerge(DEFAULT_CONTROL_PANEL_CONFIG, serverConfig) as ControlPanelConfig;
             this._config$.next(merged);
             localStorage.setItem(this.STORAGE_KEY, JSON.stringify(merged));
-            console.log('[ControlPanel] ✅ Loaded config from ThingsBoard server');
           } catch (e) {
             console.warn('[ControlPanel] Failed to parse server config', e);
           }
@@ -155,7 +154,7 @@ export class ControlPanelService {
         `/api/plugins/telemetry/ASSET/${entityId}/SERVER_SCOPE`,
         payload
       ).subscribe(
-        () => console.log(`[ControlPanel] ✅ Config persisted to Asset ${entityId}`),
+        () => {},
         (err: any) => console.error(`[ControlPanel] ❌ Failed to persist config to Asset ${entityId}`, err)
       );
     }
@@ -274,7 +273,7 @@ export class ControlPanelService {
         `/api/plugins/telemetry/DEVICE/${mewsDeviceId}/SHARED_SCOPE`,
         payload
       ).subscribe(
-        () => console.log(`[ControlPanel] ✅ syncIntervalMinutes (${interval} min) persisted to Mews Gateway (${mewsDeviceId})`),
+        () => {},
         (err: any) => console.error(`[ControlPanel] ❌ Failed to persist syncIntervalMinutes to Mews Gateway (${mewsDeviceId})`, err)
       );
     } else {

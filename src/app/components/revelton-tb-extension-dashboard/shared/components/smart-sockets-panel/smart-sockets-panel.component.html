@@ -22,8 +22,8 @@
                         <div class="toggle-thumb"></div>
                     </button>
                     <div style="display: flex; align-items: center; gap: 4px; justify-content: flex-end;">
-                        <span class="socket-sig" [style.color]="isSocketOn(socket) ? 'var(--ok, #34d399)' : 'var(--t3, #8b97a8)'" style="font-weight: 600;">
-                            <i class="material-icons">power_settings_new</i>{{ isSocketOn(socket) ? 'On' : 'Off' }}
+                        <span class="socket-sig" [style.color]="isTelemetryOn(socket) ? 'var(--ok, #34d399)' : 'var(--t3, #8b97a8)'" style="font-weight: 600;">
+                            <i class="material-icons">power_settings_new</i>{{ isTelemetryOn(socket) ? 'On' : 'Off' }}
                         </span>
                         <span style="color: var(--border, #8b97a8); font-size: 8px; opacity: 0.5;">•</span>
                         <span class="socket-sig" [style.color]="socket.offline ? 'var(--alert, #f87171)' : getSignalColor(socket.linkquality)">
