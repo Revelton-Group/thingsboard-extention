@@ -163,6 +163,7 @@
   flex-shrink: 0;
   transition: all .15s;
   padding: 0;
+  -webkit-tap-highlight-color: transparent;
 
   i {
     font-size: 18px;
@@ -220,7 +221,7 @@
   color: var(--t3, #5c6675);
 }
 
-/* ═══ Mode / Preset Selects ═══ */
+/* ═══ Mode / Preset Selects Row ═══ */
 .thermo-selects-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -242,8 +243,24 @@
   text-transform: uppercase;
 }
 
-.thermo-select {
+/* ═══ Custom Dropdowns ═══ */
+
+.tc-dropdown {
+  position: relative;
+}
+
+.tc-drop-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9;
+}
+
+.tc-drop-trigger {
   width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
   background: var(--panel2, #1a2230);
   border: 1px solid var(--border, #27313f);
   border-radius: 10px;
@@ -251,15 +268,69 @@
   color: var(--tx, #e6ecf3);
   font: 600 12.5px Manrope;
   cursor: pointer;
-  appearance: none;
-  -webkit-appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238b97a8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 10px center;
-  padding-right: 30px;
+  -webkit-tap-highlight-color: transparent;
+  transition: border-color .15s;
+  text-align: left;
 
-  &:focus {
-    outline: none;
+  &:hover {
     border-color: var(--accent, #5c7cfa);
   }
+
+  span {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 }
+
+.tc-drop-chevron {
+  font-size: 16px;
+  color: var(--t3, #5c6675);
+  flex-shrink: 0;
+  transition: transform .2s;
+
+  .tc-dropdown--open & {
+    transform: rotate(180deg);
+  }
+}
+
+.tc-drop-menu {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: var(--panel2, #1a2230);
+  border: 1px solid var(--border, #27313f);
+  border-radius: 10px;
+  padding: 4px;
+  z-index: 10;
+  box-shadow: 0 -8px 24px rgba(0,0,0,.4);
+  overflow: hidden;
+}
+
+.tc-drop-item {
+  display: block;
+  width: 100%;
+  padding: 9px 11px;
+  background: transparent;
+  border: none;
+  border-radius: 7px;
+  color: var(--t2, #8b97a8);
+  font: 600 12.5px Manrope;
+  cursor: pointer;
+  text-align: left;
+  -webkit-tap-highlight-color: transparent;
+  transition: background .12s, color .12s;
+
+  &:hover {
+    background: var(--inner, #1e2733);
+    color: var(--tx, #e6ecf3);
+  }
+
+  &--active {
+    color: var(--accent, #5c7cfa);
+    font-weight: 700;
+  }
+}
+

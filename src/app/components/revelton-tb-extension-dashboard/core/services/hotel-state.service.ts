@@ -2,11 +2,12 @@ import { Injectable, OnDestroy } from "@angular/core";
 import { BehaviorSubject, Subject } from "rxjs";
 import { debounceTime } from "rxjs/operators";
 import { RoomDataService, RoomData } from "./room-data.service";
+import { HOTEL_TIMEZONE } from "../models/dashboard.config";
 
 /* ───────────────────────────────────────────────────────────
    Production config
    ─────────────────────────────────────────────────────────── */
-const DEBUG = true; // TEMPORARY: enable to debug Mews Bridge data flow
+const DEBUG = false;
 const HTTP_TIMEOUT_MS = 10000; // 10s timeout on all TB REST calls
 const HTTP_RETRY_COUNT = 2; // retry failed calls twice
 const PROCESS_DEBOUNCE_MS = 300; // debounce rapid onDataUpdated calls
@@ -473,7 +474,7 @@ export class HotelStateService implements OnDestroy {
                 const date = new Date(val);
                 if (!isNaN(date.getTime())) {
                   const formatter = new Intl.DateTimeFormat("en-US", {
-                    timeZone: "Europe/Prague",
+                    timeZone: HOTEL_TIMEZONE,
                     hour: "2-digit",
                     minute: "2-digit",
                     second: "2-digit",
@@ -483,8 +484,6 @@ export class HotelStateService implements OnDestroy {
                 }
               }
             }
-            // Log what we received for debugging
-            console.log(`[Mews] key="${item.dataKey?.name}" val="${val}" → status=${stats.mewsStatus} rooms=${stats.mewsRoomsSynced} online=${!stats.mewsAlertActive}`);
           }
           return;
         }
@@ -684,16 +683,20 @@ export class HotelStateService implements OnDestroy {
 
     // Process telemetry for each room
     for (const room of rooms) {
-      room.roomData = this.roomDataService.updateFromTelemetry(
-        room.mockCtx,
-        room.roomData
-      );
+      try {
+        room.roomData = this.roomDataService.updateFromTelemetry(
+          room.mockCtx,
+          room.roomData
+        );
 
-      // Check if there is an ASSET datasource with a custom label (e.g., "The Shambles" or "Oslo Gate")
-      const datasources = room.mockCtx?.datasources || [];
-      const assetDs = datasources.find((ds: any) => ds && ds.entityType === "ASSET");
-      if (assetDs && assetDs.entityLabel && assetDs.entityLabel !== assetDs.entityName) {
-        room.roomData.sensorData.roomTitle = assetDs.entityLabel;
+        // Check if there is an ASSET datasource with a custom label (e.g., "The Shambles" or "Oslo Gate")
+        const datasources = room.mockCtx?.datasources || [];
+        const assetDs = datasources.find((ds: any) => ds && ds.entityType === "ASSET");
+        if (assetDs && assetDs.entityLabel && assetDs.entityLabel !== assetDs.entityName) {
+          room.roomData.sensorData.roomTitle = assetDs.entityLabel;
+        }
+      } catch (e) {
+        console.error(`[HotelState] Error processing room ${room.id}:`, e);
       }
     }
     this.updateHotelStats(rooms, stats);
@@ -762,7 +765,7 @@ export class HotelStateService implements OnDestroy {
         const checkOutDate = new Date(room.roomData.reservation.checkOut);
         const getPragueParts = (d: Date) => {
           const formatter = new Intl.DateTimeFormat("en-US", {
-            timeZone: "Europe/Prague",
+            timeZone: HOTEL_TIMEZONE,
             year: "numeric",
             month: "numeric",
             day: "numeric",
@@ -812,11 +815,7 @@ export class HotelStateService implements OnDestroy {
         }
 
         if (room.roomData.reservation.reservationState === "Started") {
-          // Mock guest count: 1 for odd rooms, 2 for even rooms
-          const rn = parseInt(
-            room.roomData.sensorData.roomNumber?.toString() || "1"
-          );
-          inHouseGuests += rn % 2 === 0 ? 2 : 1;
+          inHouseGuests += 1;
         }
       }
 
@@ -958,7 +957,7 @@ export class HotelStateService implements OnDestroy {
 
   private formatDeviceName(name: string, defaultType: string): string {
     // Pattern: type_room_X_Y  (e.g., window_room_6_2, trv_room_6_1, wl_room_5_1)
-    const fullMatch = name.match(/^([a-zA-Z]+)_room_(\\d+)_(\\d+)$/i);
+    const fullMatch = name.match(/^([a-zA-Z]+)_room_(\d+)_(\d+)$/i);
     if (fullMatch) {
       const prefix = fullMatch[1].toUpperCase();
       const deviceNum = fullMatch[3];
@@ -977,7 +976,7 @@ export class HotelStateService implements OnDestroy {
     }
 
     // Pattern: type_X_Y (e.g., TRV_6_1)
-    const shortMatch = name.match(/^([a-zA-Z]+)_(\\d+)_(\\d+)$/i);
+    const shortMatch = name.match(/^([a-zA-Z]+)_(\d+)_(\d+)$/i);
     if (shortMatch) {
       const prefix = shortMatch[1].toUpperCase();
       const deviceNum = shortMatch[3];
@@ -996,7 +995,7 @@ export class HotelStateService implements OnDestroy {
     }
 
     // Pattern: type_X (single device per room)
-    const singleMatch = name.match(/^([a-zA-Z]+)_(\\d+)$/i);
+    const singleMatch = name.match(/^([a-zA-Z]+)_(\d+)$/i);
     if (singleMatch) {
       const prefix = singleMatch[1].toUpperCase();
       const types: Record<string, string> = {

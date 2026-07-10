@@ -48,6 +48,7 @@ export class ThermostatCardComponent {
     if (s === 'cool' || s === 'cooling') return this.t.cooling;
     if (s === 'idle') return this.t.idle;
     if (s === 'off') return this.t.off;
+    if (s === 'auto') return this.t.auto || 'Auto';
     return state;
   }
 
@@ -103,8 +104,8 @@ export class ThermostatCardComponent {
 
   incrementTemp(): void {
     if (!this.trv || this.trv.systemMode === 'off') return;
-    const cur = this.trv.targetTemp ?? 20;
-    const next = Math.min(30, +(cur + 1).toFixed(1));
+    const cur = Number(this.trv.targetTemp ?? 20);
+    const next = Math.min(35, +(cur + 1).toFixed(1));
     this.trv.targetTemp = next;
     this.cdr.detectChanges();
     this.tempChange.emit(next);
@@ -112,14 +113,44 @@ export class ThermostatCardComponent {
 
   decrementTemp(): void {
     if (!this.trv || this.trv.systemMode === 'off') return;
-    const cur = this.trv.targetTemp ?? 20;
+    const cur = Number(this.trv.targetTemp ?? 20);
     const next = Math.max(5, +(cur - 1).toFixed(1));
     this.trv.targetTemp = next;
     this.cdr.detectChanges();
     this.tempChange.emit(next);
   }
 
-  // ── Select handlers ──
+  // ── Custom dropdown helpers ──
+
+  getModeLabelById(id: string): string {
+    return this.modes.find(m => m.id === id)?.label ?? id;
+  }
+
+  getPresetLabelById(id: string): string {
+    return this.presets.find(p => p.id === id)?.label ?? id;
+  }
+
+  selectMode(id: string): void {
+    if (this.trv) this.trv._modeDropOpen = false;
+    this.modeChange.emit(id);
+  }
+
+  selectPreset(id: string): void {
+    if (this.trv) this.trv._presetDropOpen = false;
+    this.presetChange.emit(id);
+  }
+
+  toggleModeDropdown(): void {
+    if (!this.trv) return;
+    this.trv._modeDropOpen = !this.trv._modeDropOpen;
+    if (this.trv._modeDropOpen) this.trv._presetDropOpen = false;
+  }
+
+  togglePresetDropdown(): void {
+    if (!this.trv) return;
+    this.trv._presetDropOpen = !this.trv._presetDropOpen;
+    if (this.trv._presetDropOpen) this.trv._modeDropOpen = false;
+  }
 
   onModeSelect(event: Event): void {
     const value = (event.target as HTMLSelectElement).value;
@@ -129,5 +160,9 @@ export class ThermostatCardComponent {
   onPresetSelect(event: Event): void {
     const value = (event.target as HTMLSelectElement).value;
     this.presetChange.emit(value);
+  }
+
+  trackById(index: number, item: any): string {
+    return item.id;
   }
 }

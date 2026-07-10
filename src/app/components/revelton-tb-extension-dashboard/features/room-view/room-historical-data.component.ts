@@ -73,8 +73,6 @@ export class RoomHistoricalDataComponent implements OnInit, OnChanges {
     const timeChange = changes["timeRangeHours"];
 
     if (mapChange && mapChange.currentValue) {
-      console.log("deviceEntityIdMap keys:", Object.keys(mapChange.currentValue));
-      console.log("leakDevices:", this.leakDevices);
     }
 
     if ((mapChange && !mapChange.firstChange && JSON.stringify(mapChange.currentValue) !== JSON.stringify(mapChange.previousValue)) ||
@@ -430,7 +428,6 @@ export class RoomHistoricalDataComponent implements OnInit, OnChanges {
         if (id === aqDeviceId || id === occDeviceId) {
            const motionData = data["data_pir"] || data["pir"] || data["motion"] || data["data_motion"];
            if (motionData && motionData.length > 0) {
-              console.log("[RoomHistoricalData] Found motion data on device", id, ":", motionData);
            }
            normalized["motion"] = motionData || normalized["motion"];
         }

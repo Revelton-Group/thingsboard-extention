@@ -50,14 +50,19 @@
 /* ── Header ── */
 .cp-header {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 8px 18px;
+    flex-direction: column;
     border-bottom: 2px solid var(--border, #e2e8f0);
     flex-shrink: 0;
     background: var(--panel, #f8fafc);
-    flex-wrap: wrap;
-    gap: 8px;
+
+    // ── Top row: icon+title on left, scope pill + close on right
+    .cp-header-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 18px;
+        gap: 10px;
+    }
 
     .cp-header-title {
         display: flex;
@@ -68,10 +73,10 @@
         span { font-size: 16px; font-weight: 800; color: var(--tx, #0f172a); letter-spacing: 0.02em; }
     }
 
-    .cp-header-right {
+    .cp-header-actions {
         display: flex;
         align-items: center;
-        gap: 12px;
+        gap: 8px;
         flex-shrink: 0;
     }
 
@@ -91,79 +96,41 @@
         &:hover { background: var(--border, #e2e8f0); color: var(--tx, #0f172a); }
         .material-icons { font-size: 20px; }
     }
-
-}
-
-/* ── Scope Row (in header) ── */
-.cp-scope-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-
-    .cp-scope-label {
-        font-size: 11px;
-        font-weight: 700;
-        color: var(--t3, #5c6675);
-        text-transform: uppercase;
-        letter-spacing: 0.03em;
-        flex: 0 0 auto;
-    }
-
-    .cp-scope-summary {
-        font-size: 11px;
-        color: var(--t3, #5c6675);
-        white-space: nowrap;
-        display: inline-block;
-        width: 190px;
-        flex: 0 0 190px;
-
-        b {
-            color: var(--accent, #5c7cfa);
-        }
-
-        @media (max-width: 768px) {
-            display: none;
-        }
-    }
 }
 
 .cp-scope-btn {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 8px;
+    gap: 6px;
     background: var(--inner, #1e2733);
     border: 1px solid var(--border, #27313f);
     color: var(--tx, #e6ecf3);
-    padding: 8px 12px;
-    border-radius: 10px;
-    font: 700 12.5px Manrope, -apple-system, BlinkMacSystemFont, sans-serif;
+    padding: 5px 12px 5px 14px;
+    border-radius: 20px;   // pill shape
+    font: 600 12.5px Manrope, -apple-system, BlinkMacSystemFont, sans-serif;
     cursor: pointer;
     position: relative;
     z-index: 45;
-    transition: border-color 0.2s;
-    width: 175px;
+    transition: border-color 0.2s, background 0.2s;
+    white-space: nowrap;
 
-    &:hover { border-color: var(--accent, #5c7cfa); }
-
-    .material-icons { font-size: 16px; flex-shrink: 0; }
-    .material-icons:first-child { color: var(--accent, #5c7cfa); }
+    &:hover { border-color: var(--accent, #5c7cfa); background: var(--border, rgba(255,255,255,0.06)); }
 
     span {
-        flex: 1;
-        text-align: center;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
     }
-}
 
-.cp-scope-chevron {
-    color: var(--t3, #5c6675) !important;
-    transition: transform 0.15s;
+    .cp-scope-chevron {
+        color: var(--t3, #5c6675);
+        font-size: 18px;
+        flex-shrink: 0;
+        transition: transform 0.15s;
 
-    &.cp-scope-chevron--open {
-        transform: rotate(180deg);
+        &.cp-scope-chevron--open {
+            transform: rotate(180deg);
+        }
     }
 }
 
@@ -336,26 +303,26 @@
     overflow: hidden;
 }
 
-/* ── Top Nav ── */
+/* ── Top Nav (inside header) ── */
 .cp-top-nav {
     display: flex;
     align-items: center;
-    justify-content: center;
-    gap: 12px;
-    padding: 6px 12px;
-    border-bottom: 2px solid var(--border, #e2e8f0);
-    background: var(--panel, #f8fafc);
+    gap: 4px;
+    padding: 6px 16px 10px;
     flex-shrink: 0;
     min-width: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+    &::-webkit-scrollbar { display: none; }
 }
 
 .cp-nav-item {
     display: flex;
     align-items: center;
     gap: 5px;
-    padding: 8px 16px;
+    padding: 7px 16px;
     border: none;
-    border-radius: 8px;
+    border-radius: 20px;   // pill shape
     background: none;
     cursor: pointer;
     text-align: left;
@@ -364,30 +331,26 @@
     font-weight: 600;
     white-space: nowrap;
     flex: 0 0 auto;
-    min-width: 0;
-    overflow: hidden;
     transition: background 0.15s, color 0.15s;
     outline: none;
 
     > span {
-        overflow: hidden;
-        text-overflow: ellipsis;
         white-space: nowrap;
     }
 
-    .material-icons { font-size: 17px; flex-shrink: 0; }
+    .material-icons { font-size: 16px; flex-shrink: 0; }
 
     &:hover, &:focus, &:focus-visible {
         background: var(--border, rgba(255, 255, 255, 0.08));
-        color: var(--tx, #ffffff);
+        color: var(--tx, #e6ecf3);
         outline: none;
     }
 
     &.cp-nav-item--active {
-        background: var(--accentSoft, rgba(129, 140, 248, 0.12));
-        color: var(--accent, #818cf8);
-        .material-icons { color: var(--accent, #818cf8); }
-        &:hover, &:focus { background: rgba(129, 140, 248, 0.16); }
+        background: var(--accent, #818cf8);
+        color: #fff;
+        .material-icons { color: #fff; }
+        &:hover, &:focus { filter: brightness(1.08); background: var(--accent, #818cf8); }
     }
 }
 
@@ -1484,19 +1447,17 @@
     }
 
     .cp-header {
-        padding: 10px 14px;
-        flex-direction: column;
-        align-items: stretch;
+        .cp-header-top {
+            padding: 8px 14px;
+        }
 
         .cp-header-title {
             .material-icons { font-size: 20px; }
             span { font-size: 15px; }
         }
 
-        .cp-header-right {
-            flex-wrap: nowrap;         // keep scope + close on one row
-            gap: 8px;
-            align-items: center;
+        .cp-header-actions {
+            gap: 6px;
         }
     }
 
@@ -1506,27 +1467,6 @@
         flex-shrink: 0;
     }
 
-    .cp-scope-row {
-        flex: 1;
-        min-width: 0;
-        flex-wrap: nowrap;
-
-        .cp-scope-btn {
-            padding: 7px 10px;
-            font-size: 11px;
-            gap: 4px;
-            min-width: 0;
-            overflow: hidden;
-
-            > span:not(.material-icons) {
-                overflow: hidden;
-                text-overflow: ellipsis;
-                white-space: nowrap;
-            }
-
-            .material-icons { font-size: 14px; }
-        }
-    }
 
     .cp-scope-dropdown {
         left: 8px;
@@ -1617,15 +1557,12 @@
     }
 
     .cp-header {
-        flex-direction: column;
-        align-items: stretch;
-        padding: 8px 12px;
-        gap: 6px;
+        .cp-header-top {
+            padding: 8px 12px;
+        }
 
-        .cp-header-right {
-            flex-wrap: nowrap;         // keep scope + close on one row
-            justify-content: space-between;
-            gap: 8px;
+        .cp-header-actions {
+            gap: 6px;
         }
     }
 

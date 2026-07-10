@@ -21,6 +21,7 @@ import { ThemeService, ThemeMode } from "../../core/services/theme.service";
 import { Subscription } from "rxjs";
 import { TranslationService } from "../../core/services/translation.service";
 import { ControlPanelService } from "../control-panel/services/control-panel.service";
+import { HOTEL_TIMEZONE, HOTEL_LATITUDE, HOTEL_LONGITUDE } from "../../core/models/dashboard.config";
 
 @Component({
   selector: "tb-revelton-dashboard",
@@ -504,11 +505,11 @@ export class ReveltonDashboardComponent implements OnInit, OnDestroy {
   updateTime(): void {
     const now = new Date();
 
-    // Format options for Europe/Prague timezone
+    // Format options for timezone
     const lang =
       this.translationService.activeLangCode === "RU" ? "ru-RU" : "en-GB";
     const formatter = new Intl.DateTimeFormat(lang, {
-      timeZone: "Europe/Prague",
+      timeZone: HOTEL_TIMEZONE,
       weekday: "short",
       day: "numeric",
       month: "short",
@@ -535,9 +536,9 @@ export class ReveltonDashboardComponent implements OnInit, OnDestroy {
   }
 
   fetchWeather(): void {
-    // Open-Meteo API for Karlovy Vary (Lat: 50.2327, Lon: 12.8712)
+    // Open-Meteo API
     const url =
-      "https://api.open-meteo.com/v1/forecast?latitude=50.2327&longitude=12.8712&current_weather=true";
+      `https://api.open-meteo.com/v1/forecast?latitude=${HOTEL_LATITUDE}&longitude=${HOTEL_LONGITUDE}&current_weather=true`;
     fetch(url)
       .then((res) => res.json())
       .then((data) => {
