@@ -100,7 +100,7 @@
             </button>
           </div>
           <div class="kpi-dropdown-list">
-            <div class="kpi-list-item" *ngFor="let item of hotelStats?.checkInsList">
+            <div class="kpi-list-item" *ngFor="let item of hotelStats?.checkInsList; trackBy: trackByKpiRoom">
               <div class="kpi-item-avatar">
                 <i class="material-icons">person</i>
               </div>
@@ -141,7 +141,7 @@
             </button>
           </div>
           <div class="kpi-dropdown-list">
-            <div class="kpi-list-item" *ngFor="let item of hotelStats?.checkOutsList">
+            <div class="kpi-list-item" *ngFor="let item of hotelStats?.checkOutsList; trackBy: trackByKpiRoom">
               <div class="kpi-item-avatar">
                 <i class="material-icons">person</i>
               </div>
@@ -197,7 +197,7 @@
             </button>
           </div>
           <div class="battery-list-body">
-            <div class="battery-table-row" *ngFor="let item of hotelStats?.batteryAlertDevices">
+            <div class="battery-table-row" *ngFor="let item of hotelStats?.batteryAlertDevices; trackBy: trackByBatteryDevice">
               <div class="batt-icon" [class.critical]="item.battery === null || item.battery < 10">
                 <i class="material-icons">{{ getBatteryDeviceIcon(item.type) }}</i>
               </div>
@@ -538,8 +538,8 @@
         <tb-room-historical-data 
           [ctx]="selectedHistoricalRoom.mockCtx"
           [deviceEntityIdMap]="selectedHistoricalRoom.roomData.deviceEntityIdMap"
-          [thermostats]="getArray(selectedHistoricalRoom.roomData.trvDevices)"
-          [aqSensors]="getArray(selectedHistoricalRoom.roomData.airSensors)"
+          [thermostats]="histThermostats"
+          [aqSensors]="histAqSensors"
           [tempDevices]="selectedHistoricalRoom.roomData.tempDevices"
           [humDevices]="selectedHistoricalRoom.roomData.humDevices"
           [windowDevices]="selectedHistoricalRoom.roomData.windowDevices"

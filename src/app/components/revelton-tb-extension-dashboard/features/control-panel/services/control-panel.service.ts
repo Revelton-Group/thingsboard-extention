@@ -8,6 +8,12 @@ import {
   DEFAULT_CONTROL_PANEL_CONFIG,
 } from '../models/control-panel.models';
 
+/** Flip to true to surface informational warnings during development. */
+const DEBUG = false;
+function debugWarn(...args: any[]): void {
+  if (DEBUG) console.warn(...args);
+}
+
 @Injectable({ providedIn: 'root' })
 export class ControlPanelService {
   readonly sections: ControlPanelSection[] = CONTROL_PANEL_SECTIONS;
@@ -126,14 +132,14 @@ export class ControlPanelService {
           }
         }
       },
-      (err: any) => console.warn('[ControlPanel] Could not load server config', err)
+      (err: any) => debugWarn('[ControlPanel] Could not load server config', err)
     );
   }
 
   /** Persist entire config as a SERVER_SCOPE attribute on the target room Assets */
   private persistToThingsBoard(config: ControlPanelConfig, roomEntityIds?: string[]): void {
     if (!this.ctx?.http) {
-      console.warn('[ControlPanel] No ctx.http available — config saved locally only');
+      debugWarn('[ControlPanel] No ctx.http available — config saved locally only');
       return;
     }
 
@@ -143,7 +149,7 @@ export class ControlPanelService {
       : this.resolveAllAssetEntityIds();
 
     if (entityIds.length === 0) {
-      console.warn('[ControlPanel] Could not resolve any asset entity IDs.');
+      debugWarn('[ControlPanel] Could not resolve any asset entity IDs.');
       return;
     }
 
@@ -261,7 +267,7 @@ export class ControlPanelService {
 
   private persistMewsSyncInterval(interval: number): void {
     if (!this.ctx?.http) {
-      console.warn('[ControlPanel] No ctx.http available — cannot persist syncIntervalMinutes to ThingsBoard');
+      debugWarn('[ControlPanel] No ctx.http available — cannot persist syncIntervalMinutes to ThingsBoard');
       return;
     }
     const mewsDeviceId = this.resolveMewsDeviceId();
@@ -277,7 +283,7 @@ export class ControlPanelService {
         (err: any) => console.error(`[ControlPanel] ❌ Failed to persist syncIntervalMinutes to Mews Gateway (${mewsDeviceId})`, err)
       );
     } else {
-      console.warn('[ControlPanel] Could not find Mews gateway device in datasources to persist syncIntervalMinutes');
+      debugWarn('[ControlPanel] Could not find Mews gateway device in datasources to persist syncIntervalMinutes');
     }
   }
 }

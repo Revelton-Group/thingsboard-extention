@@ -1,4 +1,4 @@
-import { Component, Input } from "@angular/core";
+import { Component, Input, OnChanges } from "@angular/core";
 
 @Component({
   selector: "tb-other-devices-panel",
@@ -39,7 +39,7 @@ import { Component, Input } from "@angular/core";
             <div class="room-header-text">
               <div class="room-location">
                 <i class="material-icons">location_on</i>
-                <span>{{ getSubLocation(room) }}</span>
+                <span>{{ subLocationByRoom[room] }}</span>
               </div>
             </div>
             <span class="room-device-count">
@@ -50,26 +50,26 @@ import { Component, Input } from "@angular/core";
           <!-- Room Content -->
           <div class="room-content">
             <!-- THERMOSTAT → compact cards -->
-            <ng-container *ngIf="getThermostats(room).length > 0">
+            <ng-container *ngIf="thermostatsByRoom[room]?.length > 0">
               <tb-compact-thermostat
-                *ngFor="let dev of getThermostats(room)"
+                *ngFor="let dev of thermostatsByRoom[room]"
                 [device]="dev"
               >
               </tb-compact-thermostat>
             </ng-container>
 
             <!-- ENV SENSORS → compact cards -->
-            <ng-container *ngIf="getEnvSensors(room).length > 0">
+            <ng-container *ngIf="envSensorsByRoom[room]?.length > 0">
               <tb-compact-env-sensor
-                *ngFor="let dev of getEnvSensors(room)"
+                *ngFor="let dev of envSensorsByRoom[room]"
                 [device]="dev"
               >
               </tb-compact-env-sensor>
             </ng-container>
 
             <!-- ALL OTHER TYPES → generic rows -->
-            <ng-container *ngIf="getSensors(room).length > 0">
-              <div class="device-row" *ngFor="let dev of getSensors(room)">
+            <ng-container *ngIf="sensorsByRoom[room]?.length > 0">
+              <div class="device-row" *ngFor="let dev of sensorsByRoom[room]">
                 <div class="device-status-dot" [ngClass]="dev.status"></div>
                 <i class="material-icons device-icon">{{
                   getIcon(dev.type)
@@ -90,68 +90,71 @@ import { Component, Input } from "@angular/core";
   styleUrls: ["./other-devices-panel.component.scss"],
   standalone: false,
 })
-export class OtherDevicesPanelComponent {
+export class OtherDevicesPanelComponent implements OnChanges {
   @Input() types: string[] = []; // In this context, 'types' is being passed as 'rooms'
   @Input() groupedDevices: Record<string, any[]> = {};
 
   showBatteryPanel = false;
 
-  toggleBatteryPanel() {
-    this.showBatteryPanel = !this.showBatteryPanel;
-  }
+  /* Precomputed per-room buckets — these were previously computed by template
+     bindings that each re-filtered the device list twice per room on every
+     change-detection cycle. Recomputed only when the @Inputs change. */
+  subLocationByRoom: Record<string, string> = {};
+  thermostatsByRoom: Record<string, any[]> = {};
+  envSensorsByRoom: Record<string, any[]> = {};
+  sensorsByRoom: Record<string, any[]> = {};
+  lowBatteryDevices: any[] = [];
 
-  get lowBatteryDevices(): any[] {
-    const alerts = [];
+  ngOnChanges(): void {
+    this.subLocationByRoom = {};
+    this.thermostatsByRoom = {};
+    this.envSensorsByRoom = {};
+    this.sensorsByRoom = {};
+    const alerts: any[] = [];
+
     for (const room of this.types) {
       const devices = this.groupedDevices[room] || [];
+      const subLocation = this.computeSubLocation(devices);
+      this.subLocationByRoom[room] = subLocation;
+      this.thermostatsByRoom[room] = devices.filter((d) => d.type === "Thermostat");
+      this.envSensorsByRoom[room] = devices.filter(
+        (d) => d.type === "Air Monitor" || d.type === "Sensor"
+      );
+      this.sensorsByRoom[room] = devices.filter(
+        (d) =>
+          d.type !== "Thermostat" &&
+          d.type !== "Air Monitor" &&
+          d.type !== "Sensor"
+      );
+
       for (const d of devices) {
-        if (d.data?.batteryLow === true || String(d.data?.battery_low).toLowerCase() === 'true' || (d.data?.battery !== undefined && d.data?.battery < 20)) {
+        if (
+          d.data?.batteryLow === true ||
+          String(d.data?.battery_low).toLowerCase() === "true" ||
+          (d.data?.battery !== undefined && d.data?.battery < 20)
+        ) {
           alerts.push({
-             name: d.name || 'Unknown Device',
-             location: this.getSubLocation(room),
-             battery: d.data.battery
+            name: d.name || "Unknown Device",
+            location: subLocation,
+            battery: d.data.battery,
           });
         }
       }
     }
-    return alerts;
+    this.lowBatteryDevices = alerts;
   }
 
-  getBaseRoom(roomStr: string): string {
-    if (!roomStr) return "UNKNOWN";
-    // Splitting by the custom separator used in groupDevices()
-    return roomStr.includes(" — ") ? roomStr.split(" — ")[0] : roomStr;
+  toggleBatteryPanel() {
+    this.showBatteryPanel = !this.showBatteryPanel;
   }
 
-  getSubLocation(roomStr: string): string {
-    const devices = this.groupedDevices[roomStr] || [];
+  private computeSubLocation(devices: any[]): string {
     const deviceWithLocation = devices.find(
       (d) => d.data?.location && String(d.data.location).trim().length > 0
     );
     return deviceWithLocation
       ? String(deviceWithLocation.data.location).toUpperCase()
       : "UNKNOWN";
-  }
-
-  getThermostats(room: string): any[] {
-    return (this.groupedDevices[room] || []).filter(
-      (d) => d.type === "Thermostat"
-    );
-  }
-
-  getEnvSensors(room: string): any[] {
-    return (this.groupedDevices[room] || []).filter(
-      (d) => d.type === "Air Monitor" || d.type === "Sensor"
-    );
-  }
-
-  getSensors(room: string): any[] {
-    return (this.groupedDevices[room] || []).filter(
-      (d) =>
-        d.type !== "Thermostat" &&
-        d.type !== "Air Monitor" &&
-        d.type !== "Sensor"
-    );
   }
 
   getIcon(type: string): string {
