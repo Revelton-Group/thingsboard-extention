@@ -12,6 +12,36 @@ const HTTP_TIMEOUT_MS = 10000; // 10s timeout on all TB REST calls
 const HTTP_RETRY_COUNT = 2; // retry failed calls twice
 const PROCESS_DEBOUNCE_MS = 300; // debounce rapid onDataUpdated calls
 const PERIODIC_REFRESH_MS = 30000; // 30s between full telemetry refreshes (was 15s)
+const EMIT_DEBOUNCE_MS = 100; // batch discovery-merge emissions (N HTTP responses → 1 emit)
+
+/* Cached Prague-timezone formatters — Intl.DateTimeFormat construction is
+   expensive and these were previously rebuilt per room per stats pass. */
+const PRAGUE_DATETIME_FORMATTER = new Intl.DateTimeFormat("en-US", {
+  timeZone: HOTEL_TIMEZONE,
+  year: "numeric",
+  month: "numeric",
+  day: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
+});
+
+const PRAGUE_TIME_FORMATTER = new Intl.DateTimeFormat("en-US", {
+  timeZone: HOTEL_TIMEZONE,
+  hour: "2-digit",
+  minute: "2-digit",
+  second: "2-digit",
+  hour12: false,
+});
+
+function getPragueParts(d: Date): { dateStr: string; timeStr: string } {
+  const parts = PRAGUE_DATETIME_FORMATTER.formatToParts(d);
+  const get = (type: string) => parts.find((p) => p.type === type)?.value || "";
+  return {
+    dateStr: `${get("year")}-${get("month")}-${get("day")}`,
+    timeStr: `${get("hour")}:${get("minute")}`,
+  };
+}
 
 function log(...args: any[]): void {
   if (DEBUG) console.log(...args);
@@ -179,6 +209,12 @@ export class HotelStateService implements OnDestroy {
   private _processSub: any = null;
   private _firstDataProcessed = false;
 
+  /** Debounce room/other emissions during discovery merges */
+  private _emitRoomsDebounce$ = new Subject<void>();
+  private _emitRoomsSub: any = null;
+  private _emitOtherDebounce$ = new Subject<void>();
+  private _emitOtherSub: any = null;
+
   /* ──── Internal state ──── */
   private roomMap = new Map<string, InlineRoom>();
   private ctxOtherDevices = new Map<string, OtherDevice>();
@@ -223,11 +259,22 @@ export class HotelStateService implements OnDestroy {
         },
         error: (e) => console.error('[HotelState] debounce stream error:', e),
       });
+
+    // During backend discovery each of the N in-flight HTTP responses used to
+    // emit rooms$/otherDevices$ and recompute stats individually — batch them.
+    this._emitRoomsSub = this._emitRoomsDebounce$
+      .pipe(debounceTime(EMIT_DEBOUNCE_MS))
+      .subscribe(() => this.emitRooms());
+    this._emitOtherSub = this._emitOtherDebounce$
+      .pipe(debounceTime(EMIT_DEBOUNCE_MS))
+      .subscribe(() => this.emitMergedOtherDevices());
   }
 
   ngOnDestroy(): void {
     if (this.refreshTimer) clearInterval(this.refreshTimer);
     if (this._processSub) this._processSub.unsubscribe();
+    if (this._emitRoomsSub) this._emitRoomsSub.unsubscribe();
+    if (this._emitOtherSub) this._emitOtherSub.unsubscribe();
   }
 
   /**
@@ -279,7 +326,9 @@ export class HotelStateService implements OnDestroy {
   }
 
   /* ───────────────────────────────────────────────────────────
-     extractRoomNumber — 1:1 copy from revelton-hotel.component.ts
+     extractRoomNumber — single source for room-number extraction
+     from entity names (see also the reduced copy in room-card,
+     which runs as a standalone TB widget).
      ─────────────────────────────────────────────────────────── */
   extractRoomNumber(name: string): string {
     if (!name) return "Unknown";
@@ -445,11 +494,14 @@ export class HotelStateService implements OnDestroy {
 
         // Also check: does this datasource carry Mews-like telemetry keys?
         // This catches gateways where the profile name might differ.
-        const mewsKeyNames = ["integrationstatus", "isonline", "roomssynced", "alertactive", "errormessage", "lastheartbeautc",
+        const mewsKeyNames = ["integrationstatus", "isonline", "roomssynced", "alertactive", "errormessage", "lastheartbeatutc",
                               "integration_status", "is_online", "rooms_synced", "alert_active", "error_message", "last_heartbeat_utc"];
         const hasMewsKeys = item.dataKey?.name && mewsKeyNames.includes((item.dataKey.name || "").toLowerCase());
 
-        const isMewsBridge = isMewsByName || (lowerName.includes("gateway") && hasMewsKeys) || hasMewsKeys;
+        // Mews-like keys alone must NOT classify a device as the bridge — generic
+        // keys like is_online/error_message exist on unrelated devices, and bridge
+        // classification drops the item from room processing entirely.
+        const isMewsBridge = isMewsByName || (lowerName.includes("gateway") && hasMewsKeys);
         if (isMewsBridge) {
           if (item.data && item.data.length > 0) {
             const keyName = (item.dataKey?.name || "").toLowerCase().replace(/_/g, "");
@@ -473,14 +525,7 @@ export class HotelStateService implements OnDestroy {
               if (val) {
                 const date = new Date(val);
                 if (!isNaN(date.getTime())) {
-                  const formatter = new Intl.DateTimeFormat("en-US", {
-                    timeZone: HOTEL_TIMEZONE,
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    second: "2-digit",
-                    hour12: false,
-                  });
-                  stats.mewsLastActivity = formatter.format(date);
+                  stats.mewsLastActivity = PRAGUE_TIME_FORMATTER.format(date);
                 }
               }
             }
@@ -622,11 +667,16 @@ export class HotelStateService implements OnDestroy {
 
         dataByRoom.get(roomNumber)!.push(item);
 
-        // Datasource collection per room
-        const entityId = item.datasource.entityId;
+        // Datasource collection per room — normalize entityId to a string
+        // (it may be a {id, entityType} object) or Set dedup fails on identity.
+        const rawDsEntityId = item.datasource.entityId;
+        const dsEntityIdKey: string =
+          typeof rawDsEntityId === "string"
+            ? rawDsEntityId
+            : (rawDsEntityId as any)?.id || String(rawDsEntityId);
         const dsSet = dsIdSetByRoom.get(roomNumber)!;
-        if (!dsSet.has(entityId)) {
-          dsSet.add(entityId);
+        if (!dsSet.has(dsEntityIdKey)) {
+          dsSet.add(dsEntityIdKey);
           dsByRoom.get(roomNumber)!.push(item.datasource);
         }
       }
@@ -699,10 +749,12 @@ export class HotelStateService implements OnDestroy {
         console.error(`[HotelState] Error processing room ${room.id}:`, e);
       }
     }
+    // updateHotelStats emits the fully computed stats (using `stats` only for
+    // the Mews fields) — re-emitting the raw `stats` copy here would clobber
+    // the computed KPIs with last cycle's values.
     this.updateHotelStats(rooms, stats);
 
     this._rooms$.next(rooms);
-    this._hotelStats$.next(stats);
     this.emitMergedOtherDevices();
   }
 
@@ -725,7 +777,8 @@ export class HotelStateService implements OnDestroy {
   }
 
   /* ───────────────────────────────────────────────────────────
-     updateHotelStats — 1:1 copy from revelton-hotel.component.ts
+     updateHotelStats — aggregates room data into HotelStats and
+     emits it (single emitter for _hotelStats$).
      ─────────────────────────────────────────────────────────── */
   updateHotelStats(rooms: InlineRoom[], mewsStats: Partial<HotelStats>): void {
     let batteryAlerts = 0;
@@ -763,24 +816,6 @@ export class HotelStateService implements OnDestroy {
       if (room.roomData.reservation.hasReservation) {
         const checkInDate = new Date(room.roomData.reservation.checkIn);
         const checkOutDate = new Date(room.roomData.reservation.checkOut);
-        const getPragueParts = (d: Date) => {
-          const formatter = new Intl.DateTimeFormat("en-US", {
-            timeZone: HOTEL_TIMEZONE,
-            year: "numeric",
-            month: "numeric",
-            day: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-            hour12: false,
-          });
-          const parts = formatter.formatToParts(d);
-          const get = (type: string) =>
-            parts.find((p) => p.type === type)?.value || "";
-          return {
-            dateStr: `${get("year")}-${get("month")}-${get("day")}`,
-            timeStr: `${get("hour")}:${get("minute")}`,
-          };
-        };
 
         const checkInPrague = getPragueParts(checkInDate);
         const checkOutPrague = getPragueParts(checkOutDate);
@@ -888,9 +923,6 @@ export class HotelStateService implements OnDestroy {
     });
   }
 
-  /* ───────────────────────────────────────────────────────────
-     formatDeviceName — 1:1 copy from revelton-hotel.component.ts
-     ─────────────────────────────────────────────────────────── */
   private getDeviceType(name: string, data: RoomData | null): string {
     if (data) {
       if (data.windowDevices?.[name]) return "Window Sensor";
@@ -1163,10 +1195,12 @@ export class HotelStateService implements OnDestroy {
       );
     });
 
-    // Set up periodic refresh (every 30s)
+    // Set up periodic refresh (every 30s).
+    // Use lastCtx (updated on every data push) so polling follows the live
+    // widget context instead of the one captured at discovery time.
     if (!this.refreshTimer) {
       this.refreshTimer = setInterval(() => {
-        this.refreshAllDeviceTelemetry(ctx);
+        this.refreshAllDeviceTelemetry(this.lastCtx || ctx);
       }, PERIODIC_REFRESH_MS);
     }
   }
@@ -1664,7 +1698,7 @@ export class HotelStateService implements OnDestroy {
         `[HotelState] 📡 emitMergedOtherDevices — discoveredOther=${this.discoveredOtherDevices.size}` +
           ` ctxOther=${this.ctxOtherDevices.size}`
       );
-      this.emitMergedOtherDevices();
+      this._emitOtherDebounce$.next();
     }
   }
 
@@ -1728,7 +1762,14 @@ export class HotelStateService implements OnDestroy {
       room.roomData
     );
 
-    // Publish updated rooms
+    // Publish via the debounced emitter — during discovery dozens of these
+    // merges land within milliseconds and each used to re-sort, recompute
+    // stats and emit rooms$ individually.
+    this._emitRoomsDebounce$.next();
+  }
+
+  /** Sort rooms, recompute stats and emit — single publish path for merges. */
+  private emitRooms(): void {
     const rooms = Array.from(this.roomMap.values()).sort((a, b) => {
       const numA = parseInt(a.id, 10);
       const numB = parseInt(b.id, 10);

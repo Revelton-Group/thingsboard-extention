@@ -19,7 +19,7 @@
 
   <!-- 4-Card Grid -->
   <div class="hist-grid" *ngIf="metricCards.length > 0">
-    <div class="hist-card" *ngFor="let card of metricCards">
+    <div class="hist-card" *ngFor="let card of metricCards; trackBy: trackByCardKey">
       
       <!-- Card Header -->
       <div class="hist-card-header">

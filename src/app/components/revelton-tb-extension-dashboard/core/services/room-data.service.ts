@@ -1,6 +1,4 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { BehaviorSubject, Observable } from 'rxjs';
 import { WidgetContext } from '@home/models/widget-component.models';
 import { TranslationService } from './translation.service';
 import { ControlPanelService } from '../../features/control-panel/services/control-panel.service';
@@ -100,9 +98,6 @@ export interface RoomData {
 })
 export class RoomDataService {
 
-  private dataSubject = new BehaviorSubject<RoomData | null>(null);
-  public data$ = this.dataSubject.asObservable();
-
   private THRESHOLDS: {
     temperature: { warning: { min: number, max: number }, danger: { min: number, max: number } },
     humidity: { warning: { min: number, max: number }, danger: { min: number, max: number } },
@@ -118,21 +113,18 @@ export class RoomDataService {
   private lastSeenTimestamps: { [device: string]: number } = {};
 
   constructor(
-    private http: HttpClient,
     private translationService: TranslationService,
     private controlPanelService: ControlPanelService
   ) {
     this.controlPanelService.config$.subscribe(config => {
       if (config) {
-        // ── Air Quality (CO₂-based AQI threshold) ──
-        if (config.airQuality?.enabled) {
-          this.THRESHOLDS.airQuality = {
-            warning: Math.round(config.airQuality.co2Max * 0.8),
-            danger: config.airQuality.co2Max
-          };
-        } else {
-          this.THRESHOLDS.airQuality = { warning: 800, danger: 1000 };
-        }
+        // ── Air Quality ──
+        // THRESHOLDS.airQuality is compared against the computed AQI index
+        // (0–200 scale from calculateAirQuality), NOT raw CO₂ ppm. The
+        // configured co2Max/pm25Max/… already shift the AQI curve via the
+        // custom breakpoints in aggregateAll(), so status thresholds must
+        // stay on the AQI scale (AQI >100 = "Fair" boundary exceeded).
+        this.THRESHOLDS.airQuality = { warning: 100, danger: 150 };
 
         // ── Temperature ──
         if (config.airQuality?.enabled) {
@@ -432,6 +424,10 @@ export class RoomDataService {
             if (!newData.occupancyDevices[entityName]) newData.occupancyDevices[entityName] = {};
             newData.occupancyDevices[entityName].deviceStatus = String(value);
           }
+          if (entityName !== 'unknown' && this.isPlugDevice(entityName, newData.deviceMeta)) {
+            if (!newData.plugDevices[entityName]) newData.plugDevices[entityName] = {};
+            newData.plugDevices[entityName].state = String(value);
+          }
           break;
         case 'data_firmware_version':
           if (this.isLeakSensor(entityName, newData.deviceMeta)) {
@@ -579,7 +575,6 @@ export class RoomDataService {
         case 'state':
         case 'socket_state':
         case 'plug_state':
-        case 'data_device_status':
         case 'data_socket_status':
           if (entityName !== 'unknown' && this.isPlugDevice(entityName, newData.deviceMeta)) {
             if (!newData.plugDevices[entityName]) newData.plugDevices[entityName] = {};
@@ -732,7 +727,7 @@ export class RoomDataService {
         
         res.checkDisplay = 'Wait';
         res.checkIconClass = isLate ? 'icon-orange' : 'icon-gray';
-        res.checkPillClass = isLate ? 'pill-wait' : 'pill-wait';
+        res.checkPillClass = 'pill-wait';
         res.bookDisplay = isLate ? this.t.lateArrival : (state === 'confirmed' ? this.t.confirmed : this.t.optional);
         res.bookIconClass = isLate ? 'icon-red' : (state === 'confirmed' ? 'icon-green' : 'icon-gray');
         res.bookPillClass = isLate ? 'pill-danger' : (state === 'confirmed' ? 'pill-wait' : 'pill-inactive');

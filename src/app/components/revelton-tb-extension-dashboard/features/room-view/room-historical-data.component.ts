@@ -42,6 +42,10 @@ export class RoomHistoricalDataComponent implements OnInit, OnChanges {
    * the previously selected window) can't clobber a newer one's results. */
   private fetchSeq = 0;
 
+  trackByCardKey(_index: number, card: any): string {
+    return card.key;
+  }
+
   getBinaryFormatter(key: string): (val: number) => string {
     return (val: number) => {
       const t: any = this.t;

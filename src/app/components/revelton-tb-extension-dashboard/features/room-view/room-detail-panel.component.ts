@@ -116,16 +116,6 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
     ];
   }
 
-  getThermostatSectionColor(): string {
-    if (!this.thermostats || this.thermostats.length === 0) return '';
-    const trv = this.thermostats[0];
-    const mode = trv.runningState || trv.systemMode;
-    if (mode === 'off' || mode === 'fan') return '#8E8E93';
-    if (mode === 'heat' || mode === 'heating') return '#FF9500';
-    if (mode === 'cool' || mode === 'cooling' || mode === 'idle') return '#06B6D4';
-    return '#34C759'; // auto/default
-  }
-
   // Dynamic data
   thermostats: any[] = [];
   aqSensors: any[] = [];
@@ -287,11 +277,6 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
     }
   }
 
-  closeHistoricalData(): void {
-    this.showHistoricalData = true;
-    this.cdr.detectChanges();
-  }
-
   // ── Vital Expand Modal State ────────────────────────────────────
   expandedVitalKey: string | null = null;
   expandedVitalTint = '';
@@ -308,6 +293,10 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
   expandedVitalAvg = '';
   expandedVitalMax = '';
 
+  // NOTE: nothing calls expandVital() currently — the vital-expand modal
+  // (template "Vital Chart Expand Modal") is orphaned. Re-wire a click
+  // handler on the vital cards or remove the whole cluster (fields above,
+  // getVitalConfig, template block). Tracked in docs/AUDIT_REPORT.md.
   expandVital(key: string): void {
     this.expandedVitalKey = key;
     const cfg = this.getVitalConfig(key);
@@ -1251,20 +1240,6 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
     }
   }
 
-  toggleMode(event: MouseEvent, trv: any): void {
-    event.stopPropagation();
-    trv.modeOpen = !trv.modeOpen;
-    if (trv.modeOpen) trv.presetOpen = false;
-    this.cdr.detectChanges();
-  }
-
-  togglePreset(event: MouseEvent, trv: any): void {
-    event.stopPropagation();
-    trv.presetOpen = !trv.presetOpen;
-    if (trv.presetOpen) trv.modeOpen = false;
-    this.cdr.detectChanges();
-  }
-
   onTempChange(trv: any, newTemp: number): void {
     const clampedTemp = clampTemperature(newTemp);
     trv.targetTemp = clampedTemp;
@@ -1383,13 +1358,6 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
     if (lqi >= 100) return this.t.good;
     if (lqi >= 50) return this.t.fair;
     return this.t.poor;
-  }
-
-  getLinkQualityClass(lqi: number | null): string {
-    if (lqi == null) return 'meta-item-gray';
-    if (lqi >= 100) return 'meta-item-green';
-    if (lqi >= 50) return 'meta-item-orange';
-    return 'meta-item-gray';
   }
 
   // ── Battery helpers ──────────────────────────────────────────────
@@ -1534,10 +1502,6 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
 
   trackByEntityName(index: number, item: any): string {
     return item.entityName;
-  }
-
-  trackById(index: number, item: any): string | number {
-    return item.id;
   }
 
   fetchHistoricalVitals(): void {

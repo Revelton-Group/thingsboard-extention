@@ -17,7 +17,7 @@ import {
   HotelStats,
   OtherDevice,
 } from "../../core/services/hotel-state.service";
-import { ThemeService, ThemeMode } from "../../core/services/theme.service";
+import { ThemeService } from "../../core/services/theme.service";
 import { Subscription } from "rxjs";
 import { TranslationService } from "../../core/services/translation.service";
 import { ControlPanelService } from "../control-panel/services/control-panel.service";
@@ -83,25 +83,6 @@ export class ReveltonDashboardComponent implements OnInit, OnDestroy {
     return this.customStart !== this.appliedCustomStart || this.customEnd !== this.appliedCustomEnd;
   }
 
-  cleanDate(str: string): string {
-    if (!str) return '';
-    const parts = str.split(/[-\s/:]+/);
-    if (parts.length >= 5) {
-      let y = parseInt(parts[2], 10) || new Date().getFullYear();
-      if (y < 100) y += 2000;
-      let m = parseInt(parts[1], 10) || 1;
-      if (m < 1) m = 1; else if (m > 12) m = 12;
-      let d = parseInt(parts[0], 10) || 1;
-      if (d < 1) d = 1; else if (d > 31) d = 31;
-      let h = parseInt(parts[3], 10) || 0;
-      if (h < 0) h = 0; else if (h > 23) h = 23;
-      let min = parseInt(parts[4], 10) || 0;
-      if (min < 0) min = 0; else if (min > 59) min = 59;
-      return `${d.toString().padStart(2, '0')}-${m.toString().padStart(2, '0')}-${y} ${h.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`;
-    }
-    return str;
-  }
-
   formatDateStr(d: Date): string {
     return `${d.getDate().toString().padStart(2, '0')}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getFullYear()} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
   }
@@ -135,13 +116,10 @@ export class ReveltonDashboardComponent implements OnInit, OnDestroy {
   /* ──── Header UI state ──── */
   currentTimeStr: string = "";
   currentWeather = { temp: "--°C", condition: "Loading...", icon: "cloud" };
-  showThemeDropdown = false;
-  showControlDropdown = false;
 
   /* ──── Theme (bound from ThemeService) ──── */
   activeTheme = { name: "Midnight", color: "#818cf8", mode: "Dark" };
   activePalette: any = null;
-  themes: { name: string; color: string }[] = [];
 
   /* ──── Intervals ──── */
   private refreshInterval: any;
@@ -162,9 +140,20 @@ export class ReveltonDashboardComponent implements OnInit, OnDestroy {
     return this.translationService.t;
   }
 
+  /** Cache: room titles are stable strings but formatRoomTitle is bound 3× per
+   *  room in the template and re-ran on every change-detection cycle. */
+  private _roomTitleCache = new Map<string, string>();
+
   formatRoomTitle(title: string | null): string {
     if (!title) return ""; // Empty header if no title
+    const cached = this._roomTitleCache.get(title);
+    if (cached !== undefined) return cached;
+    const result = this.computeRoomTitle(title);
+    this._roomTitleCache.set(title, result);
+    return result;
+  }
 
+  private computeRoomTitle(title: string): string {
     const cleanTitle = title.trim();
     const lowerTitle = cleanTitle.toLowerCase();
 
@@ -232,8 +221,6 @@ export class ReveltonDashboardComponent implements OnInit, OnDestroy {
   }
 
   private closeAllDropdowns(): void {
-    this.showThemeDropdown = false;
-    this.showControlDropdown = false;
     this.showLangDropdown = false;
     this.showBatteryAlertsList = false;
     this.showCheckInsList = false;
@@ -253,7 +240,9 @@ export class ReveltonDashboardComponent implements OnInit, OnDestroy {
     this.subs.push(
       this.hotelState.rooms$.subscribe((rooms) => {
         this.rooms = rooms;
-
+        // Keep the historical overlay's device arrays in sync when telemetry
+        // updates arrive while it is open.
+        this.refreshHistoricalArrays();
         this.cd.detectChanges();
       }),
       this.hotelState.hotelStats$.subscribe((stats) => {
@@ -267,15 +256,12 @@ export class ReveltonDashboardComponent implements OnInit, OnDestroy {
       }),
       this.hotelState.selectedHistoricalRoom$.subscribe((room) => {
         this.selectedHistoricalRoom = room;
+        this.refreshHistoricalArrays();
         this.cd.detectChanges();
       })
     );
 
     // Subscribe to ThemeService
-    this.themes = this.themeService.themes.map((t) => ({
-      name: t.name,
-      color: t.swatch,
-    }));
     this.subs.push(
       this.themeService.theme$.subscribe((theme) => {
         this.activeTheme = {
@@ -326,7 +312,8 @@ export class ReveltonDashboardComponent implements OnInit, OnDestroy {
     this.subs.push(
       this.translationService.activeLangCode$.subscribe(() => {
         this.updateTime();
-        this.fetchWeather();
+        // Only the label needs re-mapping — no need to re-hit the weather API.
+        this.remapWeatherLabel();
         // Force an immediate re-evaluation of all room strings with the new language
         if (this.ctx && this.ctx.data) {
           this.onDataUpdated();
@@ -343,6 +330,9 @@ export class ReveltonDashboardComponent implements OnInit, OnDestroy {
   }
 
   private onPeriodicRefresh(): void {
+    // Skip forced change detection while the tab is backgrounded — nothing is
+    // visible and the telemetry stream will refresh the view when it returns.
+    if (typeof document !== "undefined" && document.hidden) return;
     if (this.ctx.detectChanges) this.ctx.detectChanges();
     for (const room of this.rooms) {
       if (room.activeDialogRef?.componentInstance) {
@@ -502,22 +492,32 @@ export class ReveltonDashboardComponent implements OnInit, OnDestroy {
 
   /* ──── Time & Weather (view-level) ──── */
 
+  /** Cached DateTimeFormat per language — construction is expensive and
+   *  updateTime runs every 60s (and on every language switch). */
+  private _timeFormatters: { [lang: string]: Intl.DateTimeFormat } = {};
+
+  private getTimeFormatter(lang: string): Intl.DateTimeFormat {
+    if (!this._timeFormatters[lang]) {
+      this._timeFormatters[lang] = new Intl.DateTimeFormat(lang, {
+        timeZone: HOTEL_TIMEZONE,
+        weekday: "short",
+        day: "numeric",
+        month: "short",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+        timeZoneName: "short",
+      });
+    }
+    return this._timeFormatters[lang];
+  }
+
   updateTime(): void {
     const now = new Date();
 
-    // Format options for timezone
     const lang =
       this.translationService.activeLangCode === "RU" ? "ru-RU" : "en-GB";
-    const formatter = new Intl.DateTimeFormat(lang, {
-      timeZone: HOTEL_TIMEZONE,
-      weekday: "short",
-      day: "numeric",
-      month: "short",
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-      timeZoneName: "short",
-    });
+    const formatter = this.getTimeFormatter(lang);
 
     const parts = formatter.formatToParts(now);
     const getPart = (type: string) =>
@@ -535,6 +535,10 @@ export class ReveltonDashboardComponent implements OnInit, OnDestroy {
     this.cd.detectChanges();
   }
 
+  /** Last raw weather reading — kept so a language switch can re-map the
+   *  condition label locally instead of re-hitting the network. */
+  private _lastWeather: { temp: string; code: number; isDay: boolean } | null = null;
+
   fetchWeather(): void {
     // Open-Meteo API
     const url =
@@ -546,12 +550,22 @@ export class ReveltonDashboardComponent implements OnInit, OnDestroy {
           const temp = Math.round(data.current_weather.temperature) + "°C";
           const code = data.current_weather.weathercode;
           const isDay = data.current_weather.is_day === 1;
+          this._lastWeather = { temp, code, isDay };
           const { condition, icon } = this.mapWeatherCode(code, isDay);
           this.currentWeather = { temp, condition, icon };
           this.cd.detectChanges();
         }
       })
       .catch((err) => console.error("Failed to fetch weather", err));
+  }
+
+  /** Re-map the cached weather to the active language without a network call. */
+  private remapWeatherLabel(): void {
+    if (!this._lastWeather) return;
+    const { temp, code, isDay } = this._lastWeather;
+    const { condition, icon } = this.mapWeatherCode(code, isDay);
+    this.currentWeather = { temp, condition, icon };
+    this.cd.detectChanges();
   }
 
   mapWeatherCode(
@@ -584,36 +598,6 @@ export class ReveltonDashboardComponent implements OnInit, OnDestroy {
   }
 
   /* ──── Theme Controls (wired to ThemeService) ──── */
-
-  toggleThemeDropdown(event: Event): void {
-    event.stopPropagation();
-    const currentState = this.showThemeDropdown;
-    this.closeAllDropdowns();
-    this.showThemeDropdown = !currentState;
-  }
-
-  toggleControlDropdown(event: Event): void {
-    event.stopPropagation();
-    const currentState = this.showControlDropdown;
-    this.closeAllDropdowns();
-    this.showControlDropdown = !currentState;
-  }
-
-  saveControlConfig(event: Event): void {
-    event.stopPropagation();
-    // NOTE: Add logic here to save control settings
-    this.closeAllDropdowns();
-  }
-
-  selectTheme(theme: any, event: Event): void {
-    event.stopPropagation();
-    this.themeService.setTheme(theme.name);
-  }
-
-  setThemeMode(mode: "Light" | "Dark", event: Event): void {
-    event.stopPropagation();
-    this.themeService.setMode(mode.toLowerCase() as ThemeMode);
-  }
 
   toggleThemeMode(event: Event): void {
     event.stopPropagation();
@@ -656,14 +640,19 @@ export class ReveltonDashboardComponent implements OnInit, OnDestroy {
     this.hotelState.closeHistoricalData();
   }
 
+  /** Cache keyed on the roomData reference (RoomDataService returns a fresh
+   *  object per update) so the [data] binding is stable within a CD cycle
+   *  instead of churning the child dialog's ngOnChanges every cycle. */
+  private _selectedRoomDataCache: any = null;
+  private _selectedRoomDataKey: any = null;
+
   getSelectedRoomData(): any {
     if (!this.selectedRoom) return null;
-    const data = {
-      ...this.selectedRoom.roomData,
-      ctx: this.selectedRoom.mockCtx,
-    };
-
-    return data;
+    const rd = this.selectedRoom.roomData;
+    if (this._selectedRoomDataKey === rd) return this._selectedRoomDataCache;
+    this._selectedRoomDataKey = rd;
+    this._selectedRoomDataCache = { ...rd, ctx: this.selectedRoom.mockCtx };
+    return this._selectedRoomDataCache;
   }
 
   getAirQualityLabel(aqi: number): string {
@@ -707,29 +696,37 @@ export class ReveltonDashboardComponent implements OnInit, OnDestroy {
     return Object.keys(this.groupedOtherDevices);
   }
 
-  getTypeIcon(type: string): string {
-    const icons: Record<string, string> = {
-      "Window Sensor": "sensor_window",
-      Thermostat: "thermostat",
-      "Leak Sensor": "water_damage",
-      "Noise Sensor": "settings_voice",
-      "Air Monitor": "air",
-      Occupancy: "person_search",
-      Light: "lightbulb",
-      Plug: "power",
-      Sensor: "sensors",
-    };
-    return icons[type] || "devices";
+  /* ──── Historical overlay device arrays (cached) ──── */
+  histThermostats: any[] = [];
+  histAqSensors: any[] = [];
+  private _histRoomDataKey: any = null;
+
+  /** Recompute the historical overlay's thermostat/AQ arrays only when the
+   *  underlying roomData reference changes — getArray() previously ran on every
+   *  CD cycle and returned fresh arrays, churning the child's ngOnChanges. */
+  private refreshHistoricalArrays(): void {
+    const rd = this.selectedHistoricalRoom?.roomData;
+    if (rd === this._histRoomDataKey) return;
+    this._histRoomDataKey = rd;
+    this.histThermostats = rd ? this.getArray(rd.trvDevices) : [];
+    this.histAqSensors = rd ? this.getArray(rd.airSensors) : [];
   }
 
-  getPrimaryValue(dev: OtherDevice): string | null {
-    if (!dev.data) return null;
-    if (dev.data.temp !== undefined) return `${dev.data.temp}°`;
-    if (dev.data.temperature !== undefined) return `${dev.data.temperature}°`;
-    if (dev.data.humidity !== undefined) return `${dev.data.humidity}%`;
-    if (dev.data.co2 !== undefined) return `${dev.data.co2}ppm`;
-    if (dev.data.illuminance !== undefined) return `${dev.data.illuminance}lx`;
-    return null;
+  /** trackBy for the room grid. Was referenced in the template but never
+   *  defined, so Angular fell back to identity tracking. */
+  trackByRoomId(_index: number, room: InlineRoom): string {
+    return room.id;
+  }
+
+  trackByKpiRoom(_index: number, item: { room: string; guest: string }): string {
+    return `${item.room}|${item.guest}`;
+  }
+
+  trackByBatteryDevice(
+    _index: number,
+    item: { room: string; device: string }
+  ): string {
+    return `${item.room}|${item.device}`;
   }
 
   getArray(map: any): any[] {
