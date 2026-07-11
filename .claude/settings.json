@@ -32,7 +32,14 @@
       "Bash(ps --ppid 695951 -o pid,ppid,cmd)",
       "Bash(kill -TERM -- -695934)",
       "Bash(ps -p 695934,695935,695951,696110,696217 -o pid,cmd)",
-      "Bash(grep -n \"rooms\\\\.sort\\\\|roomsArray\\\\.sort\\\\|\\\\.sort\\(\\\\|rooms\\\\$\\\\|extractRoomNumber\" \"/home/nurlansarkhanov/Desktop/code/Revelton/thingsboard-extention/src/app/components/revelton-tb-extension-dashboard/core/services/hotel-state.service.ts\")"
+      "Bash(grep -n \"rooms\\\\.sort\\\\|roomsArray\\\\.sort\\\\|\\\\.sort\\(\\\\|rooms\\\\$\\\\|extractRoomNumber\" \"/home/nurlansarkhanov/Desktop/code/Revelton/thingsboard-extention/src/app/components/revelton-tb-extension-dashboard/core/services/hotel-state.service.ts\")",
+      "Bash(echo \"exit: $?\")",
+      "Bash(echo \"exit $?\")",
+      "Bash(echo \"=== exit: $? \\(1 = no matches = my files clean\\) ===\")",
+      "Bash(awk '/^\\\\/home.*revelton-tb-extension-dashboard/{f=$0} /error/ && f{print f\"\\\\t\"$0}')",
+      "Bash(git checkout *)",
+      "Bash(git add *)",
+      "Bash(git commit -q -m ' *)"
     ]
   }
 }

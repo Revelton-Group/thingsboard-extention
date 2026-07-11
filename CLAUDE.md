@@ -73,6 +73,7 @@ All components are **NgModule-based** (not standalone) for ThingsBoard 4.3.1 com
 | Layer | Path | Purpose |
 |-------|------|---------|
 | Interfaces | `core/interfaces/` | `ISensorProcessor` — contract for sensor data processors (OCP: add new sensor types via new implementations) |
+| Data | `data/services/` | `ThingsBoardTelemetryService` — fetches historical timeseries from the TB REST API |
 | Domain services | `domain/services/` | `HistoricalStateService`, `DataAggregationService`, `TimeRangeService` |
 | Domain processors | `domain/processors/` | Concrete `ISensorProcessor` implementations: `ThermostatProcessor`, `AirQualityProcessor`, `NoiseProcessor`, `WindowProcessor`, `WaterLeakProcessor`, `OccupancyProcessor` |
 | Features | `features/` | Panel components: `ThermostatPanelComponent`, `AirQualityPanelComponent`, `AirQualityMetricsPanelComponent`, `AcousticsPanelComponent`, `WindowPanelComponent`, `WaterLeakPanelComponent`, `OccupancyPanelComponent` |
@@ -215,6 +216,7 @@ In the ThingsBoard widget editor:
 
 - [UPDATING.md](UPDATING.md) — Migration steps for upgrading to newer ThingsBoard/Angular versions
 - [gateway-export.json](gateway-export.json) — Pre-configured MQTT mappings for ThingsBoard IoT Gateway (Zigbee2MQTT: TRVs, sensors)
+- [thingsboard/](thingsboard/) — Telegram alert rule chain exports + [SETUP_GUIDE.md](thingsboard/SETUP_GUIDE.md). The Control Panel saves thresholds as flat server attributes on room assets (`co2Max`, `laeqMax`, `telegram_botToken`, etc.); this TB rule chain compares incoming telemetry against them and dispatches Telegram alerts
 
 ### File Registration Checklist
 

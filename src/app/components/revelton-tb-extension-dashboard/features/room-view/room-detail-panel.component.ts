@@ -1136,6 +1136,17 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   private formatTrvDisplayName(entityName: string, _location?: string): string {
+    // Device naming convention: after the "room" part comes the room number,
+    // then an optional per-room device index. Display only "TRV-<index>".
+    //   RST-KLV-trv-room-13-2 → room 13, index 2 → "TRV-2"
+    //   RST-KLV-trv-room-11    → room 11, no index (first device) → "TRV-1"
+    // Any separator (- or _ or space) is accepted between the segments.
+    const match = entityName.match(/room[-_ ]*\d+(?:[-_ ]+(\d+))?\s*$/i);
+    if (match) {
+      const index = match[1] || '1'; // no explicit index → first device
+      return `TRV-${index}`;
+    }
+    // Fall back to the legacy underscore-based formatter for older names.
     return this.formatDeviceName(entityName, 'TRV');
   }
 
