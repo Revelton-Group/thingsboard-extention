@@ -98,8 +98,9 @@ Components: vm$ = combineLatest([facade.rooms$, …]) │ async pipe │ OnPush 
 ### Phase 1 — Shared utils (pure extraction, zero behavior change)
 - Create `shared/utils/`: move `extractRoomNumber` (use the full `hotel-state.service.ts:284` version as the single source; `room-card` switches to it), `timeAgo`, `formatNum`, date-range parse/format, battery/signal/link-quality helper functions.
 - Create `shared/pipes/time-ago.pipe.ts` — computed at render, fixing the frozen-string staleness (audit §3).
+- **Single device-name formatter (`formatDeviceLabel`).** Today `formatDeviceName` exists in 3 divergent copies (audit §4) and only understands `_`-separated names (`trv_room_6_1`), so vendor-prefixed hyphenated names like `RST-KLV-trv-room-13-2` fall through and render raw. Consolidate into one util that parses the canonical convention: `<vendor…>-<type>-room-<roomNumber>[-<index>]`, where the segment after the room number is the per-room **device index** and its absence means the first device (index 1). Output `<TYPE>-<index>` (e.g. `TRV-2`, `TRV-1`). Any separator (`-`, `_`, space) accepted. Applies to all device types (TRV, window, AQ, leak, noise, occupancy), not just thermostats. **A behavior-preserving version of the TRV case is already live** in `room-detail-panel.formatTrvDisplayName` — fold it (and the other types) into the shared util during this phase.
 - All duplicated call sites switch to the utils. Delete the duplicated private copies.
-- **Exit criteria:** grep shows one definition each for `extractRoomNumber`, `getLinkQualityText`, `getBatteryIcon`, `formatDatetimeLocal`.
+- **Exit criteria:** grep shows one definition each for `extractRoomNumber`, `getLinkQualityText`, `getBatteryIcon`, `formatDatetimeLocal`, `formatDeviceLabel`.
 
 ### Phase 2 — Typed models (compile-time only)
 - Introduce the `core/models/` interfaces above; replace the 18 `any` device maps in `RoomData` with typed `Record<string, X>` incrementally (one map per PR is fine).
