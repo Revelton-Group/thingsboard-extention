@@ -97,6 +97,12 @@ export const NOISE_KEYS = [
   'sound_level',
   'noise_level',
   'acoustic',
+  'laeq',
+  'lai',
+  'laimax',
+  'data_laeq',
+  'data_lai',
+  'data_laimax',
 ] as const;
 
 export const OCCUPANCY_KEYS = [

@@ -1,7 +1,7 @@
 /**
  * Control Panel — Domain Models
  * SOLID: Interface Segregation — each config domain is isolated.
- * Design-aligned: schedule intervals, maintenance tests, noise periods, telegram toggles.
+ * Design-aligned: schedule intervals, maintenance tests, noise periods.
  */
 
 /** Section navigation */
@@ -16,8 +16,7 @@ export type ControlPanelSectionId =
   | 'thermostat'
   | 'noise'
   | 'window'
-  | 'mews'
-  | 'telegram';
+  | 'mews';
 
 export const CONTROL_PANEL_SECTIONS: ControlPanelSection[] = [
   { id: 'air_quality', label: 'Air Quality', icon: 'air' },
@@ -25,7 +24,7 @@ export const CONTROL_PANEL_SECTIONS: ControlPanelSection[] = [
   { id: 'noise',       label: 'Noise Sensor',icon: 'volume_up' },
   { id: 'window',      label: 'Window Alert',icon: 'window' },
   { id: 'mews',        label: 'Mews Sync',   icon: 'sync' },
-  { id: 'telegram',    label: 'Telegram',    icon: 'send' },
+
 ];
 
 /** Day of week */
@@ -65,6 +64,12 @@ export interface ThermostatAutomationConfig {
   };
   /** Preheating minutes before guest check-in */
   preheatingMinutes: number;
+  /** Winter season range (YYYY-MM-DD) */
+  winterSeason: {
+    enabled: boolean;
+    start: string;
+    end: string;
+  };
 }
 
 /** ── Window Alert ── */
@@ -110,18 +115,26 @@ export interface AirQualityThresholdConfig {
   enabled: boolean;
   co2Max: number;
   co2Min: number;
+  /** Warning zone: when current value is within this many units of co2Max → WARNING */
+  co2WarnGap: number;
   pm25Max: number;
   pm25Min: number;
+  pm25WarnGap: number;
   pm10Max: number;
   pm10Min: number;
+  pm10WarnGap: number;
   tvocMax: number;
   tvocMin: number;
+  tvocWarnGap: number;
   tempMax: number;
   tempMin: number;
+  tempWarnGap: number;
   humMax: number;
   humMin: number;
+  humWarnGap: number;
   pressMax: number;
   pressMin: number;
+  pressWarnGap: number;
 }
 
 /** ── Noise Thresholds ── */
@@ -174,13 +187,13 @@ export interface ControlPanelConfig {
 export const DEFAULT_CONTROL_PANEL_CONFIG: ControlPanelConfig = {
   airQuality: {
     enabled: true,
-    co2Max: 1000, co2Min: 400,
-    pm25Max: 35, pm25Min: 5,
-    pm10Max: 150, pm10Min: 10,
-    tvocMax: 600, tvocMin: 100,
-    tempMax: 28, tempMin: 18,
-    humMax: 65, humMin: 30,
-    pressMax: 1100, pressMin: 980,
+    co2Max: 1000, co2Min: 400, co2WarnGap: 200,
+    pm25Max: 35,  pm25Min: 5,  pm25WarnGap: 10,
+    pm10Max: 150, pm10Min: 10, pm10WarnGap: 40,
+    tvocMax: 600, tvocMin: 100, tvocWarnGap: 150,
+    tempMax: 28,  tempMin: 18, tempWarnGap: 3,
+    humMax: 65,   humMin: 30,  humWarnGap: 10,
+    pressMax: 1100, pressMin: 980, pressWarnGap: 30,
   },
   thermostat: {
     valveOpen: true,
@@ -196,6 +209,11 @@ export const DEFAULT_CONTROL_PANEL_CONFIG: ControlPanelConfig = {
         { id: 1, day: 3, time: '03:00' },
       ],
     },
+    winterSeason: {
+      enabled: true,
+      start: '2026-10-15',
+      end: '2027-04-15'
+    }
   },
   noise: {
     enabled: true,

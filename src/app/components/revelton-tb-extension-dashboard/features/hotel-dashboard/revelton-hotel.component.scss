@@ -884,6 +884,93 @@
 }
 
 /* ===============================================================
+   LOADING SKELETON + CONNECTION ERROR BANNER
+   =============================================================== */
+
+.conn-error-banner {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 0 12px;
+    padding: 10px 14px;
+    border-radius: 12px;
+    background: var(--alert-soft, rgba(239, 68, 68, 0.12));
+    border: 1px solid var(--alert, #ef4444);
+    color: var(--alert, #ef4444);
+    font-size: 14px;
+    font-weight: 500;
+
+    > .material-icons { font-size: 20px; flex: 0 0 auto; }
+    .conn-error-text { flex: 1 1 auto; }
+
+    .conn-retry-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 5px 12px;
+        border-radius: 8px;
+        border: 1px solid var(--alert, #ef4444);
+        background: transparent;
+        color: var(--alert, #ef4444);
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.15s ease;
+
+        .material-icons { font-size: 16px; }
+        &:hover { background: var(--alert-soft, rgba(239, 68, 68, 0.15)); }
+    }
+}
+
+.room-skeleton-grid {
+    .room-skeleton {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        min-height: 150px;
+        padding: 16px;
+        border-radius: 16px;
+        background: var(--card, #1a2230);
+        border: 1px solid var(--border, #27313f);
+        overflow: hidden;
+    }
+
+    .sk-line,
+    .sk-badges span,
+    .sk-metrics span {
+        border-radius: 6px;
+        background: linear-gradient(
+            90deg,
+            var(--inner, #1e2733) 0%,
+            var(--panel2, #232d3b) 50%,
+            var(--inner, #1e2733) 100%
+        );
+        background-size: 200% 100%;
+        animation: sk-shimmer 1.3s ease-in-out infinite;
+    }
+
+    .sk-title { height: 16px; width: 55%; }
+    .sk-foot { height: 12px; width: 40%; margin-top: auto; }
+
+    .sk-badges {
+        display: flex;
+        gap: 8px;
+        span { height: 20px; width: 54px; border-radius: 20px; }
+    }
+
+    .sk-metrics {
+        display: flex;
+        gap: 8px;
+        span { height: 34px; flex: 1 1 0; }
+    }
+}
+
+@keyframes sk-shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+/* ===============================================================
    INLINE ROOM CARD STYLES (copied from room-card.component.scss)
    =============================================================== */
 

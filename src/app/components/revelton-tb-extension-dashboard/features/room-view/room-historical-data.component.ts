@@ -204,7 +204,29 @@ export class RoomHistoricalDataComponent implements OnInit, OnChanges {
     normalized: Record<string, any[]>, startTs: number, endTs: number,
     isBinary: boolean = false, useLineChart: boolean = false
   ) {
-    const raw = normalized[key] || [];
+    let raw = normalized[key] || [];
+
+    let noiseMetrics: Record<string, any[]> | undefined;
+    let availableMetrics: { key: string; label: string }[] | undefined;
+    let activeMetric: string | undefined;
+
+    if (key === "noise") {
+      const laeqRaw = normalized["noise_laeq"] || raw;
+      const laiRaw = normalized["noise_lai"] || [];
+      const laimaxRaw = normalized["noise_laimax"] || [];
+      noiseMetrics = {
+        laeq: laeqRaw,
+        lai: laiRaw.length ? laiRaw : laeqRaw,
+        laimax: laimaxRaw.length ? laimaxRaw : laeqRaw
+      };
+      availableMetrics = [
+        { key: "laeq", label: "LAeq" },
+        { key: "lai", label: "LAI" },
+        { key: "laimax", label: "LAImax" }
+      ];
+      activeMetric = "laeq";
+      raw = laeqRaw;
+    }
 
     let series: [number, number][] = [];
     let binaryBlocks: any[] = [];
@@ -297,8 +319,48 @@ export class RoomHistoricalDataComponent implements OnInit, OnChanges {
       isBinary,
       useLineChart,
       binaryBlocks,
-      eventMarkers
+      eventMarkers,
+      noiseMetrics,
+      availableMetrics,
+      activeMetric
     };
+  }
+
+  selectNoiseMetric(card: any, metricKey: string, event?: Event) {
+    if (event) event.stopPropagation();
+    if (!card || card.key !== "noise" || !card.noiseMetrics) return;
+    card.activeMetric = metricKey;
+    const raw = card.noiseMetrics[metricKey] || [];
+    const series = raw.map((d: any) => [d.ts, parseFloat(d.value)] as [number, number]).filter((d: any) => !isNaN(d[1]));
+    const vals = series.map((d: any) => d[1]);
+    const current = vals.length ? vals[vals.length - 1] : 0;
+    const min = vals.length ? Math.min(...vals) : 0;
+    const max = vals.length ? Math.max(...vals) : 0;
+    const avg = vals.length ? vals.reduce((a: number, b: number) => a + b, 0) / vals.length : 0;
+
+    const labelMap: Record<string, string> = { laeq: "LAeq", lai: "LAI", laimax: "LAImax" };
+    const label = labelMap[metricKey] || card.label;
+
+    card.data = [{ name: label, values: series }];
+    card.hasData = series.length > 0;
+    card.current = Math.round(current * 10) / 10;
+    card.min = Math.round(min * 10) / 10;
+    card.avg = Math.round(avg * 10) / 10;
+    card.max = Math.round(max * 10) / 10;
+
+    if (!card.hasData) {
+      card.badgeText = "NO DATA";
+      card.badgeClass = "nodata";
+    } else if (current >= card.thresholdCrit) {
+      card.badgeText = "CRITICAL";
+      card.badgeClass = "critical";
+    } else if (current >= card.thresholdWarn) {
+      card.badgeText = "WARNING";
+      card.badgeClass = "warning";
+    } else {
+      card.badgeText = "QUIET";
+      card.badgeClass = "quiet";
+    }
   }
 
   async fetchData() {
@@ -395,7 +457,7 @@ export class RoomHistoricalDataComponent implements OnInit, OnChanges {
       const luxDeviceId = findId(/lux|illuminance|light/i) || aqDeviceId;
 
       // Fetch telemetry
-      const keysToFetch = "temperature,humidity,co2,iaq,tvoc,pm25,pm2_5,data_pm25,data_pm2_5,pm10,data_pm10,pressure,data_pressure,lux,illuminance,data_illuminance,light,data_light,light_level,data_light_level,noise,laeq,data_LAeq,data_LAI,data_LAImax,contact,data_contact,waterLeak,leak,water_leak,data_leakage_status,occupancy,presence,data_occupancy,data_pir,pir,motion,data_motion,power,active_power,data_active_power,load_power,data_power_consumption,energy,temp,hum,data_temperature,data_humidity,data_co2,data_iaq,data_tvoc";
+      const keysToFetch = "temperature,humidity,co2,iaq,tvoc,pm25,pm2_5,data_pm25,data_pm2_5,pm10,data_pm10,pressure,data_pressure,lux,illuminance,data_illuminance,light,data_light,light_level,data_light_level,noise,laeq,lai,laimax,data_laeq,data_LAeq,data_lai,data_LAI,data_laimax,data_LAImax,contact,data_contact,status,state,waterLeak,leak,water_leak,data_leakage_status,occupancy,presence,data_occupancy,data_pir,pir,motion,data_motion,power,active_power,data_active_power,load_power,data_power_consumption,energy,temp,hum,data_temperature,data_humidity,data_co2,data_iaq,data_tvoc";
       const safeFetch = async (id: string | null) => {
         if (!id) return null;
         try {
@@ -425,9 +487,22 @@ export class RoomHistoricalDataComponent implements OnInit, OnChanges {
         }
         if (id === pressureDeviceId) normalized["pressure"] = data["pressure"] || data["data_pressure"] || normalized["pressure"];
         if (id === luxDeviceId) normalized["lux"] = data["lux"] || data["illuminance"] || data["data_illuminance"] || data["light"] || data["data_light"] || data["light_level"] || data["data_light_level"] || normalized["lux"];
-        if (id === noiseDeviceId) normalized["noise"] = data["noise"] || data["laeq"] || data["data_LAeq"] || data["data_LAI"] || data["data_LAImax"] || normalized["noise"];
-        if (id === windowDeviceId) normalized["window"] = data["contact"] || data["data_contact"] || normalized["window"];
-        if (id === leakDeviceId) normalized["leak"] = data["waterLeak"] || data["leak"] || data["water_leak"] || data["data_leakage_status"] || normalized["leak"];
+        if (id === noiseDeviceId) {
+          normalized["noise"] = data["noise"] || data["laeq"] || data["data_laeq"] || data["data_LAeq"] || data["data_LAI"] || data["data_LAImax"] || normalized["noise"];
+          normalized["noise_laeq"] = data["laeq"] || data["data_laeq"] || data["data_LAeq"] || normalized["noise"];
+          normalized["noise_lai"] = data["lai"] || data["data_lai"] || data["data_LAI"] || [];
+          normalized["noise_laimax"] = data["laimax"] || data["data_laimax"] || data["data_LAImax"] || [];
+        }
+        if (id === windowDeviceId) normalized["window"] = data["contact"] || data["data_contact"] || data["status"] || data["state"] || normalized["window"];
+        if (id === leakDeviceId) {
+          // Same key resolution as fetchLeakCard() — leak sensors report under
+          // several names, and some only publish contact/status/state. Only fall
+          // back to those generic keys when the leak sensor isn't also the window
+          // sensor, so a window's contact series can't be read as a leak series.
+          const leakSpecific = data["waterLeak"] || data["leak"] || data["water_leak"] || data["data_leakage_status"];
+          const leakGeneric = (id === windowDeviceId) ? null : (data["contact"] || data["data_contact"] || data["status"] || data["state"]);
+          normalized["leak"] = leakSpecific || leakGeneric || normalized["leak"];
+        }
         if (id === occDeviceId) normalized["presence"] = data["occupancy"] || data["presence"] || data["data_occupancy"] || data["data_pir"] || normalized["presence"];
         if (id === aqDeviceId || id === occDeviceId) {
            const motionData = data["data_pir"] || data["pir"] || data["motion"] || data["data_motion"];
@@ -440,6 +515,18 @@ export class RoomHistoricalDataComponent implements OnInit, OnChanges {
           energyDataBySocket[id] = data["data_power_consumption"] || data["energy"] || [];
         }
       });
+
+      if (normalized["window"].length === 0 && this.selectedWindowEntity && this.windowDevices?.[this.selectedWindowEntity] !== undefined) {
+        const isOpen = this.windowDevices[this.selectedWindowEntity].contact === 'open';
+        const valStr = isOpen ? 'open' : 'closed';
+        normalized["window"] = [{ ts: startTs, value: valStr }, { ts: endTs, value: valStr }];
+      }
+
+      if (normalized["leak"].length === 0 && this.selectedLeakEntity && this.leakDevices?.[this.selectedLeakEntity] !== undefined) {
+        const isLeak = this.leakDevices[this.selectedLeakEntity].leak;
+        const valStr = isLeak ? 'leak' : 'normal';
+        normalized["leak"] = [{ ts: startTs, value: valStr }, { ts: endTs, value: valStr }];
+      }
 
       if (Object.keys(powerDataBySocket).length > 0) {
         const allPowerPoints = [];
@@ -534,7 +621,9 @@ export class RoomHistoricalDataComponent implements OnInit, OnChanges {
     if (key === "window") return (this.selectedWindowEntity && this.deviceEntityIdMap?.[this.selectedWindowEntity]) || findId(/window|contact/i);
     if (key === "leak") {
       const leakKeys = Object.keys(this.leakDevices || {});
-      return (leakKeys[0] && this.deviceEntityIdMap?.[leakKeys[0]]) || findId(/leak|ws303|bathroom|water/i);
+      return (this.selectedLeakEntity && this.deviceEntityIdMap?.[this.selectedLeakEntity])
+        || (leakKeys[0] && this.deviceEntityIdMap?.[leakKeys[0]])
+        || findId(/leak|ws303|bathroom|water/i);
     }
     if (key === "presence") return findId(/occupancy|presence|motion|pir|ws301|vs370/i);
     if (key === "motion") return findId(/motion|pir/i) || aqDeviceId;
@@ -547,11 +636,12 @@ export class RoomHistoricalDataComponent implements OnInit, OnChanges {
 
   openExpandedChart(card: any) {
     if (!card || !card.hasData) return;
+    const cardCopy = { ...card, data: card.data ? [...card.data] : [] };
     this.dialog.open(ExpandedChartDialogComponent, {
       width: "800px",
       maxWidth: "95vw",
       panelClass: ["tb-dialog", "tb-expanded-chart-panel"],
-      data: { card, timeRangeHours: this.timeRangeHours, parent: this }
+      data: { card: cardCopy, timeRangeHours: this.timeRangeHours, parent: this }
     });
   }
 
@@ -615,6 +705,17 @@ export class RoomHistoricalDataComponent implements OnInit, OnChanges {
               <option value="" [selected]="!modalPowerEntity">Total</option>
               <option *ngFor="let opt of data.parent.powerDeviceOptions" [value]="opt.entityName" [selected]="modalPowerEntity === opt.entityName">{{ opt.label }}</option>
             </select>
+          </div>
+
+          <div *ngIf="data.card.key === 'noise' && data.card.availableMetrics?.length > 1" style="display: flex; align-items: center; gap: 4px; background: var(--inner, #ffffff); border: 1px solid var(--border, #e5e7eb); padding: 4px; border-radius: 20px;">
+            <button *ngFor="let opt of data.card.availableMetrics"
+                    type="button"
+                    (click)="selectNoise(opt.key); $event.preventDefault();"
+                    [style.background]="opt.key === data.card.activeMetric ? 'var(--accent, #7c88ff)' : 'transparent'"
+                    [style.color]="opt.key === data.card.activeMetric ? '#ffffff' : 'var(--t2, #4b5563)'"
+                    style="border: none; font-size: 12px; font-weight: 700; padding: 4px 12px; border-radius: 16px; cursor: pointer; transition: all 0.2s;">
+              {{ opt.label }}
+            </button>
           </div>
 
           <div *ngIf="data.card.badgeText" [ngClass]="data.card.badgeClass" class="hist-badge" style="font-size: 11px; font-weight: 700; padding: 6px 10px; border-radius: 6px; letter-spacing: 0.5px; text-transform: uppercase;">
@@ -958,6 +1059,13 @@ export class ExpandedChartDialogComponent {
     }
   }
 
+  selectNoise(metricKey: string) {
+    if (this.data.card.activeMetric === metricKey) return;
+    this.data.parent.selectNoiseMetric(this.data.card, metricKey);
+    this.data.card = { ...this.data.card };
+    this.cdr.detectChanges();
+  }
+
   applyCustomRange() {
     if (!this.customStart || !this.customEnd || !this.hasCustomRangeChanged) return;
     const startTs = this.parseDatetimeLocal(this.customStart);
@@ -1066,7 +1174,7 @@ export class ExpandedChartDialogComponent {
         else if (key === "pm10") raw = res["pm10"] || res["data_pm10"] || [];
         else if (key === "pressure") raw = res["pressure"] || res["data_pressure"] || [];
         else if (key === "lux") raw = res["lux"] || res["illuminance"] || res["data_illuminance"] || res["light"] || res["data_light"] || res["light_level"] || res["data_light_level"] || [];
-        else if (key === "noise") raw = res["noise"] || res["laeq"] || res["data_LAeq"] || res["data_LAI"] || res["data_LAImax"] || [];
+        else if (key === "noise") raw = res["noise"] || res["laeq"] || res["data_laeq"] || res["data_LAeq"] || res["data_LAI"] || res["data_LAImax"] || [];
         else if (key === "window") {
           raw = res["contact"] || res["data_contact"] || res["status"] || res["state"] || [];
           if (raw.length === 0 && this.modalWindowEntity && parent.windowDevices?.[this.modalWindowEntity] !== undefined) {
@@ -1090,11 +1198,24 @@ export class ExpandedChartDialogComponent {
 
         const processedRaw = (key === "energy") ? raw.map((p: any) => ({ ...p, value: parseFloat(p.value) / 1000 })) : raw;
 
+        let normObj: Record<string, any[]> = { [key]: processedRaw };
+        if (key === "noise") {
+          normObj = {
+            noise: processedRaw,
+            noise_laeq: res["laeq"] || res["data_laeq"] || res["data_LAeq"] || processedRaw,
+            noise_lai: res["lai"] || res["data_lai"] || res["data_LAI"] || [],
+            noise_laimax: res["laimax"] || res["data_laimax"] || res["data_LAImax"] || []
+          };
+        }
+
         const rebuilt = parent.buildCard(
           key, this.data.card.label, this.data.card.unit, this.data.card.icon, this.data.card.color,
-          this.data.card.thresholdWarn, this.data.card.thresholdCrit, { [key]: processedRaw }, startTs, endTs,
+          this.data.card.thresholdWarn, this.data.card.thresholdCrit, normObj, startTs, endTs,
           this.data.card.isBinary, this.data.card.useLineChart
         );
+        if (this.data.card.activeMetric && rebuilt.noiseMetrics) {
+          parent.selectNoiseMetric(rebuilt, this.data.card.activeMetric);
+        }
         this.data.card = { ...this.data.card, ...rebuilt };
       }
 

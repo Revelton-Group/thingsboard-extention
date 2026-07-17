@@ -5,20 +5,18 @@ import {
   DashboardViewModel,
   DEFAULT_VIEW_MODEL,
   ChargerCardViewModel,
-  ChargerStationViewModel,
+  SocketViewModel,
+  SocketState,
   ChargingStatus,
+  EvChargerStats,
 } from '../../core/models';
 import { UtilityPanelResult } from '../../core/interfaces';
 import { ThingsBoardTelemetryService } from '../../../revelton-tb-extension-historical-dashboard/data/services/thingsboard-telemetry.service';
 import { DiscoveredDevice, EntityId } from '../../../revelton-tb-extension-historical-dashboard/core/models/time-range.models';
 import { EvChargerProcessor } from '../processors/ev-charger.processor';
 
-const STATUS_LABELS: Record<ChargingStatus, string> = {
-  idle: 'Available',
-  charging: 'Charging',
-  error: 'Fault',
-  unavailable: 'Offline',
-};
+/** Data older than this (2× the sync interval) is treated as stale — shown as Offline. */
+const FRESHNESS_LIMIT_MS = 20 * 60 * 1000;
 
 @Injectable({ providedIn: 'any' })
 export class UtilityStateService implements OnDestroy {
@@ -88,7 +86,7 @@ export class UtilityStateService implements OnDestroy {
     const firstItem = data[0];
 
     if (!firstItem?.datasource?.entityId) {
-      this.patch({ isLoading: false, chargers: [], totalChargers: 0, activeChargers: 0 });
+      this.patch({ isLoading: false, chargers: [], totalSockets: 0, activeSockets: 0 });
       return of(null);
     }
 
@@ -116,41 +114,44 @@ export class UtilityStateService implements OnDestroy {
 
         const deviceFetches = uniqueDevices.map(device =>
           this.telemetry.getDeviceKeys(device.id).pipe(
-            switchMap(lowerKeys => {
-              if (!this.chargerProc.canHandle(lowerKeys, device.name)) {
+            switchMap(deviceKeys => {
+              if (!this.chargerProc.canHandle(deviceKeys)) {
                 return of(null);
               }
-              return this.chargerProc.process(device, lowerKeys, {} as any);
+              return this.chargerProc.process(device, deviceKeys);
             }),
           )
         );
 
         return forkJoin(deviceFetches).pipe(
           tap(results => {
-            const chargerResults: ChargerCardViewModel[] = [];
+            const chargers: ChargerCardViewModel[] = [];
 
             for (const result of results) {
               if (result && (result as UtilityPanelResult)?.panel === 'evCharger') {
                 const r = result as UtilityPanelResult & { panel: 'evCharger' };
-                chargerResults.push(this.buildChargerViewModel(r.stats));
+                chargers.push(this.buildChargerViewModel(r.stats));
               }
             }
 
-            const totalPowerKw = chargerResults.reduce((sum, c) => sum + (c.stationA.powerKw || 0) + (c.stationB.powerKw || 0), 0);
-            const totalEnergyKwh = chargerResults.reduce((sum, c) => sum + (c.stationA.deliveredKwh || 0) + (c.stationB.deliveredKwh || 0), 0);
-            const activeChargers = chargerResults.filter(c => c.stationA.status === 'charging' || c.stationB.status === 'charging').length;
-            const activeFaults = chargerResults.filter(c => c.stationA.status === 'error' || c.stationB.status === 'error').length;
-            const totalRevenueEuro = chargerResults.reduce((sum, c) => sum + (c.stationA.sessionEuro || 0) + (c.stationB.sessionEuro || 0), 0);
+            const totalPowerKw = chargers.reduce((sum, c) => sum + (c.activePowerKw || 0), 0);
+            const totalEnergyKwh = chargers.reduce((sum, c) => sum + (c.lifetimeKwh || 0), 0);
+            const totalSockets = chargers.reduce((sum, c) => sum + c.sockets.length, 0);
+            const activeSockets = chargers.reduce(
+              (sum, c) => sum + c.sockets.filter(s => s.state === 'charging').length, 0);
+            const activeSessions = chargers.reduce((sum, c) => sum + c.activeSessionCount, 0);
+            const activeFaults = chargers.reduce(
+              (sum, c) => sum + c.sockets.filter(s => s.state === 'fault').length, 0);
 
             this.patch({
               isLoading: false,
-              chargers: chargerResults,
-              totalChargers: chargerResults.length * 2, // 2 stations per charger
-              activeChargers,
+              chargers,
+              totalSockets,
+              activeSockets,
+              activeSessions,
               activeFaults,
               totalPowerKw: Math.round(totalPowerKw * 100) / 100,
               totalEnergyKwh: Math.round(totalEnergyKwh * 100) / 100,
-              totalRevenueEuro: Math.round(totalRevenueEuro * 100) / 100,
             });
 
             if (this.ctx?.detectChanges) this.ctx.detectChanges();
@@ -165,203 +166,240 @@ export class UtilityStateService implements OnDestroy {
     );
   }
 
-  private buildChargerViewModel(stats: any): ChargerCardViewModel {
+  private buildChargerViewModel(stats: EvChargerStats): ChargerCardViewModel {
     const ts = stats.rawTs || {};
-    const getTsVal = (key: string) => {
+    const latest = (key: string): any => {
       const entry = ts[key];
-      if (entry && entry.length > 0) return entry[entry.length - 1].value;
-      return undefined;
+      return entry && entry.length > 0 ? entry[entry.length - 1].value : undefined;
     };
 
     const deviceName = stats.deviceName || 'Unknown';
     const deviceId = stats.deviceId || '';
-
-    const matches = deviceName.match(/(\d+)/);
-    const num = matches ? matches[1].padStart(2, '0') : '01';
     const deviceCode = 'CityCharge Mini 2';
 
-    // ─── Detect key pattern: connector_N_* (real device) or station_a/b_* (legacy) ───
-    const hasConnectorKeys = getTsVal('connector_0_status') !== undefined
-      || getTsVal('connector_1_status') !== undefined;
-    const hasStationKeys = getTsVal('station_a_status') !== undefined;
+    // ── Summary strip: values wear ink, no status colors ──
+    const activePowerKw = this.getNum(latest('total_active_kw')) ?? stats.powerKw ?? 0;
+    const lifetimeKwh = this.getNum(latest('total_kwh'))
+      ?? (stats.energyKwh > 0 ? stats.energyKwh : null);
 
-    let stationA: ChargerStationViewModel;
-    let stationB: ChargerStationViewModel;
-    let heartbeatAgo: string;
-
-    if (hasConnectorKeys) {
-      // ── Real device telemetry: connector_0_* = Station A, connector_1_* = Station B ──
-      const conn0Status = this.mapStatus(getTsVal('connector_0_status'));
-      const conn0Ts = getTsVal('connector_0_timestamp');
-      const conn0ErrorCode = getTsVal('connector_0_error_code');
-
-      stationA = {
-        name: 'Station A',
-        status: conn0Status,
-        statusLabel: STATUS_LABELS[conn0Status] || 'Unknown',
-        statusReason: conn0ErrorCode && conn0ErrorCode !== 'NoError' ? conn0ErrorCode : undefined,
-        // These keys are only present when actively charging
-        powerKw: this.getNum(getTsVal('connector_0_power') ?? getTsVal('power')),
-        deliveredKwh: this.getNum(getTsVal('connector_0_energy') ?? getTsVal('energy')),
-        batteryPct: this.getNum(getTsVal('connector_0_battery')),
-        sessionEuro: this.getNum(getTsVal('connector_0_cost')),
-        sessionDurationFormatted: conn0Status === 'charging' ? 'Realtime' : undefined,
-        chargingSince: conn0Status === 'charging' ? this.formatTimestampSince(conn0Ts) : undefined,
-      };
-
-      const conn1Status = this.mapStatus(getTsVal('connector_1_status'));
-      const conn1Ts = getTsVal('connector_1_timestamp');
-      const conn1ErrorCode = getTsVal('connector_1_error_code');
-
-      stationB = {
-        name: 'Station B',
-        status: conn1Status,
-        statusLabel: STATUS_LABELS[conn1Status] || 'Unknown',
-        statusReason: conn1ErrorCode && conn1ErrorCode !== 'NoError' ? conn1ErrorCode : undefined,
-        powerKw: this.getNum(getTsVal('connector_1_power') ?? getTsVal('power')),
-        deliveredKwh: this.getNum(getTsVal('connector_1_energy') ?? getTsVal('energy')),
-        batteryPct: this.getNum(getTsVal('connector_1_battery')),
-        sessionEuro: this.getNum(getTsVal('connector_1_cost')),
-        sessionDurationFormatted: conn1Status === 'charging' ? 'Realtime' : undefined,
-        chargingSince: conn1Status === 'charging' ? this.formatTimestampSince(conn1Ts) : undefined,
-      };
-
-      // Prioritize last_heartbeat_ts, fallback to connector timestamps
-      const heartbeatTs = getTsVal('last_heartbeat_ts') || conn0Ts || conn1Ts;
-      heartbeatAgo = heartbeatTs ? this.formatTimeAgo(heartbeatTs) : 'Unknown';
-
-    } else if (hasStationKeys) {
-      // ── Legacy station_a/b_* keys ──
-      const stAStatusRaw = getTsVal('station_a_status');
-      const stAStatus: ChargingStatus = this.mapStatus(stAStatusRaw);
-      stationA = {
-        name: 'Station A',
-        status: stAStatus,
-        statusLabel: STATUS_LABELS[stAStatus] || 'Unknown',
-        statusReason: getTsVal('station_a_fault_code'),
-        powerKw: this.getNum(getTsVal('station_a_power')),
-        deliveredKwh: this.getNum(getTsVal('station_a_energy')),
-        batteryPct: this.getNum(getTsVal('station_a_battery')),
-        sessionEuro: this.getNum(getTsVal('station_a_cost')),
-        sessionDurationFormatted: stAStatus === 'charging' ? 'Realtime' : undefined,
-        chargingSince: stAStatus === 'charging' ? this.getMockSinceTime() : undefined,
-      };
-
-      const stBStatusRaw = getTsVal('station_b_status');
-      const stBStatus: ChargingStatus = stBStatusRaw ? this.mapStatus(stBStatusRaw) : 'idle';
-      stationB = {
-        name: 'Station B',
-        status: stBStatus,
-        statusLabel: STATUS_LABELS[stBStatus] || 'Unknown',
-        statusReason: getTsVal('station_b_fault_code'),
-        powerKw: this.getNum(getTsVal('station_b_power')),
-        deliveredKwh: this.getNum(getTsVal('station_b_energy')),
-        batteryPct: this.getNum(getTsVal('station_b_battery')),
-        sessionEuro: this.getNum(getTsVal('station_b_cost')),
-        sessionDurationFormatted: stBStatus === 'charging' ? 'Realtime' : undefined,
-        chargingSince: stBStatus === 'charging' ? this.getMockSinceTime() : undefined,
-      };
-
-      const heartbeatTs = getTsVal('last_heartbeat_ts');
-      if (heartbeatTs) {
-        heartbeatAgo = this.formatTimeAgo(heartbeatTs);
-      } else {
-        const heartbeatSec = Math.floor(Math.random() * 5) + 1;
-        heartbeatAgo = `${heartbeatSec}s ago`;
-      }
-
-    } else {
-      // ── Fallback: use aggregated processor stats ──
-      const status: ChargingStatus = stats.chargingStatus || 'unavailable';
-      stationA = {
-        name: 'Station A',
-        status,
-        statusLabel: STATUS_LABELS[status],
-        statusReason: status === 'error' ? 'E-R842' : undefined,
-        powerKw: status === 'charging' ? (stats.powerKw || null) : null,
-        deliveredKwh: (stats.energyKwh && stats.energyKwh > 0) ? stats.energyKwh : null,
-        batteryPct: null,
-        sessionEuro: null,
-        sessionDurationFormatted: this.formatDuration(stats.sessionDurationMs ?? 0),
-        chargingSince: status === 'charging' ? this.getMockSinceTime() : undefined,
-      };
-      stationB = {
-        name: 'Station B',
-        status: 'unavailable',
-        statusLabel: STATUS_LABELS['unavailable'],
-        statusReason: undefined,
-        powerKw: null,
-        deliveredKwh: null,
-        batteryPct: null,
-        sessionEuro: null,
-        sessionDurationFormatted: undefined,
-        chargingSince: undefined,
-      };
-      const heartbeatTs = getTsVal('last_heartbeat_ts');
-      if (heartbeatTs) {
-        heartbeatAgo = this.formatTimeAgo(heartbeatTs);
-      } else {
-        const heartbeatSec = Math.floor(Math.random() * 5) + 1;
-        heartbeatAgo = `${heartbeatSec}s ago`;
-      }
+    const chargingHours = this.getNum(latest('total_charging_hours'));
+    let chargingTimeH: number | null = null;
+    let chargingTimeM: number | null = null;
+    if (chargingHours !== null) {
+      chargingTimeH = Math.floor(chargingHours);
+      chargingTimeM = Math.round((chargingHours - chargingTimeH) * 60);
+      if (chargingTimeM === 60) { chargingTimeH += 1; chargingTimeM = 0; }
     }
 
-    return { deviceName, deviceId, deviceCode, stationA, stationB, heartbeatAgo };
+    const sockets = this.buildSockets(ts, latest, stats);
+
+    const sessionCountRaw = this.getNum(latest('active_session_count'));
+    const activeSessionCount = sessionCountRaw !== null
+      ? Math.round(sessionCountRaw)
+      : sockets.filter(s => s.state === 'charging').length;
+
+    // ── Online = station_online AND data fresher than 20 min (2× sync interval).
+    //    Stale data must show as stale, not as "online". ──
+    const syncTsRaw = latest('last_sync_epoch_ms') ?? latest('last_heartbeat_ts');
+    const syncTime = syncTsRaw !== undefined ? this.parseDate(syncTsRaw).getTime() : NaN;
+    const fresh = !isNaN(syncTime) && (Date.now() - syncTime) < FRESHNESS_LIMIT_MS;
+    const onlineRaw = latest('station_online');
+    const online = onlineRaw !== undefined
+      ? this.parseBool(onlineRaw) && fresh
+      : (isNaN(syncTime) ? sockets.some(s => s.state !== 'offline') : fresh);
+    const syncedAgo = !isNaN(syncTime) ? this.formatTimeAgo(syncTime) : 'unknown';
+
+    return {
+      deviceName,
+      deviceId,
+      deviceCode,
+      online,
+      onlineLabel: online ? 'Online' : 'Offline',
+      syncedAgo,
+      activePowerKw,
+      lifetimeKwh,
+      chargingTimeH,
+      chargingTimeM,
+      activeSessionCount,
+      sockets,
+    };
   }
 
-  private mapStatus(raw: any): ChargingStatus {
-    if (raw === undefined || raw === null) return 'unavailable';
-    const s = String(raw).toLowerCase().trim();
-    if (s.includes('charg') || s.includes('in_progress') || s.includes('active') || s === '1') return 'charging';
-    if (s.includes('fault') || s.includes('error') || s.includes('alarm')) return 'error';
-    if (s.includes('idle') || s.includes('avail') || s.includes('unplugged') || s.includes('ready') || s === '0') return 'idle';
-    return 'unavailable';
+  // ─── Socket building ────────────────────────────────────────────────────────
+
+  private buildSockets(
+    ts: Record<string, any[]>,
+    latest: (key: string) => any,
+    stats: EvChargerStats,
+  ): SocketViewModel[] {
+    // Real device telemetry: discover connector numbers from connector_N_status[_text]
+    const connectorNums = new Set<number>();
+    for (const key of Object.keys(ts)) {
+      const m = key.match(/^connector_(\d+)_status(_text)?$/);
+      if (m) connectorNums.add(Number(m[1]));
+    }
+    if (connectorNums.size > 0) {
+      return [...connectorNums]
+        .sort((a, b) => a - b)
+        .map((n, i) => this.buildConnectorSocket(n, i, latest));
+    }
+
+    // Legacy station_a/b_* keys
+    if (latest('station_a_status') !== undefined || latest('station_b_status') !== undefined) {
+      return [
+        this.buildLegacySocket('station_a', 0, latest),
+        this.buildLegacySocket('station_b', 1, latest),
+      ];
+    }
+
+    // Fallback: single socket from aggregated processor stats
+    const stateMap: Record<ChargingStatus, SocketState> = {
+      idle: 'ready', charging: 'charging', error: 'fault', unavailable: 'offline',
+    };
+    const state = stateMap[stats.chargingStatus] || 'offline';
+    const socket: SocketViewModel = {
+      name: 'Socket A',
+      typeLabel: 'Type 2',
+      state,
+      statusLabel: this.defaultStatusLabel(state),
+    };
+    if (state === 'charging') {
+      socket.sessionKw = stats.powerKw || null;
+      socket.sessionKwh = stats.energyKwh > 0 ? stats.energyKwh : null;
+      socket.usedCurrentA = stats.currentA > 0 ? stats.currentA : null;
+      socket.sessionDuration = stats.sessionDurationMs > 0
+        ? this.formatMinutes(stats.sessionDurationMs / 60000)
+        : undefined;
+    } else if (state === 'ready') {
+      socket.subLabel = 'Available';
+    } else if (state === 'offline') {
+      socket.subLabel = 'Not reporting';
+    }
+    return [socket];
   }
+
+  private buildConnectorSocket(n: number, index: number, latest: (key: string) => any): SocketViewModel {
+    const rawStatus = latest(`connector_${n}_status_text`) ?? latest(`connector_${n}_status`);
+    const state = this.mapSocketState(rawStatus);
+    const statusText = rawStatus !== undefined && rawStatus !== null ? String(rawStatus) : '';
+
+    const socket: SocketViewModel = {
+      name: `Socket ${String.fromCharCode(65 + index)}`,
+      typeLabel: String(latest(`connector_${n}_type`) ?? 'Type 2'),
+      state,
+      statusLabel: this.defaultStatusLabel(state),
+    };
+
+    if (state === 'charging') {
+      socket.sessionKw = this.getNum(latest(`connector_${n}_session_kw`))
+        ?? this.getNum(latest(`connector_${n}_power`));
+      socket.sessionKwh = this.getNum(latest(`connector_${n}_session_kwh`))
+        ?? this.getNum(latest(`connector_${n}_energy`));
+      // Username falls back to the RFID hex when the RFID has no registered user
+      const user = latest(`connector_${n}_session_username`)
+        ?? latest(`connector_${n}_session_rfid_hex`);
+      socket.sessionUser = user !== undefined && user !== null && String(user).length > 0
+        ? String(user)
+        : '—';
+      const durMin = this.getNum(latest(`connector_${n}_session_duration_min`));
+      socket.sessionDuration = durMin !== null ? this.formatMinutes(durMin) : undefined;
+      socket.usedCurrentA = this.getNum(latest(`connector_${n}_used_current_a`));
+    } else if (state === 'fault') {
+      socket.statusLabel = `⚠ ${statusText || 'Fault'}`;
+      const errorCode = latest(`connector_${n}_error_code`);
+      socket.subLabel = errorCode && errorCode !== 'NoError'
+        ? `${errorCode} — reboot from the console`
+        : 'Check the connector, then reboot from the console';
+    } else if (state === 'ready') {
+      const limit = this.getNum(latest(`connector_${n}_requested_current_a`));
+      socket.subLabel = limit !== null && limit > 0
+        ? `Available · limit ${Math.round(limit)} A`
+        : 'Available';
+    } else {
+      if (statusText) socket.statusLabel = statusText;
+      socket.subLabel = 'Not reporting';
+    }
+
+    return socket;
+  }
+
+  private buildLegacySocket(
+    prefix: 'station_a' | 'station_b',
+    index: number,
+    latest: (key: string) => any,
+  ): SocketViewModel {
+    const raw = latest(`${prefix}_status`);
+    const state = raw !== undefined ? this.mapSocketState(raw) : 'ready';
+    const socket: SocketViewModel = {
+      name: `Socket ${String.fromCharCode(65 + index)}`,
+      typeLabel: 'Type 2',
+      state,
+      statusLabel: this.defaultStatusLabel(state),
+    };
+    if (state === 'charging') {
+      socket.sessionKw = this.getNum(latest(`${prefix}_power`));
+      socket.sessionKwh = this.getNum(latest(`${prefix}_energy`));
+    } else if (state === 'fault') {
+      const faultCode = latest(`${prefix}_fault_code`);
+      socket.statusLabel = `⚠ ${faultCode || 'Fault'}`;
+      socket.subLabel = 'Check the connector, then reboot from the console';
+    } else if (state === 'ready') {
+      socket.subLabel = 'Available';
+    } else {
+      socket.subLabel = 'Not reporting';
+    }
+    return socket;
+  }
+
+  /** Ready → green · Charging → blue · Cable/Voltage/Car Error → red · Offline/Disabled → gray */
+  private mapSocketState(raw: any): SocketState {
+    if (raw === undefined || raw === null) return 'offline';
+    const s = String(raw).toLowerCase().trim();
+    if (s.includes('charg') || s.includes('in_progress') || s === 'active' || s === '1') return 'charging';
+    if (s.includes('error') || s.includes('fault') || s.includes('alarm')) return 'fault';
+    if (s.includes('ready') || s.includes('idle') || s.includes('avail') || s.includes('unplugged') || s === '0') return 'ready';
+    return 'offline';
+  }
+
+  private defaultStatusLabel(state: SocketState): string {
+    switch (state) {
+      case 'ready': return 'Ready';
+      case 'charging': return 'Charging';
+      case 'fault': return 'Fault';
+      default: return 'Offline';
+    }
+  }
+
+  // ─── Value helpers ──────────────────────────────────────────────────────────
 
   private getNum(raw: any): number | null {
-    if (raw === undefined || raw === null) return null;
+    if (raw === undefined || raw === null || raw === '') return null;
     const n = Number(raw);
     return isNaN(n) ? null : Math.round(n * 100) / 100;
   }
 
-  private getMockSinceTime(): string {
-    const d = new Date();
-    d.setHours(d.getHours() - 1);
-    const h = d.getHours().toString().padStart(2, '0');
-    const m = d.getMinutes().toString().padStart(2, '0');
-    return `${h}:${m}`;
+  private parseBool(raw: any): boolean {
+    if (typeof raw === 'boolean') return raw;
+    const s = String(raw).toLowerCase().trim();
+    return s === 'true' || s === '1' || s === 'on' || s === 'yes';
   }
 
   /** Format a timestamp (ISO string or epoch ms) as a human-readable "X ago" string */
   private formatTimeAgo(ts: any): string {
-    if (!ts) return 'Unknown';
+    if (!ts) return 'unknown';
     try {
       const d = this.parseDate(ts);
       const time = d.getTime();
-      if (isNaN(time)) return 'Unknown';
+      if (isNaN(time)) return 'unknown';
 
       const diff = Math.floor((Date.now() - time) / 1000);
-      if (diff < 0) return 'Just now';
+      if (diff < 0) return 'just now';
       if (diff < 60) return `${diff}s ago`;
       if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
       if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
       return `${Math.floor(diff / 86400)}d ago`;
     } catch {
-      return 'Unknown';
-    }
-  }
-
-  /** Format a timestamp as HH:MM for "charging since" display */
-  private formatTimestampSince(ts: any): string {
-    if (!ts) return this.getMockSinceTime();
-    try {
-      const d = this.parseDate(ts);
-      if (isNaN(d.getTime())) return this.getMockSinceTime();
-      const h = d.getHours().toString().padStart(2, '0');
-      const m = d.getMinutes().toString().padStart(2, '0');
-      return `${h}:${m}`;
-    } catch {
-      return this.getMockSinceTime();
+      return 'unknown';
     }
   }
 
@@ -374,13 +412,12 @@ export class UtilityStateService implements OnDestroy {
     return new Date(ts);
   }
 
-  private formatDuration(ms: number): string {
-    if (!ms || ms <= 0) return '—';
-    const totalMin = Math.floor(ms / 60000);
-    const h = Math.floor(totalMin / 60);
-    const m = totalMin % 60;
-    if (h > 0) return `${h}h ${m}m`;
-    return `${m}m`;
+  private formatMinutes(totalMin: number): string {
+    const min = Math.max(0, Math.round(totalMin));
+    const h = Math.floor(min / 60);
+    const m = min % 60;
+    if (h > 0) return `${h} h ${m.toString().padStart(2, '0')} m`;
+    return `${m} min`;
   }
 
   private patch(partial: Partial<DashboardViewModel>): void {

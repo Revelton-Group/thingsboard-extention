@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, Input, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { Subscription, interval } from 'rxjs';
+import { ThemeService, ThemeMode } from '../../../../revelton-tb-extension-dashboard/core/services/theme.service';
 
 @Component({
   selector: 'revelton-utility-header',
@@ -7,7 +8,6 @@ import { Subscription, interval } from 'rxjs';
   standalone: false,
   template: `
     <header class="utility-header">
-      <!-- Top Bar -->
       <div class="top-bar">
         <div class="top-left">
           <div class="logo-box">
@@ -23,13 +23,20 @@ import { Subscription, interval } from 'rxjs';
             <span class="dot"></span>
             LIVE
           </div>
+
+          <button class="theme-toggle" type="button"
+                  (click)="toggleTheme($event)"
+                  [attr.aria-label]="'Switch to ' + (isDark ? 'light' : 'dark') + ' mode'"
+                  [attr.title]="isDark ? 'Light mode' : 'Dark mode'">
+            <mat-icon>{{ isDark ? 'light_mode' : 'dark_mode' }}</mat-icon>
+          </button>
+
           <mat-icon class="wifi-icon">wifi</mat-icon>
           <div class="clock-display">
             {{ currentTime | date:'HH:mm:ss' }} <span class="clock-separator">|</span> {{ currentTime | date:'dd MMM yyyy' }}
           </div>
         </div>
       </div>
-
     </header>
   `,
   styles: [`
@@ -38,19 +45,16 @@ import { Subscription, interval } from 'rxjs';
     .utility-header {
       display: flex;
       flex-direction: column;
-      background: #0D0F14; /* Deep dark background matching the design */
-      border-bottom: 1px solid #1a1d27;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
       flex-shrink: 0;
     }
 
-    /* Top Bar */
     .top-bar {
       display: flex;
       justify-content: space-between;
       align-items: center;
       padding: 10px 24px;
-      border-bottom: 1px solid #1a1d27;
-      background: #0D0F14;
     }
 
     .top-left {
@@ -60,9 +64,9 @@ import { Subscription, interval } from 'rxjs';
     }
 
     .logo-box {
-      background: #0f172a;
-      color: #3b82f6;
-      border-radius: 4px;
+      background: var(--accent-wash);
+      color: var(--accent);
+      border-radius: 6px;
       width: 24px;
       height: 24px;
       display: flex;
@@ -77,64 +81,81 @@ import { Subscription, interval } from 'rxjs';
 
     .logo-title {
       font-size: 13px;
-      font-weight: 600;
-      color: #f8fafc;
+      font-weight: 700;
+      color: var(--ink);
     }
 
     .slash {
-      color: #334155;
+      color: var(--baseline);
       font-weight: 400;
     }
 
     .logo-subtitle {
       font-size: 13px;
       font-weight: 500;
-      color: #64748b;
-    }
-
-    .location-pill {
-      margin-left: 12px;
-      background: rgba(14, 165, 233, 0.1);
-      color: #38bdf8;
-      padding: 4px 12px;
-      border-radius: 12px;
-      border: 1px solid rgba(14, 165, 233, 0.2);
-      font-size: 11px;
-      font-weight: 500;
+      color: var(--muted);
     }
 
     .top-right {
       display: flex;
       align-items: center;
       gap: 16px;
-      color: #64748b;
+      color: var(--muted);
       font-size: 12px;
-      font-family: monospace; /* Monospaced for clock */
+      font-variant-numeric: tabular-nums;
     }
 
     .live-indicator {
       display: flex;
       align-items: center;
       gap: 6px;
-      color: #10b981;
+      color: var(--good-text);
       font-weight: 600;
-      font-family: sans-serif;
       letter-spacing: 0.5px;
+      font-size: 11px;
     }
 
     .live-indicator .dot {
       width: 6px;
       height: 6px;
-      background: #10b981;
+      background: var(--good);
       border-radius: 50%;
-      box-shadow: 0 0 6px #10b981;
+    }
+
+    .theme-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      padding: 0;
+      transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+    }
+    .theme-toggle:hover {
+      color: var(--ink);
+      border-color: var(--baseline);
+      background: var(--accent-wash);
+    }
+    .theme-toggle:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+    .theme-toggle mat-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
     }
 
     .wifi-icon {
       font-size: 16px;
       width: 16px;
       height: 16px;
-      color: #64748b;
+      color: var(--muted);
     }
 
     .clock-display {
@@ -144,48 +165,44 @@ import { Subscription, interval } from 'rxjs';
     }
 
     .clock-separator {
-      color: #334155;
-    }
-
-    /* Main Title Area */
-    .main-title-area {
-      padding: 32px 24px;
-      background: #0D0F14;
-    }
-
-    h1 {
-      margin: 0 0 8px 0;
-      font-size: 28px;
-      font-weight: 700;
-      color: #f8fafc;
-      letter-spacing: -0.5px;
-    }
-
-    .subtitle {
-      font-size: 13px;
-      color: #64748b;
-      font-weight: 500;
+      color: var(--baseline);
     }
   `],
 })
 export class UtilityHeaderComponent implements OnInit, OnDestroy {
   @Input() propertyName = '';
-  
-  currentTime = new Date();
-  private timerSub?: Subscription;
 
-  constructor(private cdr: ChangeDetectorRef) {}
+  currentTime = new Date();
+  isDark = true;
+
+  private timerSub?: Subscription;
+  private themeSub?: Subscription;
+
+  constructor(
+    private cdr: ChangeDetectorRef,
+    private themeService: ThemeService,
+  ) {}
 
   ngOnInit() {
     this.timerSub = interval(1000).subscribe(() => {
       this.currentTime = new Date();
       this.cdr.markForCheck();
     });
+
+    this.isDark = this.themeService.activeMode === 'dark';
+    this.themeSub = this.themeService.mode$.subscribe(mode => {
+      this.isDark = mode === 'dark';
+      this.cdr.markForCheck();
+    });
+  }
+
+  toggleTheme(event: Event): void {
+    event.stopPropagation();
+    this.themeService.toggleMode();
   }
 
   ngOnDestroy() {
-    if (this.timerSub) {
-      this.timerSub.unsubscribe();
-    }
+    this.timerSub?.unsubscribe();
+    this.themeSub?.unsubscribe();
   }
 }

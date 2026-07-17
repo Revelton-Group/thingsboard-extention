@@ -25,7 +25,7 @@ export class ControlPanelService {
   private _isOpen$ = new BehaviorSubject<boolean>(false);
   readonly isOpen$ = this._isOpen$.asObservable();
 
-  private _activeSection$ = new BehaviorSubject<ControlPanelSectionId>('air_quality');
+  private _activeSection$ = new BehaviorSubject<ControlPanelSectionId>('noise');
   readonly activeSection$ = this._activeSection$.asObservable();
 
   private _config$ = new BehaviorSubject<ControlPanelConfig>(this.loadConfig());
@@ -40,7 +40,7 @@ export class ControlPanelService {
     this.ctx = ctx;
   }
 
-  open(section: ControlPanelSectionId = 'air_quality'): void {
+  open(section: ControlPanelSectionId = 'noise'): void {
     this._activeSection$.next(section);
     this._isOpen$.next(true);
   }
@@ -195,6 +195,8 @@ export class ControlPanelService {
       thermostat_schedule: JSON.stringify(config.thermostat.schedule),
       thermostat_maintenance_enabled: config.thermostat.maintenance.enabled,
       thermostat_maintenance_tests: JSON.stringify(config.thermostat.maintenance.tests),
+      thermostat_winterSeason_start: config.thermostat.winterSeason.start,
+      thermostat_winterSeason_end: config.thermostat.winterSeason.end,
 
       // ── Noise ──
       noise_day_laeq: config.noise.day.laeq,
@@ -211,16 +213,6 @@ export class ControlPanelService {
       // ── Window ──
       window_thresholdMinutes: config.window.thresholdMinutes,
       window_autoPauseHeating: config.window.autoPauseHeating,
-
-      // ── Telegram ──
-      telegram_alert_temp: config.telegram.alerts.temp,
-      telegram_alert_humidity: config.telegram.alerts.humidity,
-      telegram_alert_co2: config.telegram.alerts.co2,
-      telegram_alert_noise: config.telegram.alerts.noise,
-      telegram_alert_water: config.telegram.alerts.water,
-      telegram_alert_window: config.telegram.alerts.window,
-      telegram_alert_battery: config.telegram.alerts.battery,
-      telegram_alert_checkin: config.telegram.alerts.checkin,
     };
   }
 

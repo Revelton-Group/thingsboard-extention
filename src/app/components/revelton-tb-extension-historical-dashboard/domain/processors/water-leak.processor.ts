@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Observable, of } from 'rxjs';
-import { map, catchError } from 'rxjs/operators';
+import { map, switchMap, catchError } from 'rxjs/operators';
 import { ISensorProcessor, WaterLeakResult } from '../../core/interfaces';
 import { DiscoveredDevice, TimeWindow, DEFAULT_WATER_LEAK_STATS } from '../../core/models';
 import { WATER_LEAK_KEYS } from '../../core/constants';
@@ -22,7 +22,15 @@ export class WaterLeakProcessor implements ISensorProcessor {
   process(device: DiscoveredDevice, keys: string[], tw: TimeWindow): Observable<WaterLeakResult> {
     const fetchKeys = keys.filter(k => (WATER_LEAK_KEYS as unknown as string[]).includes(k.toLowerCase()));
     return this.telemetry.getTimeseries(device.id, fetchKeys, tw.startTs, tw.endTs, tw.intervalMs).pipe(
-      map(ts => this.buildResult(ts, tw)),
+      switchMap(ts => {
+        const leakKey = WATER_LEAK_KEYS.find(k => ts[k]?.length);
+        if (leakKey) {
+          return of(this.buildResult(ts, tw));
+        }
+        return this.telemetry.getLatestTelemetry(device.id, fetchKeys).pipe(
+          map(latest => this.buildResult(latest, tw))
+        );
+      }),
       catchError(() => of(this.buildResult({}, tw))),
     );
   }

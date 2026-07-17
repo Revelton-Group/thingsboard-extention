@@ -88,6 +88,7 @@ export class RoomCardComponent implements OnInit, OnDestroy {
     batteryLowDevices: {},
     linkQualityDevices: {},
     lastSeenDevices: {},
+    lastSeenRaw: {},
     offlineDevices: {},
     tamperDevices: {},
     airSensors: {},

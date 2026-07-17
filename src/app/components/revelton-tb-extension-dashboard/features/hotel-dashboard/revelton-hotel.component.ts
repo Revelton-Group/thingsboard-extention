@@ -39,6 +39,13 @@ export class ReveltonDashboardComponent implements OnInit, OnDestroy {
   hotelLocation: string = "Jaltská 9, 360 01 Karlovy Vary 1, Czechia";
 
   rooms: InlineRoom[] = [];
+  /** True until the first room data arrives (or a load timeout) — drives the skeleton. */
+  loading = true;
+  /** Placeholder cards rendered while loading. */
+  readonly skeletonSlots = [0, 1, 2, 3, 4, 5];
+  /** Non-empty when the TB backend is unreachable — drives the error banner. */
+  connectionError = '';
+  private loadingFallbackTimer: any = null;
   timeRangeHours: number | 'custom' = 24;
   hotelStats: HotelStats = {
     totalRooms: 0,
@@ -54,6 +61,7 @@ export class ReveltonDashboardComponent implements OnInit, OnDestroy {
     mewsErrorMessage: "",
     mewsLastActivity: "",
     batteryAlertDevices: [],
+    offlineAlertDevices: [],
     occupancyPercent: 0,
     checkInsToday: 0,
     checkOutsToday: 0,
@@ -63,8 +71,8 @@ export class ReveltonDashboardComponent implements OnInit, OnDestroy {
     otherDevicesCount: 0,
   };
 
-  /* ──── UI toggle state (stays in the component — purely view-level) ──── */
   showBatteryAlertsList = false;
+  showOfflineDevicesList = false;
   showCheckInsList = false;
   showCheckOutsList = false;
   showMewsList = false;
@@ -223,6 +231,7 @@ export class ReveltonDashboardComponent implements OnInit, OnDestroy {
   private closeAllDropdowns(): void {
     this.showLangDropdown = false;
     this.showBatteryAlertsList = false;
+    this.showOfflineDevicesList = false;
     this.showCheckInsList = false;
     this.showCheckOutsList = false;
     this.showMewsList = false;
@@ -240,9 +249,25 @@ export class ReveltonDashboardComponent implements OnInit, OnDestroy {
     this.subs.push(
       this.hotelState.rooms$.subscribe((rooms) => {
         this.rooms = rooms;
+        // First real room data ends the loading skeleton and clears any stale
+        // connection error (data is flowing again).
+        if (rooms.length > 0) {
+          this.loading = false;
+          this.connectionError = '';
+        }
         // Keep the historical overlay's device arrays in sync when telemetry
         // updates arrive while it is open.
         this.refreshHistoricalArrays();
+        this.cd.detectChanges();
+      }),
+      this.hotelState.connectionError$.subscribe(() => {
+        // Only surface the banner while we have nothing to show — once rooms are
+        // on screen a transient poll failure shouldn't alarm staff. Show the
+        // localized message rather than the raw failing URL.
+        this.loading = false;
+        if (this.rooms.length === 0) {
+          this.connectionError = this.t.connectionError || 'Cannot reach the server';
+        }
         this.cd.detectChanges();
       }),
       this.hotelState.hotelStats$.subscribe((stats) => {
@@ -306,6 +331,13 @@ export class ReveltonDashboardComponent implements OnInit, OnDestroy {
       this.refreshInterval = setInterval(() => {
         this.onPeriodicRefresh();
       }, 10000);
+
+      // Safety net: if no room data has arrived after 12s (genuinely empty hotel,
+      // or discovery found nothing), drop the skeleton so the empty state shows.
+      this.loadingFallbackTimer = setTimeout(() => {
+        this.loading = false;
+        this.cd.detectChanges();
+      }, 12000);
     }
 
     // React to language changes
@@ -326,7 +358,23 @@ export class ReveltonDashboardComponent implements OnInit, OnDestroy {
     if (this.refreshInterval) clearInterval(this.refreshInterval);
     if (this.timeInterval) clearInterval(this.timeInterval);
     if (this.weatherInterval) clearInterval(this.weatherInterval);
+    if (this.loadingFallbackTimer) clearTimeout(this.loadingFallbackTimer);
     this.subs.forEach((s) => s.unsubscribe());
+  }
+
+  /** Retry button in the connection-error banner. */
+  retryConnection(): void {
+    this.connectionError = '';
+    this.loading = true;
+    this.cd.detectChanges();
+    if (this.ctx) {
+      this.hotelState.retryDiscovery(this.ctx);
+    }
+    if (this.loadingFallbackTimer) clearTimeout(this.loadingFallbackTimer);
+    this.loadingFallbackTimer = setTimeout(() => {
+      this.loading = false;
+      this.cd.detectChanges();
+    }, 12000);
   }
 
   private onPeriodicRefresh(): void {
@@ -432,6 +480,21 @@ export class ReveltonDashboardComponent implements OnInit, OnDestroy {
   closeBatteryAlerts(event: Event): void {
     if (event) event.stopPropagation();
     this.showBatteryAlertsList = false;
+    this.cd.detectChanges();
+  }
+
+  toggleOfflineDevicesList(event: Event): void {
+    event.stopPropagation();
+    if ((this.hotelStats?.offlineDevices || 0) > 0) {
+      const currentState = this.showOfflineDevicesList;
+      this.closeAllDropdowns();
+      this.showOfflineDevicesList = !currentState;
+    }
+  }
+
+  closeOfflineDevicesList(event?: Event): void {
+    if (event) event.stopPropagation();
+    this.showOfflineDevicesList = false;
     this.cd.detectChanges();
   }
 
@@ -662,12 +725,35 @@ export class ReveltonDashboardComponent implements OnInit, OnDestroy {
   getBatteryDeviceIcon(type: string): string {
     const icons: Record<string, string> = {
       'Window Sensor': 'window',
-      'Thermostat': 'local_fire_department',
+      'Thermostat': 'device_thermostat',
       'Leak Sensor': 'water_drop',
-      'Noise Sensor': 'graphic_eq',
+      'Noise Sensor': 'volume_up',
       'Air Monitor': 'air',
+      'Presence Sensor': 'radar',
+      'Smart Plug': 'power',
+      'Plug': 'power',
+      'Lock': 'lock',
+      'Light': 'lightbulb',
+      'Sensor': 'sensors'
     };
     return icons[type] || 'battery_alert';
+  }
+
+  getOfflineDeviceIcon(type: string): string {
+    const icons: Record<string, string> = {
+      'Window Sensor': 'window',
+      'Thermostat': 'device_thermostat',
+      'Leak Sensor': 'water_drop',
+      'Noise Sensor': 'volume_up',
+      'Air Monitor': 'air',
+      'Presence Sensor': 'radar',
+      'Smart Plug': 'power',
+      'Plug': 'power',
+      'Lock': 'lock',
+      'Light': 'lightbulb',
+      'Sensor': 'sensors'
+    };
+    return icons[type] || 'wifi_off';
   }
 
   private groupDevices(): void {
@@ -723,6 +809,13 @@ export class ReveltonDashboardComponent implements OnInit, OnDestroy {
   }
 
   trackByBatteryDevice(
+    _index: number,
+    item: { room: string; device: string }
+  ): string {
+    return `${item.room}|${item.device}`;
+  }
+
+  trackByOfflineDevice(
     _index: number,
     item: { room: string; device: string }
   ): string {

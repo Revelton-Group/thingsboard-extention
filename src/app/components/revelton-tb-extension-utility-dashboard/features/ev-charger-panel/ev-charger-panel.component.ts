@@ -7,7 +7,10 @@ import { ChargerCardViewModel } from '../../core/models';
   standalone: false,
   template: `
     <!-- Section Header (Clickable Accordion) -->
-    <div class="section-header" (click)="toggleExpand()">
+    <div class="section-header" role="button" tabindex="0"
+         (click)="toggleExpand()"
+         (keydown.enter)="toggleExpand()"
+         (keydown.space)="toggleExpand()">
       <div class="header-title">
         <div class="header-icon-wrapper">
           <mat-icon>bolt</mat-icon>
@@ -22,54 +25,42 @@ import { ChargerCardViewModel } from '../../core/models';
 
     <!-- Collapsible Content -->
     <div class="collapsible-content" *ngIf="isExpanded">
-      
+
       <div class="charger-summary">
-        <!-- TOTAL kWh TODAY -->
         <div class="summary-card">
           <div class="card-top">
-            <span class="card-title">TOTAL kWh TODAY</span>
-            <div class="icon-wrapper icon-blue">
-              <mat-icon>show_chart</mat-icon>
-            </div>
+            <span class="card-title">Active power</span>
+            <mat-icon class="card-icon">show_chart</mat-icon>
           </div>
-          <div class="card-value">{{ totalEnergy | number:'1.1-1' }} <small>kWh</small></div>
-          <div class="card-subtitle">All systems combined</div>
+          <div class="card-value">{{ totalPower | number:'1.1-1' }} <small>kW</small></div>
+          <div class="card-subtitle">All chargers combined</div>
         </div>
 
-        <!-- ACTIVE CHARGERS -->
         <div class="summary-card">
           <div class="card-top">
-            <span class="card-title">ACTIVE CHARGERS</span>
-            <div class="icon-wrapper icon-green">
-              <mat-icon>bolt</mat-icon>
-            </div>
+            <span class="card-title">Lifetime energy</span>
+            <mat-icon class="card-icon">battery_charging_full</mat-icon>
           </div>
-          <div class="card-value">{{ activeCount }} <span class="dim-slash">/ {{ totalCount }}</span></div>
+          <div class="card-value">{{ totalEnergy | number:'1.1-1' }} <small>kWh</small></div>
+          <div class="card-subtitle">Delivered, all chargers</div>
+        </div>
+
+        <div class="summary-card">
+          <div class="card-top">
+            <span class="card-title">Sockets in use</span>
+            <mat-icon class="card-icon">bolt</mat-icon>
+          </div>
+          <div class="card-value">{{ activeSockets }} <span class="dim-slash">/ {{ totalSockets }}</span></div>
           <div class="card-subtitle">Charging right now</div>
         </div>
 
-        <!-- REVENUE TODAY -->
         <div class="summary-card">
           <div class="card-top">
-            <span class="card-title">REVENUE TODAY</span>
-            <div class="icon-wrapper icon-yellow">
-              <mat-icon>euro</mat-icon>
-            </div>
+            <span class="card-title">Active faults</span>
+            <mat-icon class="card-icon" [class.is-critical]="activeFaults > 0">warning_amber</mat-icon>
           </div>
-          <div class="card-value">€{{ totalRevenue | number:'1.2-2' }}</div>
-          <div class="card-subtitle">EV charging sessions</div>
-        </div>
-
-        <!-- ACTIVE FAULTS -->
-        <div class="summary-card">
-          <div class="card-top">
-            <span class="card-title">ACTIVE FAULTS</span>
-            <div class="icon-wrapper icon-red">
-              <mat-icon>warning_amber</mat-icon>
-            </div>
-          </div>
-          <div class="card-value">{{ activeFaults }}</div>
-          <div class="card-subtitle">Requires attention</div>
+          <div class="card-value" [class.is-critical]="activeFaults > 0">{{ activeFaults }}</div>
+          <div class="card-subtitle">{{ activeFaults > 0 ? 'Requires attention' : 'All sockets healthy' }}</div>
         </div>
       </div>
 
@@ -96,18 +87,16 @@ import { ChargerCardViewModel } from '../../core/models';
       display: flex;
       justify-content: space-between;
       align-items: center;
-      background: #111319;
-      border: 1px solid #1f222e;
-      border-radius: 6px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
       padding: 12px 16px;
       margin-bottom: 16px;
       cursor: pointer;
       user-select: none;
-      transition: background 0.2s ease;
+      transition: border-color 0.2s ease;
     }
-    .section-header:hover {
-      background: #141720;
-    }
+    .section-header:hover { border-color: var(--baseline); }
 
     .header-title {
       display: flex;
@@ -116,7 +105,7 @@ import { ChargerCardViewModel } from '../../core/models';
     }
 
     .header-icon-wrapper {
-      color: #3b82f6;
+      color: var(--accent);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -130,48 +119,47 @@ import { ChargerCardViewModel } from '../../core/models';
     .header-title h2 {
       margin: 0;
       font-size: 14px;
-      font-weight: 600;
-      color: #f8fafc;
+      font-weight: 700;
+      color: var(--ink);
+      letter-spacing: -0.01em;
     }
 
     .device-badge {
-      background: rgba(59, 130, 246, 0.15);
-      color: #60a5fa;
-      padding: 4px 10px;
-      border-radius: 12px;
+      background: var(--accent-wash);
+      color: var(--accent);
+      padding: 3px 10px;
+      border-radius: 999px;
       font-size: 12px;
-      font-weight: 500;
-      border: 1px solid rgba(59, 130, 246, 0.2);
+      font-weight: 600;
     }
 
     .expand-btn {
-      color: #64748b;
+      color: var(--muted);
       width: 32px;
       height: 32px;
       line-height: 32px;
       pointer-events: none; /* Let the row handle the click */
     }
 
-    /* Collapsible Content wrapper */
-    .collapsible-content {
-      /* Animation could be added here if desired */
-    }
-
-    /* Summary Cards */
+    /* Summary Cards — values wear ink; color is reserved for state */
     .charger-summary {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
       gap: 16px;
       margin-bottom: 24px;
     }
+    @media (max-width: 900px) {
+      .charger-summary { grid-template-columns: repeat(2, 1fr); }
+    }
 
     .summary-card {
-      background: #111319;
-      border: 1px solid #1f222e;
-      border-radius: 6px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
       padding: 16px;
       display: flex;
       flex-direction: column;
+      box-shadow: var(--shadow);
     }
 
     .card-top {
@@ -182,50 +170,44 @@ import { ChargerCardViewModel } from '../../core/models';
     }
 
     .card-title {
-      font-size: 11px;
+      font-size: 10px;
       font-weight: 600;
-      color: #64748b;
-      letter-spacing: 0.8px;
+      color: var(--muted);
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
     }
 
-    .icon-wrapper {
-      width: 24px;
-      height: 24px;
-      border-radius: 4px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+    .card-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+      color: var(--muted);
     }
-    .icon-wrapper mat-icon {
-      font-size: 14px;
-      width: 14px;
-      height: 14px;
-    }
-    .icon-blue { background: rgba(59, 130, 246, 0.1); color: #3b82f6; }
-    .icon-green { background: rgba(16, 185, 129, 0.1); color: #10b981; }
-    .icon-yellow { background: rgba(234, 179, 8, 0.1); color: #eab308; }
-    .icon-red { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
+    .card-icon.is-critical { color: var(--critical); }
 
     .card-value {
-      font-size: 28px;
-      font-weight: 600;
-      color: #f8fafc;
+      font-size: 26px;
+      font-weight: 700;
+      color: var(--ink);
       margin-bottom: 4px;
       line-height: 1;
+      letter-spacing: -0.01em;
+      font-variant-numeric: tabular-nums;
     }
     .card-value small {
-      font-size: 14px;
-      font-weight: 500;
-      color: #94a3b8;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--ink-2);
     }
     .card-value .dim-slash {
-      font-size: 28px;
-      color: #475569;
+      font-size: 26px;
+      color: var(--muted);
     }
+    .card-value.is-critical { color: var(--critical); }
 
     .card-subtitle {
       font-size: 12px;
-      color: #64748b;
+      color: var(--muted);
     }
 
     /* Grid */
@@ -233,6 +215,9 @@ import { ChargerCardViewModel } from '../../core/models';
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
       gap: 16px;
+    }
+    @media (max-width: 470px) {
+      .charger-grid { grid-template-columns: 1fr; }
     }
 
     .empty-state {
@@ -242,17 +227,17 @@ import { ChargerCardViewModel } from '../../core/models';
       justify-content: center;
       gap: 12px;
       padding: 48px;
-      color: #64748b;
+      color: var(--muted);
     }
   `]
 })
 export class EvChargerPanelComponent {
   @Input() chargers: ChargerCardViewModel[] = [];
-  @Input() activeCount = 0;
-  @Input() totalCount = 0;
+  @Input() activeSockets = 0;
+  @Input() totalSockets = 0;
   @Input() totalPower = 0;
   @Input() totalEnergy = 0;
-  @Input() totalRevenue = 0;
+  @Input() activeSessions = 0;
   @Input() activeFaults = 0;
 
   isExpanded = true;

@@ -161,15 +161,46 @@
         </div>
       </div>
 
-      <div class="kpi-card">
-        <div class="kpi-icon-wrapper" style="background:var(--ok-soft,rgba(52,211,153,.13));color:var(--ok,#34d399);">
-          <i class="material-icons">wifi</i>
+      <div class="kpi-card interactive-kpi" [ngClass]="{
+          'has-alerts': (hotelStats?.offlineDevices || 0) > (hotelStats?.onlineDevices || 0),
+          'active-dropdown': showOfflineDevicesList
+        }" (click)="toggleOfflineDevicesList($event)" (mouseleave)="closeOfflineDevicesList($event)"
+        [style.cursor]="(hotelStats?.offlineDevices || 0) > 0 ? 'pointer' : 'default'">
+        <div class="kpi-icon-wrapper" [style.background]="(hotelStats?.offlineDevices || 0) > (hotelStats?.onlineDevices || 0) ? 'var(--alert-soft,rgba(248,113,113,.13))' : 'var(--ok-soft,rgba(52,211,153,.13))'" [style.color]="(hotelStats?.offlineDevices || 0) > (hotelStats?.onlineDevices || 0) ? 'var(--alert,#f87171)' : 'var(--ok,#34d399)'">
+          <i class="material-icons">{{ (hotelStats?.offlineDevices || 0) > (hotelStats?.onlineDevices || 0) ? 'wifi_off' : 'wifi' }}</i>
         </div>
         <div class="kpi-text">
           <span class="kpi-title">{{ t.onlineOffline }}</span>
           <div class="kpi-main">
             <span class="kpi-value" style="color:var(--ok,#34d399);">{{ hotelStats?.onlineDevices }}</span>
-            <span class="kpi-subtext">/ {{ hotelStats?.offlineDevices }}</span>
+            <span class="kpi-subtext" [style.color]="(hotelStats?.offlineDevices || 0) > 0 ? 'var(--alert,#f87171)' : ''">/ {{ hotelStats?.offlineDevices }}</span>
+          </div>
+        </div>
+
+        <!-- Offline Devices Popover -->
+        <div class="battery-dropdown" *ngIf="showOfflineDevicesList" style="width: 320px;" (click)="$event.stopPropagation()">
+          <div class="battery-dropdown-header">
+            <span>Offline Devices</span>
+            <button class="close-btn" (click)="closeOfflineDevicesList($event)">
+              <i class="material-icons">close</i>
+            </button>
+          </div>
+          <div class="battery-list-body">
+            <div class="battery-table-row" *ngFor="let item of hotelStats?.offlineAlertDevices; trackBy: trackByOfflineDevice">
+              <div class="batt-icon critical">
+                <i class="material-icons">{{ getOfflineDeviceIcon(item.type) }}</i>
+              </div>
+              <div class="batt-info">
+                <div class="batt-device">{{ item.device }}</div>
+                <div class="batt-room">{{ t.room }} {{ item.room }}</div>
+              </div>
+              <div class="batt-badge critical" style="font-size:11px;white-space:nowrap;padding:3px 8px;">
+                {{ item.timeAgo || '--' }}
+              </div>
+            </div>
+            <div class="battery-table-row" *ngIf="!hotelStats?.offlineAlertDevices?.length" style="justify-content:center;">
+              <span style="font:600 11px Manrope;color:var(--t3);padding:10px 0;">All devices online</span>
+            </div>
           </div>
         </div>
       </div>
@@ -198,15 +229,15 @@
           </div>
           <div class="battery-list-body">
             <div class="battery-table-row" *ngFor="let item of hotelStats?.batteryAlertDevices; trackBy: trackByBatteryDevice">
-              <div class="batt-icon" [class.critical]="item.battery === null || item.battery < 10">
+              <div class="batt-icon" [class.critical]="item.battery === null || (item.battery !== -1 && item.battery < 10)">
                 <i class="material-icons">{{ getBatteryDeviceIcon(item.type) }}</i>
               </div>
               <div class="batt-info">
                 <div class="batt-device">{{ item.device }}</div>
                 <div class="batt-room">{{ t.room }} {{ item.room }}</div>
               </div>
-              <div class="batt-badge" [class.critical]="item.battery === null || item.battery < 10">
-                {{ item.type === 'Thermostat' ? t.low : (item.battery !== null ? item.battery + '%' : t.low) }}
+              <div class="batt-badge" [class.critical]="item.battery === null || (item.battery !== -1 && item.battery < 10)">
+                {{ item.battery === -1 ? (t.noData || 'No Info') : (item.type === 'Thermostat' ? t.low : (item.battery !== null ? item.battery + '%' : t.low)) }}
               </div>
             </div>
             <div class="battery-table-row" *ngIf="!hotelStats?.batteryAlertDevices?.length" style="justify-content:center;">
@@ -297,7 +328,26 @@
     </div>
   </div>
 
+  <!-- Connection error banner — backend unreachable (previously invisible to staff) -->
+  <div class="conn-error-banner" *ngIf="connectionError">
+    <i class="material-icons">cloud_off</i>
+    <span class="conn-error-text">{{ connectionError }}</span>
+    <button type="button" class="conn-retry-btn" (click)="retryConnection()">
+      <i class="material-icons">refresh</i>{{ t.retryConnection || 'Retry' }}
+    </button>
+  </div>
+
   <div class="rooms-section">
+    <!-- Loading skeleton — shown on first load before any room data arrives -->
+    <div class="rooms-grid room-skeleton-grid" *ngIf="loading && rooms.length === 0 && !connectionError">
+      <div class="room-skeleton" *ngFor="let s of skeletonSlots">
+        <div class="sk-line sk-title"></div>
+        <div class="sk-badges"><span></span><span></span></div>
+        <div class="sk-metrics"><span></span><span></span><span></span></div>
+        <div class="sk-line sk-foot"></div>
+      </div>
+    </div>
+
     <div class="rooms-grid" *ngIf="rooms.length > 0">
       <div class="room-wrapper" *ngFor="let room of rooms; trackBy: trackByRoomId">
         <!-- INLINE ROOM CARD — standalone, no tb-room-card dependency -->
@@ -485,7 +535,7 @@
   </div>
   <!-- /.rooms-section -->
 
-  <div *ngIf="rooms.length === 0" class="no-data">
+  <div *ngIf="!loading && rooms.length === 0 && !connectionError" class="no-data">
     <i class="material-icons no-data-icon">sensors_off</i>
     <p>{{ t.noDatasource }}</p>
   </div>

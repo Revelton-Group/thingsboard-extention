@@ -1,6 +1,6 @@
-import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
-import { ChargerCardViewModel, ChargerStationViewModel } from '../../../core/models';
+import { ChangeDetectionStrategy, Component, Input, ViewContainerRef } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
+import { ChargerCardViewModel } from '../../../core/models';
 import { EvStationHistoryModalComponent } from '../ev-station-history-modal/ev-station-history-modal.component';
 
 @Component({
@@ -8,394 +8,201 @@ import { EvStationHistoryModalComponent } from '../ev-station-history-modal/ev-s
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false,
   template: `
-    <div class="charger-card" [ngClass]="getCardTopBorderClass()">
-      <div class="card-header">
-        <div class="header-titles">
-          <div class="device-code">{{ charger.deviceCode }}</div>
-          <div class="device-name">{{ charger.deviceName }}</div>
+    <button class="ev-card" type="button" (click)="openHistory()"
+            aria-haspopup="dialog"
+            [attr.aria-label]="charger.deviceName + ' charger — open charging history'">
+
+      <div class="card-head">
+        <div>
+          <div class="name">{{ charger.deviceName }}</div>
+          <div class="model">{{ charger.deviceCode }}</div>
         </div>
-        <div class="badge-tln">
-          <mat-icon>place</mat-icon>
-          Tallin
+        <div class="badges">
+          <span class="status-pill" [class.online]="charger.online" [class.offline]="!charger.online">
+            <span class="dot"></span>{{ charger.onlineLabel }}
+          </span>
+          <span class="fresh">synced {{ charger.syncedAgo }}</span>
+        </div>
+      </div>
+
+      <div class="statrow">
+        <div class="stat">
+          <div class="lbl">Active power</div>
+          <div class="val">{{ charger.activePowerKw | number:'1.1-1' }}<small>kW</small></div>
+        </div>
+        <div class="stat">
+          <div class="lbl">Lifetime energy</div>
+          <div class="val">
+            <ng-container *ngIf="charger.lifetimeKwh !== null">{{ charger.lifetimeKwh | number:'1.1-1' }}<small>kWh</small></ng-container>
+            <ng-container *ngIf="charger.lifetimeKwh === null">—</ng-container>
+          </div>
+        </div>
+        <div class="stat">
+          <div class="lbl">Charging time</div>
+          <div class="val">
+            <ng-container *ngIf="charger.chargingTimeH !== null">{{ charger.chargingTimeH }}<small>h</small> {{ charger.chargingTimeM }}<small>m</small></ng-container>
+            <ng-container *ngIf="charger.chargingTimeH === null">—</ng-container>
+          </div>
+        </div>
+        <div class="stat">
+          <div class="lbl">Sessions now</div>
+          <div class="val">{{ charger.activeSessionCount }}</div>
         </div>
       </div>
 
-      <div class="stations-container">
-        <!-- Station A -->
-        <div class="station-col" (click)="openStationHistory(charger.stationA)">
-          <div class="station-title">Station A</div>
-          
-          <div class="status-section">
-            <div class="status-icon" [ngClass]="charger.stationA.status">
-              <mat-icon *ngIf="charger.stationA.status === 'charging'">bolt</mat-icon>
-              <mat-icon *ngIf="charger.stationA.status === 'idle'">check</mat-icon>
-              <mat-icon *ngIf="charger.stationA.status === 'error'">warning_amber</mat-icon>
-              <mat-icon *ngIf="charger.stationA.status === 'unavailable'">signal_cellular_off</mat-icon>
-            </div>
-            <div class="status-text" [ngClass]="charger.stationA.status">{{ charger.stationA.statusLabel }}</div>
-            <div class="status-sub" *ngIf="charger.stationA.status === 'charging'">
-              <mat-icon>schedule</mat-icon> Since {{ charger.stationA.chargingSince }}
-            </div>
-            <div class="status-sub error" *ngIf="charger.stationA.status === 'error'">
-              {{ charger.stationA.statusReason }}
-            </div>
+      <div class="sockets">
+        <div class="socket" *ngFor="let s of charger.sockets; trackBy: trackByName"
+             [ngClass]="'is-' + s.state">
+          <div class="socket-head">
+            <span class="sname">{{ s.name }}</span>
+            <span class="chip">{{ s.typeLabel }}</span>
           </div>
 
-          <div class="metrics-grid">
-            <div class="metric">
-              <div class="metric-label">POWER</div>
-              <div class="metric-value">
-                <ng-container *ngIf="charger.stationA.powerKw !== null">{{ charger.stationA.powerKw | number:'1.1-1' }} <small>kW</small></ng-container>
-                <ng-container *ngIf="charger.stationA.powerKw === null">-</ng-container>
-              </div>
-            </div>
-            <div class="metric">
-              <div class="metric-label">DELIVERED</div>
-              <div class="metric-value">
-                <ng-container *ngIf="charger.stationA.deliveredKwh !== null">{{ charger.stationA.deliveredKwh | number:'1.1-1' }} <small>kWh</small></ng-container>
-                <ng-container *ngIf="charger.stationA.deliveredKwh === null">-</ng-container>
-              </div>
-            </div>
-            <div class="metric">
-              <div class="metric-label">BATTERY</div>
-              <div class="metric-value">
-                <ng-container *ngIf="charger.stationA.batteryPct !== null">{{ charger.stationA.batteryPct }}%</ng-container>
-                <ng-container *ngIf="charger.stationA.batteryPct === null">-</ng-container>
-              </div>
-            </div>
-            <div class="metric">
-              <div class="metric-label">SESSION €</div>
-              <div class="metric-value">
-                <ng-container *ngIf="charger.stationA.sessionEuro !== null">€{{ charger.stationA.sessionEuro | number:'1.2-2' }}</ng-container>
-                <ng-container *ngIf="charger.stationA.sessionEuro === null">-</ng-container>
-              </div>
-            </div>
-          </div>
+          <div class="sstatus"><span class="sdot"></span>{{ s.statusLabel }}</div>
 
-          <div class="station-footer">
-            <div class="heartbeat">
-              <mat-icon>favorite</mat-icon> Heartbeat: {{ charger.heartbeatAgo }}
+          <ng-container *ngIf="s.state === 'charging'; else socketSub">
+            <div class="kwbig" *ngIf="s.sessionKw !== null && s.sessionKw !== undefined">
+              {{ s.sessionKw | number:'1.1-1' }} <small>kW</small>
             </div>
-            <div class="action-buttons">
-              <button class="btn-outline"><mat-icon>refresh</mat-icon> Reboot</button>
-              <button class="btn-outline"><mat-icon>lock_open</mat-icon> Unlock</button>
+            <div class="sess-lines">
+              <span *ngIf="s.sessionUser">
+                <b>{{ s.sessionUser }}</b><ng-container *ngIf="s.sessionDuration"> · {{ s.sessionDuration }}</ng-container>
+              </span>
+              <span *ngIf="s.sessionKwh !== null && s.sessionKwh !== undefined">
+                <b>{{ s.sessionKwh | number:'1.1-1' }} kWh</b> delivered<ng-container
+                  *ngIf="s.usedCurrentA !== null && s.usedCurrentA !== undefined"> · <b>{{ s.usedCurrentA | number:'1.0-0' }} A</b> draw</ng-container>
+              </span>
             </div>
-          </div>
-        </div>
-
-        <div class="station-divider"></div>
-
-        <!-- Station B -->
-        <div class="station-col" (click)="openStationHistory(charger.stationB)">
-          <div class="station-title">Station B</div>
-          
-          <div class="status-section">
-            <div class="status-icon" [ngClass]="charger.stationB.status">
-              <mat-icon *ngIf="charger.stationB.status === 'charging'">bolt</mat-icon>
-              <mat-icon *ngIf="charger.stationB.status === 'idle'">check</mat-icon>
-              <mat-icon *ngIf="charger.stationB.status === 'error'">warning_amber</mat-icon>
-              <mat-icon *ngIf="charger.stationB.status === 'unavailable'">signal_cellular_off</mat-icon>
-            </div>
-            <div class="status-text" [ngClass]="charger.stationB.status">{{ charger.stationB.statusLabel }}</div>
-            <div class="status-sub" *ngIf="charger.stationB.status === 'charging'">
-              <mat-icon>schedule</mat-icon> Since {{ charger.stationB.chargingSince }}
-            </div>
-            <div class="status-sub error" *ngIf="charger.stationB.status === 'error'">
-              {{ charger.stationB.statusReason }}
-            </div>
-          </div>
-
-          <div class="metrics-grid">
-            <div class="metric">
-              <div class="metric-label">POWER</div>
-              <div class="metric-value">
-                <ng-container *ngIf="charger.stationB.powerKw !== null">{{ charger.stationB.powerKw | number:'1.1-1' }} <small>kW</small></ng-container>
-                <ng-container *ngIf="charger.stationB.powerKw === null">-</ng-container>
-              </div>
-            </div>
-            <div class="metric">
-              <div class="metric-label">DELIVERED</div>
-              <div class="metric-value">
-                <ng-container *ngIf="charger.stationB.deliveredKwh !== null">{{ charger.stationB.deliveredKwh | number:'1.1-1' }} <small>kWh</small></ng-container>
-                <ng-container *ngIf="charger.stationB.deliveredKwh === null">-</ng-container>
-              </div>
-            </div>
-            <div class="metric">
-              <div class="metric-label">BATTERY</div>
-              <div class="metric-value">
-                <ng-container *ngIf="charger.stationB.batteryPct !== null">{{ charger.stationB.batteryPct }}%</ng-container>
-                <ng-container *ngIf="charger.stationB.batteryPct === null">-</ng-container>
-              </div>
-            </div>
-            <div class="metric">
-              <div class="metric-label">SESSION €</div>
-              <div class="metric-value">
-                <ng-container *ngIf="charger.stationB.sessionEuro !== null">€{{ charger.stationB.sessionEuro | number:'1.2-2' }}</ng-container>
-                <ng-container *ngIf="charger.stationB.sessionEuro === null">-</ng-container>
-              </div>
-            </div>
-          </div>
-
-          <div class="station-footer">
-            <div class="heartbeat">
-              <mat-icon>favorite</mat-icon> Heartbeat: {{ charger.heartbeatAgo }}
-            </div>
-            <div class="action-buttons">
-              <button class="btn-outline"><mat-icon>refresh</mat-icon> Reboot</button>
-              <button class="btn-outline"><mat-icon>lock_open</mat-icon> Unlock</button>
-            </div>
-          </div>
+          </ng-container>
+          <ng-template #socketSub>
+            <div class="ssub" *ngIf="s.subLabel">{{ s.subLabel }}</div>
+          </ng-template>
         </div>
       </div>
-    </div>
+
+      <div class="card-foot"><span>View history</span><span class="chev">→</span></div>
+    </button>
   `,
   styles: [`
     :host { display: block; }
 
-    .charger-card {
-      background: #111319;
-      border: 1px solid #1f222e;
-      border-radius: 8px;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-      border-top: 3px solid #1f222e; /* default top border */
+    .ev-card {
+      display: block; width: 100%; background: var(--surface);
+      border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow);
+      cursor: pointer; text-align: left; padding: 0; font: inherit; color: var(--ink);
+      transition: transform .12s ease, box-shadow .12s ease;
+    }
+    .ev-card:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 2px 4px rgba(11,11,11,0.06), 0 8px 24px rgba(11,11,11,0.10);
+    }
+    .ev-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    @media (prefers-reduced-motion: reduce) {
+      .ev-card, .ev-card:hover { transition: none; transform: none; }
     }
 
-    .charger-card.top-blue { border-top-color: #3b82f6; }
-    .charger-card.top-red { border-top-color: #ef4444; }
+    .card-head {
+      display: flex; align-items: flex-start; justify-content: space-between;
+      padding: 18px 20px 14px;
+    }
+    .card-head .name { font-size: 17px; font-weight: 700; letter-spacing: -0.01em; }
+    .card-head .model { font-size: 12.5px; color: var(--muted); margin-top: 1px; }
 
-    .card-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      padding: 16px;
-      border-bottom: 1px solid #1f222e;
+    .badges { display: flex; align-items: center; gap: 8px; }
+    .status-pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 999px;
+      border: 1px solid var(--border);
     }
+    .status-pill .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--good); }
+    .status-pill.online { color: var(--good-text); }
+    .status-pill.offline { color: var(--muted); }
+    .status-pill.offline .dot { background: var(--muted); }
+    .fresh { font-size: 11.5px; color: var(--muted); white-space: nowrap; }
 
-    .header-titles .device-code {
-      font-size: 16px;
-      font-weight: 600;
-      color: #f8fafc;
-      margin-bottom: 2px;
+    .statrow {
+      display: grid; grid-template-columns: repeat(4, 1fr);
+      border-top: 1px solid var(--grid); border-bottom: 1px solid var(--grid);
     }
-    .header-titles .device-name {
-      font-size: 11px;
-      font-weight: 600;
-      color: #64748b;
+    .stat { padding: 12px 8px 12px 20px; }
+    .stat + .stat { border-left: 1px solid var(--grid); }
+    .stat .lbl {
+      font-size: 9.5px; letter-spacing: 0.09em; text-transform: uppercase;
+      color: var(--muted); font-weight: 600;
     }
+    .stat .val {
+      font-size: 17px; font-weight: 700; margin-top: 2px; letter-spacing: -0.01em;
+      font-variant-numeric: tabular-nums;
+    }
+    .stat .val small { font-size: 11px; font-weight: 600; color: var(--ink-2); margin-left: 2px; }
 
-    .badge-tln {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      color: #94a3b8;
-      font-size: 10px;
-      font-weight: 600;
-      padding: 4px 8px;
-      border-radius: 4px;
-      display: flex;
-      align-items: center;
-      gap: 4px;
+    .sockets { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 16px 20px 8px; }
+    .socket {
+      border: 1px solid var(--grid); border-radius: 10px; padding: 12px 14px; min-height: 118px;
+      display: flex; flex-direction: column; gap: 6px;
     }
-    .badge-tln mat-icon {
-      font-size: 12px;
-      width: 12px;
-      height: 12px;
+    .socket-head { display: flex; align-items: center; gap: 7px; }
+    .socket-head .sname { font-size: 13px; font-weight: 700; }
+    .chip {
+      font-size: 10px; font-weight: 600; color: var(--ink-2);
+      border: 1px solid var(--grid); border-radius: 5px; padding: 1px 6px;
     }
+    .sstatus { display: flex; align-items: center; gap: 7px; font-size: 14px; font-weight: 700; }
+    .sdot { width: 8px; height: 8px; border-radius: 50%; flex: none; background: var(--muted); }
+    .ssub { font-size: 12px; color: var(--muted); }
 
-    .stations-container {
-      display: flex;
-      flex-direction: row;
-    }
+    .socket.is-ready .sdot { background: var(--good); }
+    .socket.is-ready .sstatus { color: var(--good-text); }
 
-    .station-divider {
-      width: 1px;
-      background: #1f222e;
-    }
+    .socket.is-charging { border-color: var(--accent); background: var(--accent-wash); }
+    .socket.is-charging .sdot { background: var(--accent); animation: rev-ev-pulse 1.6s ease-in-out infinite; }
+    .socket.is-charging .sstatus { color: var(--accent); }
+    @keyframes rev-ev-pulse { 50% { opacity: 0.35; } }
+    @media (prefers-reduced-motion: reduce) { .socket.is-charging .sdot { animation: none; } }
 
-    .station-col {
-      flex: 1;
-      padding: 16px;
-      display: flex;
-      flex-direction: column;
-      cursor: pointer;
-      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-      border-radius: 6px;
-      position: relative;
-    }
-    .station-col:hover {
-      background: rgba(59, 130, 246, 0.04);
-      box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.3);
-    }
+    .kwbig { font-size: 24px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.1; }
+    .kwbig small { font-size: 12px; font-weight: 600; color: var(--ink-2); }
+    .sess-lines { display: flex; flex-direction: column; gap: 2px; font-size: 12px; color: var(--ink-2); }
+    .sess-lines b { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
 
-    .station-title {
-      font-size: 12px;
-      color: #64748b;
-      margin-bottom: 16px;
-    }
+    .socket.is-fault { border-color: var(--critical); background: var(--critical-wash); }
+    .socket.is-fault .sdot { background: var(--critical); }
+    .socket.is-fault .sstatus { color: var(--critical); }
 
-    /* Status Section */
-    .status-section {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      margin-bottom: 24px;
-      min-height: 100px;
-      justify-content: center;
-    }
+    .socket.is-offline .sstatus { color: var(--muted); }
 
-    .status-icon {
-      width: 48px;
-      height: 48px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-bottom: 12px;
-      border: 1px solid transparent;
+    .card-foot {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 20px 14px; font-size: 13px; font-weight: 600; color: var(--accent);
     }
-    .status-icon mat-icon { font-size: 24px; width: 24px; height: 24px; }
-
-    .status-icon.idle {
-      border-color: #10b981;
-      color: #10b981;
-      background: rgba(16, 185, 129, 0.05);
-    }
-    .status-icon.charging {
-      border-color: #3b82f6;
-      color: #3b82f6;
-      background: rgba(59, 130, 246, 0.05);
-    }
-    .status-icon.error {
-      border-color: #ef4444;
-      color: #ef4444;
-      background: rgba(239, 68, 68, 0.05);
-    }
-
-    .status-text {
-      font-size: 14px;
-      font-weight: 600;
-      margin-bottom: 4px;
-    }
-    .status-text.idle { color: #10b981; }
-    .status-text.charging { color: #3b82f6; }
-    .status-text.error { color: #ef4444; }
-
-    .status-sub {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      font-size: 11px;
-      color: #64748b;
-    }
-    .status-sub mat-icon { font-size: 12px; width: 12px; height: 12px; }
-    .status-sub.error {
-      color: #ef4444;
-      background: rgba(239, 68, 68, 0.1);
-      padding: 2px 8px;
-      border-radius: 4px;
-      margin-top: 4px;
-    }
-
-    /* Metrics Grid */
-    .metrics-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-      margin-bottom: 24px;
-    }
-
-    .metric {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-
-    .metric-label {
-      font-size: 10px;
-      font-weight: 600;
-      color: #475569;
-      letter-spacing: 0.5px;
-    }
-
-    .metric-value {
-      font-size: 14px;
-      font-weight: 600;
-      color: #f8fafc;
-    }
-    .metric-value small {
-      font-size: 11px;
-      font-weight: 500;
-      color: #94a3b8;
-    }
-
-    /* Footer */
-    .station-footer {
-      margin-top: auto;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-
-    .heartbeat {
-      font-size: 11px;
-      color: #475569;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-    .heartbeat mat-icon { font-size: 10px; width: 10px; height: 10px; }
-
-    .action-buttons {
-      display: flex;
-      gap: 8px;
-    }
-    .btn-outline {
-      flex: 1;
-      background: transparent;
-      border: 1px solid #1f222e;
-      color: #94a3b8;
-      border-radius: 6px;
-      padding: 6px 0;
-      font-size: 11px;
-      font-weight: 500;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 4px;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-    .btn-outline mat-icon { font-size: 14px; width: 14px; height: 14px; }
-    .btn-outline:hover {
-      background: #1f222e;
-      color: #f8fafc;
-    }
-  `]
+    .card-foot .chev { transition: transform .12s ease; }
+    .ev-card:hover .card-foot .chev { transform: translateX(3px); }
+  `],
 })
 export class ChargerStatusCardComponent {
   @Input() charger!: ChargerCardViewModel;
 
-  constructor(private dialog: MatDialog) {}
+  constructor(
+    private dialog: MatDialog,
+    private viewContainerRef: ViewContainerRef,
+  ) {}
 
-  openStationHistory(station: ChargerStationViewModel): void {
+  openHistory(): void {
     this.dialog.open(EvStationHistoryModalComponent, {
-      panelClass: 'custom-dialog-container',
+      panelClass: 'rev-evh-dialog',
+      autoFocus: false,
+      maxHeight: '92vh',
+      // Resolve the dashboard-scoped ThingsBoardTelemetryService inside the dialog
+      viewContainerRef: this.viewContainerRef,
       data: {
-        station,
+        deviceId: this.charger.deviceId,
         deviceName: this.charger.deviceName,
-        deviceId: this.charger.deviceId
-      }
+        deviceCode: this.charger.deviceCode,
+      },
     });
   }
 
-  getCardTopBorderClass(): string {
-    if (this.charger?.stationA?.status === 'error' || this.charger?.stationB?.status === 'error') {
-      return 'top-red';
-    }
-    if (this.charger?.stationA?.status === 'charging' || this.charger?.stationB?.status === 'charging') {
-      return 'top-blue';
-    }
-    return '';
+  trackByName(_index: number, socket: { name: string }): string {
+    return socket.name;
   }
 }

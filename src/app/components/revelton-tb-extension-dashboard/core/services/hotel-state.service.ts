@@ -14,6 +14,19 @@ const PROCESS_DEBOUNCE_MS = 300; // debounce rapid onDataUpdated calls
 const PERIODIC_REFRESH_MS = 30000; // 30s between full telemetry refreshes (was 15s)
 const EMIT_DEBOUNCE_MS = 100; // batch discovery-merge emissions (N HTTP responses → 1 emit)
 
+/* ── Device-topology cache (sessionStorage) ──
+   The room→device→keys mapping is stable across a page refresh, but the full
+   relation→keys→values discovery waterfall re-runs from scratch every reload
+   (root singleton is recreated). Caching the topology lets a refresh paint room
+   data in a SINGLE request wave (values+attributes for known devices) instead of
+   waiting on the 3-wave discovery. A background reconcile still runs each load to
+   pick up added/removed devices, so correctness is preserved. */
+const TOPOLOGY_CACHE_VERSION = 1; // bump to invalidate all cached topologies
+const TOPOLOGY_CACHE_PREFIX = "revelton_topology_"; // sessionStorage key prefix
+const TOPOLOGY_CACHE_TTL_MS = 30 * 60 * 1000; // 30 min safety bound (reconcile catches changes sooner)
+const TOPOLOGY_RECONCILE_DELAY_MS = 2500; // defer background reconcile so it doesn't fight the fast-paint fetches
+const TOPOLOGY_PERSIST_DEBOUNCE_MS = 500; // batch topology writes as discovery fills in
+
 /* Cached Prague-timezone formatters — Intl.DateTimeFormat construction is
    expensive and these were previously rebuilt per room per stats pass. */
 const PRAGUE_DATETIME_FORMATTER = new Intl.DateTimeFormat("en-US", {
@@ -96,6 +109,13 @@ export interface HotelStats {
     battery: number | null;
     type: string;
   }[];
+  offlineAlertDevices: {
+    room: string;
+    device: string;
+    type: string;
+    timeAgo: string;
+    rawTime?: number;
+  }[];
   occupancyPercent: number;
   checkInsToday: number;
   checkOutsToday: number;
@@ -166,6 +186,7 @@ function createEmptyRoomData(): RoomData {
     batteryLowDevices: {},
     linkQualityDevices: {},
     lastSeenDevices: {},
+    lastSeenRaw: {},
     offlineDevices: {},
     tamperDevices: {},
     airSensors: {},
@@ -244,6 +265,12 @@ export class HotelStateService implements OnDestroy {
   private lastCtx: any = null;
   private refreshTimer: any = null;
 
+  /* ──── Topology cache state ──── */
+  private _topologyDsKey = ""; // stable key for the current datasource set
+  private _reconcileTimer: any = null; // deferred background full-discovery after a cache hit
+  private _persistTopology$ = new Subject<void>(); // debounced sessionStorage writes
+  private _persistSub: any = null;
+
   constructor(private roomDataService: RoomDataService) {
     // Debounce processDataUpdate so rapid onDataUpdated calls batch together.
     // The first call is processed immediately; subsequent calls within the window are batched.
@@ -268,13 +295,21 @@ export class HotelStateService implements OnDestroy {
     this._emitOtherSub = this._emitOtherDebounce$
       .pipe(debounceTime(EMIT_DEBOUNCE_MS))
       .subscribe(() => this.emitMergedOtherDevices());
+
+    // Persist the discovered topology to sessionStorage, batched — discovery
+    // fills the map incrementally over dozens of responses.
+    this._persistSub = this._persistTopology$
+      .pipe(debounceTime(TOPOLOGY_PERSIST_DEBOUNCE_MS))
+      .subscribe(() => this.persistTopology());
   }
 
   ngOnDestroy(): void {
     if (this.refreshTimer) clearInterval(this.refreshTimer);
+    if (this._reconcileTimer) clearTimeout(this._reconcileTimer);
     if (this._processSub) this._processSub.unsubscribe();
     if (this._emitRoomsSub) this._emitRoomsSub.unsubscribe();
     if (this._emitOtherSub) this._emitOtherSub.unsubscribe();
+    if (this._persistSub) this._persistSub.unsubscribe();
   }
 
   /**
@@ -288,7 +323,7 @@ export class HotelStateService implements OnDestroy {
   ): Promise<any> {
     return new Promise((resolve, reject) => {
       const attempt = (remaining: number) => {
-        const sub = ctx.http.get(url).subscribe(
+        const sub = ctx.http.get(url, { ignoreErrors: true, ignoreLoading: true }).subscribe(
           (res: any) => resolve(res),
           (err: any) => {
             warn(`HTTP ${url} failed (status=${err?.status}), retries left=${remaining}`);
@@ -752,13 +787,12 @@ export class HotelStateService implements OnDestroy {
     // updateHotelStats emits the fully computed stats (using `stats` only for
     // the Mews fields) — re-emitting the raw `stats` copy here would clobber
     // the computed KPIs with last cycle's values.
+    this.emitMergedOtherDevices(false);
     this.updateHotelStats(rooms, stats);
-
     this._rooms$.next(rooms);
-    this.emitMergedOtherDevices();
   }
 
-  private emitMergedOtherDevices(): void {
+  private emitMergedOtherDevices(triggerStatsUpdate = true): void {
     const merged = new Map<string, OtherDevice>();
     this.ctxOtherDevices.forEach((v, k) => merged.set(k, v));
     this.discoveredOtherDevices.forEach((v, k) => {
@@ -774,6 +808,9 @@ export class HotelStateService implements OnDestroy {
       devices.map((d) => `${d.name} (${d.type}) @ ${d.room}`)
     );
     this._otherDevices$.next(devices);
+    if (triggerStatsUpdate && this._rooms$.value) {
+      this.updateHotelStats(this._rooms$.value, this._hotelStats$.value || {});
+    }
   }
 
   /* ───────────────────────────────────────────────────────────
@@ -786,9 +823,16 @@ export class HotelStateService implements OnDestroy {
     const batteryAlertDevices: {
       room: string;
       device: string;
-      battery: number;
+      battery: number | null;
       type: string;
     }[] = [];
+    const offlineAlertDevicesMap = new Map<string, {
+      room: string;
+      device: string;
+      type: string;
+      timeAgo: string;
+      rawTime?: number;
+    }>();
 
     let checkInsToday = 0;
     let checkOutsToday = 0;
@@ -856,32 +900,102 @@ export class HotelStateService implements OnDestroy {
 
       // Count battery alerts from deviceEntityIdMap
       if (room.roomData.deviceEntityIdMap) {
-        for (const name of Object.keys(room.roomData.deviceEntityIdMap)) {
-          if (room.roomData.batteryLowDevices?.[name]) {
+        for (const [name, type] of Object.entries(room.roomData.deviceEntityIdMap)) {
+          const battLow = room.roomData.batteryLowDevices?.[name];
+          const battVal = room.roomData.batteryDevices?.[name];
+          
+          const isSim = this.isBatteryExemptDevice(name, type as string);
+          const isMissingInfo = !isSim && battLow === undefined && battVal === undefined;
+          const isBatteryLow = !isSim && (battLow === true || (battVal !== undefined && battVal < 20));
+
+          if (isBatteryLow || isMissingInfo) {
             batteryAlerts++;
             batteryAlertDevices.push({
               room:
                 room.roomData.sensorData.roomNumber?.toString() || "Unknown",
               device: this.formatDeviceName(name, "Device"),
-              battery:
-                room.roomData.batteryDevices?.[name] !== undefined
-                  ? room.roomData.batteryDevices[name]
-                  : null,
+              battery: battVal !== undefined ? battVal : (isMissingInfo ? -1 : null),
               type: this.getDeviceType(name, room.roomData),
             });
           }
         }
       }
 
-      // Strictly use 'active' attribute for status
-      if (room.roomData.activeDevices) {
-        for (const [name, isActive] of Object.entries(
-          room.roomData.activeDevices
-        )) {
-          allDevices.set(name, !!isActive);
+      // Strictly check active, offline, and known devices for status and offlineAlertDevices
+      const allRoomNames = new Set<string>([
+        ...Object.keys(room.roomData.activeDevices || {}),
+        ...Object.keys(room.roomData.deviceEntityIdMap || {}),
+        ...Object.keys(room.roomData.offlineDevices || {}),
+      ]);
+
+      for (const name of allRoomNames) {
+        if (this.isMewsOrSimulationDevice(name)) {
+          continue;
+        }
+        const isActive = room.roomData.activeDevices?.[name];
+        const isOffline = room.roomData.offlineDevices?.[name] === true;
+        const isOnline =
+          isActive !== false &&
+          isActive !== "false" &&
+          isActive !== 0 &&
+          isActive !== "0" &&
+          !isOffline;
+        allDevices.set(name, isOnline);
+
+        if (!isOnline) {
+          if (!offlineAlertDevicesMap.has(name)) {
+            const formattedAgo = room.roomData.lastSeenDevices?.[name];
+            const rawTimeTs = room.roomData.lastSeenRaw?.[name];
+            offlineAlertDevicesMap.set(name, {
+              room:
+                room.roomData.sensorData.roomNumber?.toString() || "Unknown",
+              device: this.formatDeviceName(name, "Device"),
+              type: this.getDeviceType(name, room.roomData),
+              timeAgo: this.formatTimeAgo(undefined, formattedAgo),
+              rawTime: rawTimeTs,
+            });
+          }
+        } else {
+          offlineAlertDevicesMap.delete(name);
         }
       }
     }
+
+    // Check non-room discovered devices
+    for (const dev of this._otherDevices$.value || []) {
+      const devKey = dev.name || dev.id || "";
+      if (this.isMewsOrSimulationDevice(devKey, dev.type)) {
+        continue;
+      }
+      const isOnline =
+        dev.status === "online" &&
+        dev.data?.active !== false &&
+        dev.data?.active !== "false" &&
+        dev.data?.active !== 0 &&
+        dev.data?.active !== "0";
+      if (!allDevices.has(devKey)) {
+        allDevices.set(devKey, isOnline);
+      } else if (isOnline) {
+        allDevices.set(devKey, true);
+        offlineAlertDevicesMap.delete(devKey);
+      }
+
+      if (!isOnline && !allDevices.get(devKey)) {
+        if (!offlineAlertDevicesMap.has(devKey)) {
+          offlineAlertDevicesMap.set(devKey, {
+            room: dev.room || "Area",
+            device: dev.name || "Device",
+            type: dev.type || "Other",
+            timeAgo: this.formatTimeAgo(dev.lastUpdateTs),
+            rawTime: dev.lastUpdateTs,
+          });
+        }
+      } else if (isOnline) {
+        offlineAlertDevicesMap.delete(devKey);
+      }
+    }
+
+    const offlineAlertDevices = Array.from(offlineAlertDevicesMap.values());
 
     // Count online/offline from the collected active statuses
     let onlineDevices = 0;
@@ -913,6 +1027,12 @@ export class HotelStateService implements OnDestroy {
       mewsErrorMessage: mewsStats.mewsErrorMessage || "",
       mewsLastActivity: mewsStats.mewsLastActivity || "",
       batteryAlertDevices,
+      offlineAlertDevices: offlineAlertDevices.sort((a, b) => {
+        // Sort descending by offline time (i.e., older rawTime first)
+        const timeA = a.rawTime ?? Date.now();
+        const timeB = b.rawTime ?? Date.now();
+        return timeA - timeB;
+      }),
       occupancyPercent,
       checkInsToday,
       checkOutsToday,
@@ -921,6 +1041,111 @@ export class HotelStateService implements OnDestroy {
       checkOutsList,
       otherDevicesCount: this._otherDevices$.value.length,
     });
+  }
+
+  private isMewsOrSimulationDevice(name: string, type?: string): boolean {
+    const lowerName = (name || "").toLowerCase().trim();
+    const lowerType = (type || "").toLowerCase().trim();
+    if (
+      lowerName.includes("mews") ||
+      lowerName.includes("sim") ||
+      lowerName.includes("simulation") ||
+      lowerName.includes("virtual") ||
+      lowerName.includes("gateway") ||
+      lowerName.includes("bridge") ||
+      lowerType.includes("mews") ||
+      lowerType.includes("sim") ||
+      lowerType.includes("simulation") ||
+      lowerType.includes("virtual") ||
+      lowerType.includes("gateway") ||
+      lowerType.includes("bridge") ||
+      /^rst-[a-z0-9]+-room-\d+$/.test(lowerName) ||
+      /^rst-room-\d+$/.test(lowerName)
+    ) {
+      return true;
+    }
+    const profile = (this.deviceProfileMap.get(name) || "").toLowerCase().trim();
+    if (
+      profile.includes("mews") ||
+      profile.includes("sim") ||
+      profile.includes("simulation") ||
+      profile.includes("virtual") ||
+      profile.includes("gateway") ||
+      profile.includes("bridge") ||
+      profile.includes("room asset") ||
+      profile === "room"
+    ) {
+      return true;
+    }
+
+    // Check exact room asset naming pattern: e.g. RST-KLV-Room-6, Room-6, room_101, etc.
+    // If name ends in Room-<digits> or Room_<digits> (with optional suffix) and doesn't contain a physical sensor keyword
+    const isRoomEntityPattern = /(?:^|[-_])room[-_]?\d+(?:[-_].*)?$/i.test(lowerName);
+    if (isRoomEntityPattern) {
+      const hasPhysicalSensorKeyword =
+        lowerName.includes("trv") ||
+        lowerName.includes("thermo") ||
+        lowerName.includes("win") ||
+        lowerName.includes("leak") ||
+        lowerName.includes("wl") ||
+        lowerName.includes("noise") ||
+        lowerName.includes("ws303") ||
+        lowerName.includes("ws302") ||
+        lowerName.includes("air") ||
+        lowerName.includes("am_") ||
+        lowerName.includes("-am-") ||
+        lowerName.includes("_am_") ||
+        lowerName.includes("plug") ||
+        lowerName.includes("socket") ||
+        lowerName.includes("occ") ||
+        lowerName.includes("presence") ||
+        lowerName.includes("lock") ||
+        lowerName.includes("light");
+      if (!hasPhysicalSensorKeyword) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  private isBatteryExemptDevice(name: string, type?: string): boolean {
+    if (this.isMewsOrSimulationDevice(name, type)) {
+      return true;
+    }
+    
+    const lowerName = (name || "").toLowerCase().trim();
+    const lowerType = (type || "").toLowerCase().trim();
+    if (lowerName.includes("ws523") || lowerType.includes("ws523") || lowerType.includes("socket") || lowerName.includes("socket")) {
+      return true;
+    }
+
+    const profile = (this.deviceProfileMap.get(name) || "").toLowerCase().trim();
+    if (profile.includes("ws523") || profile.includes("socket") || profile.includes("milesight-ws523")) {
+      return true;
+    }
+
+    return false;
+  }
+
+  private formatTimeAgo(ts?: number, existingFormatted?: string): string {
+    if (
+      existingFormatted &&
+      existingFormatted !== "--" &&
+      existingFormatted !== "" &&
+      existingFormatted !== "null"
+    ) {
+      return existingFormatted;
+    }
+    if (!ts || isNaN(ts) || ts <= 0) {
+      return "--";
+    }
+    const s = Math.floor((Date.now() - ts) / 1000);
+    if (s < 10) return "Just now";
+    if (s < 60) return `${s}s ago`;
+    if (s < 3600) return `${Math.floor(s / 60)}m ago`;
+    if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
+    return `${Math.floor(s / 86400)}d ago`;
   }
 
   private getDeviceType(name: string, data: RoomData | null): string {
@@ -954,6 +1179,7 @@ export class HotelStateService implements OnDestroy {
     if (
       lower.includes("leak") ||
       lower.includes("water") ||
+      lower.includes("ws303") ||
       lower.startsWith("wl_")
     )
       return "Leak Sensor";
@@ -967,15 +1193,21 @@ export class HotelStateService implements OnDestroy {
       lower.includes("air") ||
       lower.includes("co2") ||
       lower.includes("iaq") ||
+      lower.includes("am308") ||
       lower.startsWith("aq_")
     )
       return "Air Monitor";
     if (
       lower.includes("motion") ||
       lower.includes("occupancy") ||
+      lower.includes("presence") ||
+      lower.includes("pir") ||
+      lower.includes("vs370") ||
+      lower.includes("ws301") ||
+      lower.includes("vs3") ||
       lower.startsWith("occ_")
     )
-      return "Occupancy";
+      return "Presence Sensor";
     if (
       lower.includes("light") ||
       lower.includes("lamp") ||
@@ -1059,17 +1291,134 @@ export class HotelStateService implements OnDestroy {
      Same pattern as room-detail-panel.component.ts
      ═══════════════════════════════════════════════════════════ */
 
+  /** Stable key for a datasource set — a different hotel/dashboard misses the cache. */
+  private topologyCacheKey(ctx: any): string {
+    const ids: string[] = (ctx?.datasources || [])
+      .map((ds: any) =>
+        typeof ds.entityId === "string" ? ds.entityId : ds.entityId?.id
+      )
+      .filter(Boolean)
+      .sort();
+    // djb2 hash → short, stable key regardless of how many UUIDs are joined.
+    let h = 5381;
+    const s = ids.join("|");
+    for (let i = 0; i < s.length; i++) h = (h * 33) ^ s.charCodeAt(i);
+    return (h >>> 0).toString(36);
+  }
+
+  /**
+   * Restore discovered topology (room→devices→keys, room locations, device
+   * profiles) from sessionStorage. Returns true only on a fresh, matching hit.
+   */
+  private loadTopologyFromCache(dsKey: string): boolean {
+    try {
+      if (typeof sessionStorage === "undefined") return false;
+      const raw = sessionStorage.getItem(TOPOLOGY_CACHE_PREFIX + dsKey);
+      if (!raw) return false;
+      const p = JSON.parse(raw);
+      if (
+        !p ||
+        p.v !== TOPOLOGY_CACHE_VERSION ||
+        p.dsKey !== dsKey ||
+        typeof p.ts !== "number" ||
+        Date.now() - p.ts > TOPOLOGY_CACHE_TTL_MS ||
+        !Array.isArray(p.devices) ||
+        p.devices.length === 0
+      ) {
+        return false;
+      }
+      this.discoveredDevices = new Map(p.devices);
+      this.roomLocationNames = new Set(p.roomLocations || []);
+      this.deviceProfileMap = new Map(p.profiles || []);
+      return this.discoveredDevices.size > 0;
+    } catch {
+      return false;
+    }
+  }
+
+  /** Serialize the current topology to sessionStorage (called debounced). */
+  private persistTopology(): void {
+    try {
+      if (typeof sessionStorage === "undefined" || !this._topologyDsKey) return;
+      const payload = {
+        v: TOPOLOGY_CACHE_VERSION,
+        ts: Date.now(),
+        dsKey: this._topologyDsKey,
+        devices: Array.from(this.discoveredDevices.entries()),
+        roomLocations: Array.from(this.roomLocationNames),
+        profiles: Array.from(this.deviceProfileMap.entries()),
+      };
+      sessionStorage.setItem(
+        TOPOLOGY_CACHE_PREFIX + this._topologyDsKey,
+        JSON.stringify(payload)
+      );
+    } catch {
+      // Quota exceeded / storage disabled — cache is a pure optimization, ignore.
+    }
+  }
+
   /**
    * Entry point: call from component ngOnInit.
    * Discovers devices related to each Room Asset via "Contains" relations,
    * then fetches their telemetry and merges into room data.
+   *
+   * On a page refresh this restores a cached device topology and paints room
+   * data in a single request wave, then reconciles the real topology in the
+   * background (see topology cache above).
    */
+  /** Re-run discovery after a connection failure (retry button in the error banner). */
+  public retryDiscovery(ctx: any): void {
+    if (!ctx?.http) return;
+    if (this._reconcileTimer) {
+      clearTimeout(this._reconcileTimer);
+      this._reconcileTimer = null;
+    }
+    this.discoveryDone = false;
+    this.discoverDevices(ctx);
+  }
+
   public discoverDevices(ctx: any): void {
     if (!ctx?.http || this.discoveryDone) return;
     this.lastCtx = ctx;
     this.discoveryDone = true;
+    this._topologyDsKey = this.topologyCacheKey(ctx);
 
-    log(`discoverDevices: ${ctx.datasources?.length ?? 0} datasources`);
+    // Fast path: restore a cached topology and paint room data in ONE request
+    // wave (values+attributes for known devices), then reconcile the topology in
+    // the background so added/removed devices are still picked up.
+    if (this.loadTopologyFromCache(this._topologyDsKey)) {
+      log("discoverDevices: topology cache HIT — fast paint from cache");
+      this.refreshAllDeviceTelemetry(ctx);
+      this._reconcileTimer = setTimeout(
+        () => this.runFullDiscovery(ctx, true),
+        TOPOLOGY_RECONCILE_DELAY_MS
+      );
+    } else {
+      log("discoverDevices: topology cache MISS — running full discovery");
+      this.runFullDiscovery(ctx);
+    }
+
+    // Periodic refresh (every 30s) — set once, in both paths.
+    // Uses lastCtx (updated on every data push) so polling follows the live
+    // widget context instead of the one captured at discovery time.
+    if (!this.refreshTimer) {
+      this.refreshTimer = setInterval(() => {
+        this.refreshAllDeviceTelemetry(this.lastCtx || ctx);
+      }, PERIODIC_REFRESH_MS);
+    }
+  }
+
+  /**
+   * Relation-based discovery: query each room/other asset's "Contains" relations,
+   * fetch device keys, then telemetry + attributes. Runs on a cache MISS, and
+   * again (deferred) after a cache HIT to reconcile topology changes. As it
+   * populates `discoveredDevices` it schedules a debounced topology persist.
+   */
+  private runFullDiscovery(ctx: any, reconcile = false): void {
+    log(
+      `runFullDiscovery: ${ctx.datasources?.length ?? 0} datasources` +
+        (reconcile ? " (background reconcile)" : "")
+    );
 
     // Separate "room" assets from "other" alias assets so they are always
     // routed correctly regardless of whether their name contains a number.
@@ -1148,7 +1497,7 @@ export class HotelStateService implements OnDestroy {
     
     // 1. Process explicit room assets
     roomAssets.forEach((asset, assetId) => {
-      this.discoverDevicesForRoom(ctx, assetId, asset.entityName, false);
+      this.discoverDevicesForRoom(ctx, assetId, asset.entityName, false, reconcile);
     });
 
     // 2. Process "other" alias assets (offices, halls, public areas)
@@ -1159,7 +1508,7 @@ export class HotelStateService implements OnDestroy {
         log(
           `[HotelState] 🏢 discoverDevicesForRoom (forceOther=true): "${asset.entityName}" id=${assetId}`
         );
-        this.discoverDevicesForRoom(ctx, assetId, asset.entityName, true);
+        this.discoverDevicesForRoom(ctx, assetId, asset.entityName, true, reconcile);
       }
     });
 
@@ -1174,7 +1523,7 @@ export class HotelStateService implements OnDestroy {
         return;
 
       const url = `/api/relations/info?toId=${deviceId}&toType=DEVICE`;
-      ctx.http.get(url).subscribe(
+      ctx.http.get(url, { ignoreErrors: true, ignoreLoading: true }).subscribe(
         (relations: any[]) => {
           const assetRel = relations?.find(
             (r) => r.from?.entityType === "ASSET" && r.type === "Contains"
@@ -1184,7 +1533,8 @@ export class HotelStateService implements OnDestroy {
               ctx,
               assetRel.from.id,
               assetRel.fromName || `Asset_${assetRel.from.id}`,
-              false
+              false,
+              reconcile
             );
           }
         },
@@ -1194,15 +1544,6 @@ export class HotelStateService implements OnDestroy {
           )
       );
     });
-
-    // Set up periodic refresh (every 30s).
-    // Use lastCtx (updated on every data push) so polling follows the live
-    // widget context instead of the one captured at discovery time.
-    if (!this.refreshTimer) {
-      this.refreshTimer = setInterval(() => {
-        this.refreshAllDeviceTelemetry(this.lastCtx || ctx);
-      }, PERIODIC_REFRESH_MS);
-    }
   }
 
   /**
@@ -1213,7 +1554,8 @@ export class HotelStateService implements OnDestroy {
     ctx: any,
     assetId: string,
     assetName: string,
-    forceOther: boolean = false
+    forceOther: boolean = false,
+    reconcile: boolean = false
   ): void {
     const extractedRoomNumber = this.extractRoomNumber(assetName);
 
@@ -1242,7 +1584,7 @@ export class HotelStateService implements OnDestroy {
     const url = `/api/relations/info?fromId=${assetId}&fromType=ASSET`;
     log(`[HotelState]   → GET ${url}`);
 
-    ctx.http.get(url).subscribe(
+    ctx.http.get(url, { ignoreErrors: true, ignoreLoading: true }).subscribe(
       (relations: any[]) => {
         log(
           `[HotelState]   ← relations response for "${assetName}": ${
@@ -1301,7 +1643,8 @@ export class HotelStateService implements OnDestroy {
             deviceId,
             deviceName,
             "DEVICE",
-            isRoom
+            isRoom,
+            reconcile
           );
         }
       },
@@ -1312,6 +1655,9 @@ export class HotelStateService implements OnDestroy {
           err?.message,
           err
         );
+        // Wave-1 failure means this room can't populate — surface it so the UI
+        // can show a connection banner instead of a silent empty grid.
+        this._connectionError$.next(`relations:${assetName}`);
       }
     );
 
@@ -1327,7 +1673,8 @@ export class HotelStateService implements OnDestroy {
         assetId,
         assetName,
         "ASSET",
-        isRoom
+        isRoom,
+        reconcile
       );
     }
   }
@@ -1343,8 +1690,19 @@ export class HotelStateService implements OnDestroy {
     entityId: string,
     entityName: string,
     entityType: string = "DEVICE",
-    isRoom: boolean = true
+    isRoom: boolean = true,
+    reconcile: boolean = false
   ): void {
+    // Background reconcile after a cache hit: the device is already known (keys
+    // stored, profile cached) and its values are covered by the fast-paint +
+    // 30s poll — so skip its keys/values re-fetch. Only genuinely NEW devices
+    // (absent from the cached topology) fall through to full discovery.
+    if (reconcile) {
+      const known = this.discoveredDevices
+        .get(locationName)
+        ?.find((d) => d.deviceId === entityId);
+      if (known && known.keys && known.keys.length > 0) return;
+    }
     // Devices found purely via "Contains" relations (i.e. not configured as their
     // own widget datasource) never go through the deviceProfileMap population in
     // processDataUpdate — fetch the profile here too so isPlugDevice() etc. can
@@ -1371,7 +1729,7 @@ export class HotelStateService implements OnDestroy {
 
     const keysUrl = `/api/plugins/telemetry/${entityType}/${entityId}/keys/timeseries`;
 
-    ctx.http.get(keysUrl).subscribe(
+    ctx.http.get(keysUrl, { ignoreErrors: true, ignoreLoading: true }).subscribe(
       (keys: string[]) => {
         if (!keys || keys.length === 0) {
           // Even if no timeseries keys, still fetch attributes!
@@ -1406,6 +1764,10 @@ export class HotelStateService implements OnDestroy {
           existing.push(storedEntity);
         }
         storedEntity.keys = keys;
+
+        // Topology changed — persist it (debounced) so the next refresh can
+        // fast-paint from cache instead of re-running the discovery waterfall.
+        this._persistTopology$.next();
 
         // Fetch latest values (Telemetry + Attributes)
         this.fetchDeviceData(
@@ -1460,30 +1822,15 @@ export class HotelStateService implements OnDestroy {
         isRoom
       );
     }
+    // One combined attributes call instead of three per-scope calls.
+    // The scope-less endpoint returns SERVER/SHARED/CLIENT attributes in a single
+    // response, cutting cold-start + 30s-refresh request volume by ~2 per device —
+    // the biggest lever given the browser's ~6-connections-per-host cap.
     this.fetchDeviceAttributes(
       ctx,
       locationName,
       entityId,
       entityName,
-      "SERVER_SCOPE",
-      entityType,
-      isRoom
-    );
-    this.fetchDeviceAttributes(
-      ctx,
-      locationName,
-      entityId,
-      entityName,
-      "SHARED_SCOPE",
-      entityType,
-      isRoom
-    );
-    this.fetchDeviceAttributes(
-      ctx,
-      locationName,
-      entityId,
-      entityName,
-      "CLIENT_SCOPE",
       entityType,
       isRoom
     );
@@ -1506,7 +1853,7 @@ export class HotelStateService implements OnDestroy {
     const keysParam = keys.join(",");
     const url = `/api/plugins/telemetry/${entityType}/${entityId}/values/timeseries?keys=${keysParam}`;
 
-    ctx.http.get(url).subscribe(
+    ctx.http.get(url, { ignoreErrors: true, ignoreLoading: true }).subscribe(
       (telemetry: any) => {
         if (!telemetry || Object.keys(telemetry).length === 0) {
           return;
@@ -1541,22 +1888,27 @@ export class HotelStateService implements OnDestroy {
   }
 
   /**
-   * Phase 3.5: Fetch device attributes and merge into room data.
-   * GET /api/plugins/telemetry/{entityType}/{id}/values/attributes/{scope}
+   * Phase 3.5: Fetch device attributes (all scopes) and merge into room data.
+   * GET /api/plugins/telemetry/{entityType}/{id}/values/attributes  (no scope
+   * segment → SERVER + SHARED + CLIENT in one response).
    * Response: [{ "key": "active", "value": true, "lastUpdateTs": 123 }, ...]
+   *
+   * Note: a key present in more than one scope collapses to a single entry here
+   * (server-returned order decides the winner) instead of the previous
+   * "CLIENT_SCOPE fetched last wins". These devices use disjoint key names per
+   * scope (config vs setpoints vs reported state), so no observed collisions.
    */
   private fetchDeviceAttributes(
     ctx: any,
     locationName: string,
     entityId: string,
     entityName: string,
-    scope: string,
     entityType: string = "DEVICE",
     isRoom: boolean = true
   ): void {
-    const url = `/api/plugins/telemetry/${entityType}/${entityId}/values/attributes/${scope}`;
+    const url = `/api/plugins/telemetry/${entityType}/${entityId}/values/attributes`;
 
-    ctx.http.get(url).subscribe(
+    ctx.http.get(url, { ignoreErrors: true, ignoreLoading: true }).subscribe(
       (attributes: any[]) => {
         if (
           !attributes ||
@@ -1785,6 +2137,10 @@ export class HotelStateService implements OnDestroy {
    */
   private refreshAllDeviceTelemetry(ctx: any): void {
     if (!ctx || !ctx.http) return;
+    // Skip the poll while the tab is hidden — no point re-fetching every device
+    // (5+ calls each) for a dashboard nobody is looking at. It re-syncs on the
+    // next tick once the tab is visible again.
+    if (typeof document !== "undefined" && document.hidden) return;
     this.discoveredDevices.forEach((devices, locationName) => {
       for (const d of devices) {
         const entityType = (d as any).entityType || "DEVICE";
@@ -1819,6 +2175,7 @@ export class HotelStateService implements OnDestroy {
       mewsErrorMessage: "",
       mewsLastActivity: "",
       batteryAlertDevices: [],
+      offlineAlertDevices: [],
       occupancyPercent: 0,
       checkInsToday: 0,
       checkOutsToday: 0,
