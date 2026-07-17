@@ -140,7 +140,30 @@ import {
                       <span class="cp-th-sub">{{ t.cpCurrent || 'Current' }}</span>
                     </div>
                     <div class="cp-th-bar">
+                      <!-- min warning zone: amber region from min to (min+warnGap) -->
+                      <div class="cp-th-bar-warn-zone"
+                        [style.left]="(th.minLimit / th.maxLimit * 100) + '%'"
+                        [style.width]="(th.warnGap / th.maxLimit * 100) + '%'"
+                        *ngIf="th.hasMin && th.warnGap > 0 && (th.minLimit + th.warnGap) < th.maxLimit">
+                      </div>
+                      <!-- max warning zone: amber region from (max-warnGap) to max -->
+                      <div class="cp-th-bar-warn-zone"
+                        [style.left]="((th.maxLimit - th.warnGap) / th.maxLimit * 100) + '%'"
+                        [style.width]="(th.warnGap / th.maxLimit * 100) + '%'"
+                        *ngIf="th.warnGap > 0 && th.warnGap < th.maxLimit">
+                      </div>
+                      <!-- exceeded marker line at 100% -->
+                      <div class="cp-th-bar-exceed-mark"></div>
+                      <!-- current value fill -->
                       <div class="cp-th-bar-fill" [style.width]="th.percent + '%'" [style.background]="th.statusColor"></div>
+                    </div>
+                    <!-- Warning threshold gap row -->
+                    <div class="cp-th-warn-row">
+                      <i class="material-icons cp-th-warn-icon">notifications_active</i>
+                      <span class="cp-th-warn-lbl">WARN ZONE</span>
+                      <div class="cp-th-warn-input-wrap">
+                        <input class="cp-th-num cp-th-num--warn" type="number" min="0" (focus)="$event.target.select()" [(ngModel)]="th.warnGap" (ngModelChange)="onThresholdChange()">
+                      </div>
                     </div>
                     <div class="cp-th-inputs">
                       <div class="cp-th-input-grp" *ngIf="th.hasMin">
@@ -171,7 +194,30 @@ import {
                       <span class="cp-th-sub">{{ t.cpCurrent || 'Current' }}</span>
                     </div>
                     <div class="cp-th-bar">
+                      <!-- min warning zone: amber region from min to (min+warnGap) -->
+                      <div class="cp-th-bar-warn-zone"
+                        [style.left]="(th.minLimit / th.maxLimit * 100) + '%'"
+                        [style.width]="(th.warnGap / th.maxLimit * 100) + '%'"
+                        *ngIf="th.hasMin && th.warnGap > 0 && (th.minLimit + th.warnGap) < th.maxLimit">
+                      </div>
+                      <!-- max warning zone: amber region from (max-warnGap) to max -->
+                      <div class="cp-th-bar-warn-zone"
+                        [style.left]="((th.maxLimit - th.warnGap) / th.maxLimit * 100) + '%'"
+                        [style.width]="(th.warnGap / th.maxLimit * 100) + '%'"
+                        *ngIf="th.warnGap > 0 && th.warnGap < th.maxLimit">
+                      </div>
+                      <!-- exceeded marker line at 100% -->
+                      <div class="cp-th-bar-exceed-mark"></div>
+                      <!-- current value fill -->
                       <div class="cp-th-bar-fill" [style.width]="th.percent + '%'" [style.background]="th.statusColor"></div>
+                    </div>
+                    <!-- Warning threshold gap row -->
+                    <div class="cp-th-warn-row">
+                      <i class="material-icons cp-th-warn-icon">notifications_active</i>
+                      <span class="cp-th-warn-lbl">WARN ZONE</span>
+                      <div class="cp-th-warn-input-wrap">
+                        <input class="cp-th-num cp-th-num--warn" type="number" min="0" (focus)="$event.target.select()" [(ngModel)]="th.warnGap" (ngModelChange)="onThresholdChange()">
+                      </div>
                     </div>
                     <div class="cp-th-inputs">
                       <div class="cp-th-input-grp" *ngIf="th.hasMin">
@@ -186,9 +232,19 @@ import {
                   </div>
                 </div>
 
+                <!-- Warn Zone Info Badge -->
+                <div class="cp-info-badge" style="margin-top: 24px;">
+                  <i class="material-icons cp-info-icon">info</i>
+                  <div class="cp-info-text">
+                    <strong>{{ t.cpAqWarnZoneTitle || 'Thresholds & Warn Zone' }}</strong>
+                    <p>{{ t.cpAqWarnZoneDesc || 'MIN and MAX set the absolute allowed boundaries for the reading. The warning zone is defined as a gap below the absolute MAX limit. When readings cross into this zone, they will display an amber WARNING status.' }}</p>
+                  </div>
+                </div>
+
               </div>
             </div>
           </ng-container>
+
 
           <!-- ═══ THERMOSTAT ═══ -->
           <ng-container *ngIf="activeSection === 'thermostat'">
@@ -277,6 +333,62 @@ import {
 
               <!-- Right Column Stack -->
               <div class="cp-card-stack">
+                <!-- Winter Season Card -->
+                <div class="cp-card cp-card--row" style="position: relative; padding: 10px 14px; gap: 10px; flex-wrap: nowrap;">
+
+                  <!-- Icon -->
+                  <div style="width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: var(--accentSoft, rgba(92,124,250,0.14)); border: 1px solid rgba(92,124,250,0.25);">
+                    <i class="material-icons" style="font-size: 16px; color: var(--accent, #5c7cfa);">event_available</i>
+                  </div>
+
+                  <!-- Title + hint -->
+                  <div style="flex: 1; min-width: 0;">
+                    <div style="font: 700 12px Manrope, sans-serif; color: var(--tx, #e6ecf3); white-space: nowrap;">{{ t.cpWinterSeason || 'Winter Season' }}</div>
+                    <div class="cp-card-hint" style="white-space: nowrap;">Rules activation period</div>
+                  </div>
+
+                  <!-- Status + date range (clickable) -->
+                  <div style="display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 8px; background: var(--inner, #1e2733); border: 1px solid var(--border, #27313f); cursor: pointer; flex-shrink: 0;"
+                       (click)="showSeasonPicker = !showSeasonPicker">
+
+                    <!-- Status dot -->
+                    <span style="width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; transition: background 0.3s;"
+                          [style.background]="isWinterSeasonActive ? '#34d399' : 'var(--t3, #5c6675)'"
+                          [style.box-shadow]="isWinterSeasonActive ? '0 0 5px rgba(52,211,153,0.7)' : 'none'"></span>
+
+                    <!-- Date range inline -->
+                    <span style="font: 700 11px 'IBM Plex Mono', monospace; color: var(--accent, #5c7cfa); white-space: nowrap;">
+                      {{ (config.thermostat.winterSeason.start | date:'d MMM yy') || '--' }}
+                    </span>
+                    <i class="material-icons" style="color: var(--t3, #5c6675); font-size: 12px;">arrow_forward</i>
+                    <span style="font: 700 11px 'IBM Plex Mono', monospace; color: var(--accent, #5c7cfa); white-space: nowrap;">
+                      {{ (config.thermostat.winterSeason.end | date:'d MMM yy') || '--' }}
+                    </span>
+
+                    <i class="material-icons" style="color: var(--t3, #5c6675); font-size: 14px; margin-left: 2px;">edit_calendar</i>
+                  </div>
+
+                  <!-- Dropdown Picker -->
+                  <div *ngIf="showSeasonPicker" 
+                       style="position: absolute; top: calc(100% + 8px); right: 0; background: var(--panel, #141b25); border: 1px solid var(--border, #27313f); padding: 14px; border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.4); z-index: 50; display: flex; flex-direction: column; gap: 12px; min-width: 240px;" 
+                       (click)="$event.stopPropagation()">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                       <span style="font: 700 12px Manrope, sans-serif; color: var(--tx, #e6ecf3);">Select Season Dates</span>
+                       <i class="material-icons" style="font-size: 16px; cursor: pointer; color: var(--t3, #5c6675);" (click)="showSeasonPicker = false">close</i>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                      <div style="display: flex; align-items: center; gap: 10px;">
+                         <span style="font: 700 10px Manrope, sans-serif; color: var(--t2, #8b97a8); text-transform: uppercase; width: 36px;">Start</span>
+                         <input type="date" [(ngModel)]="config.thermostat.winterSeason.start" style="flex: 1; border: 1px solid var(--border, #27313f); padding: 7px 10px; border-radius: 7px; font-size: 12px; font-family: inherit; background: var(--inner, #1e2733); color: var(--tx, #e6ecf3); outline: none;">
+                      </div>
+                      <div style="display: flex; align-items: center; gap: 10px;">
+                         <span style="font: 700 10px Manrope, sans-serif; color: var(--t2, #8b97a8); text-transform: uppercase; width: 36px;">End</span>
+                         <input type="date" [(ngModel)]="config.thermostat.winterSeason.end" style="flex: 1; border: 1px solid var(--border, #27313f); padding: 7px 10px; border-radius: 7px; font-size: 12px; font-family: inherit; background: var(--inner, #1e2733); color: var(--tx, #e6ecf3); outline: none;">
+                      </div>
+                    </div>
+                    <button type="button" (click)="showSeasonPicker = false" style="background: var(--accent, #5c7cfa); color: white; border: none; padding: 9px 12px; border-radius: 7px; font: 700 11px Manrope, sans-serif; text-transform: uppercase; letter-spacing: 0.5px; cursor: pointer; width: 100%;">Apply</button>
+                  </div>
+                </div>
 
                 <!-- Maintenance Card -->
                 <div class="cp-card">
@@ -414,6 +526,48 @@ import {
                   </div>
                 </div>
 
+                <!-- Acoustic Metrics Guide -->
+                <div class="cp-noise-guide">
+                  <div class="cp-noise-guide-card" style="--ac-color: #0ea5e9; --ac-bg: rgba(14,165,233,.14);">
+                    <div class="cp-noise-guide-hdr">
+                      <div class="cp-noise-guide-icon">
+                        <i class="material-icons">equalizer</i>
+                      </div>
+                      <div class="cp-noise-guide-title">
+                        <span>{{ t.cpLaeqName || 'LAEQ' }}</span>
+                        <small>Continuous Average</small>
+                      </div>
+                    </div>
+                    <p class="cp-noise-guide-body">{{ t.cpLaeqHint || 'Equivalent continuous level — average sound energy over time; best gauge of ongoing comfort.' }}</p>
+                  </div>
+
+                  <div class="cp-noise-guide-card" style="--ac-color: #6366f1; --ac-bg: rgba(99,102,241,.14);">
+                    <div class="cp-noise-guide-hdr">
+                      <div class="cp-noise-guide-icon">
+                        <i class="material-icons">show_chart</i>
+                      </div>
+                      <div class="cp-noise-guide-title">
+                        <span>{{ t.cpLaiName || 'LAI' }}</span>
+                        <small>Impulse Level</small>
+                      </div>
+                    </div>
+                    <p class="cp-noise-guide-body">{{ t.cpLaiHint || 'Instantaneous level — captures short peaks and transient events (e.g. doors slamming, footsteps).' }}</p>
+                  </div>
+
+                  <div class="cp-noise-guide-card" style="--ac-color: #ef4444; --ac-bg: rgba(239,68,68,.14);">
+                    <div class="cp-noise-guide-hdr">
+                      <div class="cp-noise-guide-icon">
+                        <i class="material-icons">trending_up</i>
+                      </div>
+                      <div class="cp-noise-guide-title">
+                        <span>{{ t.cpLaimaxName || 'LAIMAX' }}</span>
+                        <small>Peak Maximum</small>
+                      </div>
+                    </div>
+                    <p class="cp-noise-guide-body">{{ t.cpLaimaxHint || 'Maximum level recorded — the absolute loudest impact/peak moment in the measurement interval.' }}</p>
+                  </div>
+                </div>
+
               </div>
             </div>
           </ng-container>
@@ -483,11 +637,11 @@ import {
                     {{ t.cpNoOpenWindows || 'All windows closed right now' }}
                   </div>
                   <div class="cp-open-windows-grid" *ngIf="openWindowsList.length > 0">
-                    <div class="cp-open-win" *ngFor="let ow of openWindowsList">
+                    <div class="cp-open-win" *ngFor="let ow of openWindowsList; let i = index">
                       <i class="material-icons">meeting_room</i>
                       <div>
-                        <div class="cp-open-win-name">{{ ow.room }}</div>
-                        <div class="cp-open-win-state">{{ ow.duration }}</div>
+                        <div class="cp-open-win-name">Window {{ ow.windowIndex }}</div>
+                        <div class="cp-open-win-state">Room {{ ow.roomNumber }}</div>
                       </div>
                     </div>
                   </div>
@@ -562,62 +716,6 @@ import {
             </div>
           </ng-container>
 
-          <!-- ═══ TELEGRAM ═══ -->
-          <ng-container *ngIf="activeSection === 'telegram'">
-            <div class="cp-section">
-
-              <!-- Header -->
-              <div class="cp-section-hdr">
-                <div class="cp-section-icon cp-section-icon--accent">
-                  <i class="material-icons">send</i>
-                </div>
-                <div class="cp-section-title-area">
-                  <p>{{ t.cpTelegramEnabledHint || 'Always on — alerts your hotel staff Telegram group.' }}</p>
-                </div>
-                <label class="cp-toggle">
-                  <input type="checkbox" [(ngModel)]="config.telegram.enabled">
-                  <span class="cp-toggle-track"></span>
-                </label>
-              </div>
-
-              <div [class.cp-disabled-section]="!config.telegram.enabled">
-                <div class="cp-card-stack">
-
-                <!-- Bot Status -->
-                <div class="cp-card" *ngIf="config.telegram.enabled">
-                  <div class="cp-card-head">
-                    <i class="material-icons" style="color: var(--ok,#34d399)">notifications</i>
-                    <span>{{ t.cpTelegramEnabledT || 'Bot Notifications' }}</span>
-                  </div>
-                  <div class="cp-status-box cp-status-box--ok">
-                    <i class="material-icons">check_circle</i>
-                    <span>{{ t.cpTelegramActive || 'Bot is active and sending alerts' }}</span>
-                  </div>
-                </div>
-
-                <!-- Alert Types Grid -->
-                <div class="cp-card">
-                  <div class="cp-card-head">
-                    <i class="material-icons" style="color: var(--accent,#5c7cfa)">tune</i>
-                    <span>{{ t.alertTypesT || 'Alert Types' }}</span>
-                  </div>
-                  <p class="cp-card-hint">{{ t.cpAlertTypesHint || 'Choose which events trigger a Telegram message.' }}</p>
-                  <div class="cp-alert-grid">
-                    <div class="cp-alert-toggle" *ngFor="let row of telegramAlertRows" (click)="toggleTelegramAlert(row.key)"
-                      [class.cp-alert-toggle--on]="row.on">
-                      <i class="material-icons" [style.color]="row.color">{{ row.icon }}</i>
-                      <span>{{ row.label }}</span>
-                      <div class="cp-knob cp-knob--xs" [class.cp-knob--on]="row.on">
-                        <span></span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-              </div><!-- /cp-card-stack -->
-              </div>
-            </div>
-          </ng-container>
 
         </div>
       </div>
@@ -641,7 +739,7 @@ import {
 })
 export class ControlPanelComponent implements OnInit, OnDestroy {
   isOpen = false;
-  activeSection: ControlPanelSectionId = 'air_quality';
+  activeSection: ControlPanelSectionId = 'noise';
   sections: ControlPanelSection[] = [];
   weekdays = WEEKDAYS;
 
@@ -654,7 +752,7 @@ export class ControlPanelComponent implements OnInit, OnDestroy {
   climateThresholds: any[] = [];
   purityThresholds: any[] = [];
   noisePeriods: any[] = [];
-  telegramAlertRows: any[] = [];
+
   openWindowsList: any[] = [];
   thermostatSchedule: any[] = [];
 
@@ -673,6 +771,10 @@ export class ControlPanelComponent implements OnInit, OnDestroy {
     if (this.config.roomScope === 'all') return `${count} ${this.t.rooms || 'rooms'}`;
     return `${count} ${this.t.ofRooms || 'of'} ${total} ${this.t.rooms || 'rooms'}`;
   }
+
+  botChatId: string = '';
+
+  showSeasonPicker = false;
 
   constructor(
     private controlPanelService: ControlPanelService,
@@ -701,7 +803,7 @@ export class ControlPanelComponent implements OnInit, OnDestroy {
       case 'noise': return this.t.acousticNoise || 'Acoustic Noise';
       case 'window': return this.t.windowOpenAlert || 'Window';
       case 'mews': return this.t.mewsB || 'Mews Bridge';
-      case 'telegram': return this.t.cpTelegramTitle || 'Telegram';
+
       default: return id;
     }
   }
@@ -713,12 +815,22 @@ export class ControlPanelComponent implements OnInit, OnDestroy {
   }
 
   getTempColor(temp: number): string {
+    if (!this.isDark) {
+      if (temp >= 24) return '#dc2626';
+      if (temp >= 21) return '#b45309';
+      return '#1d4ed8';
+    }
     if (temp >= 24) return '#f87171';
     if (temp >= 21) return '#fbbf24';
     return '#60a5fa';
   }
 
   getTempBg(temp: number): string {
+    if (!this.isDark) {
+      if (temp >= 24) return 'rgba(220,38,38,.16)';
+      if (temp >= 21) return 'rgba(217,119,6,.18)';
+      return 'rgba(37,99,235,.15)';
+    }
     if (temp >= 24) return 'rgba(248,113,113,.12)';
     if (temp >= 21) return 'rgba(251,191,36,.12)';
     return 'rgba(96,165,250,.12)';
@@ -726,6 +838,12 @@ export class ControlPanelComponent implements OnInit, OnDestroy {
 
   getClockColor(time: string): string {
     const hour = parseInt((time || '12:00').split(':')[0], 10) || 12;
+    if (!this.isDark) {
+      if (hour >= 6 && hour < 12) return '#d97706';   // morning — dark amber
+      if (hour >= 12 && hour < 17) return '#0284c7';  // afternoon — dark sky
+      if (hour >= 17 && hour < 21) return '#c2410c';  // evening — dark orange
+      return '#4f46e5';                                // night — dark indigo
+    }
     if (hour >= 6 && hour < 12) return '#f59e0b';   // morning — amber
     if (hour >= 12 && hour < 17) return '#38bdf8';  // afternoon — sky
     if (hour >= 17 && hour < 21) return '#f97316';  // evening — orange
@@ -769,7 +887,7 @@ export class ControlPanelComponent implements OnInit, OnDestroy {
     this.climateThresholds = this._buildClimateThresholds();
     this.purityThresholds = this._buildPurityThresholds();
     this.noisePeriods = this._buildNoisePeriods();
-    this.telegramAlertRows = this._buildTelegramAlertRows();
+
     this.openWindowsList = this._buildOpenWindowsList();
     this.thermostatSchedule = this.config?.thermostat?.schedule || [];
   }
@@ -787,6 +905,14 @@ export class ControlPanelComponent implements OnInit, OnDestroy {
       if (aq.pm25Min === undefined) aq.pm25Min = d.airQuality.pm25Min;
       if (aq.pm10Min === undefined) aq.pm10Min = d.airQuality.pm10Min;
       if (aq.tvocMin === undefined) aq.tvocMin = d.airQuality.tvocMin;
+      // Warning gap defaults
+      if ((aq as any).co2WarnGap === undefined) (aq as any).co2WarnGap = d.airQuality.co2WarnGap;
+      if ((aq as any).pm25WarnGap === undefined) (aq as any).pm25WarnGap = d.airQuality.pm25WarnGap;
+      if ((aq as any).pm10WarnGap === undefined) (aq as any).pm10WarnGap = d.airQuality.pm10WarnGap;
+      if ((aq as any).tvocWarnGap === undefined) (aq as any).tvocWarnGap = d.airQuality.tvocWarnGap;
+      if ((aq as any).tempWarnGap === undefined) (aq as any).tempWarnGap = d.airQuality.tempWarnGap;
+      if ((aq as any).humWarnGap === undefined) (aq as any).humWarnGap = d.airQuality.humWarnGap;
+      if ((aq as any).pressWarnGap === undefined) (aq as any).pressWarnGap = d.airQuality.pressWarnGap;
     }
 
     // Thermostat
@@ -806,6 +932,11 @@ export class ControlPanelComponent implements OnInit, OnDestroy {
       if (!this.config.thermostat.maintenance.tests || this.config.thermostat.maintenance.tests.length === 0) {
         this.config.thermostat.maintenance.tests = JSON.parse(JSON.stringify(d.thermostat.maintenance.tests));
       }
+    }
+    if (!this.config.thermostat.winterSeason) {
+      this.config.thermostat.winterSeason = JSON.parse(JSON.stringify(d.thermostat.winterSeason));
+    } else {
+      if (this.config.thermostat.winterSeason.enabled === undefined) this.config.thermostat.winterSeason.enabled = d.thermostat.winterSeason.enabled;
     }
 
     // Noise
@@ -835,13 +966,7 @@ export class ControlPanelComponent implements OnInit, OnDestroy {
     }
     if (this.config.mews.autoSync === undefined) this.config.mews.autoSync = d.mews.autoSync;
 
-    // Telegram
-    if (!this.config.telegram) {
-      this.config.telegram = JSON.parse(JSON.stringify(d.telegram));
-    }
-    if (!this.config.telegram.alerts) {
-      this.config.telegram.alerts = JSON.parse(JSON.stringify(d.telegram.alerts));
-    }
+
 
     // Room scope
     if (!this.config.roomScope) this.config.roomScope = 'all';
@@ -869,52 +994,54 @@ export class ControlPanelComponent implements OnInit, OnDestroy {
 
   private thresholdMeta(metric: string): any {
     const meta: any = {
-      temp:  { icon: 'device_thermostat', iconBg: 'rgba(249,115,22,.15)', iconColor: '#f97316', label: this.t.cpTempMax || 'TEMP MAX LIMIT', unit: '°C', rangeMax: 45, hasMin: true,  sliderMin: 10, sliderMax: 40, sliderStep: 1 },
-      hum:   { icon: 'water_drop',        iconBg: 'rgba(56,189,248,.15)', iconColor: '#38bdf8', label: this.t.cpHumMax || 'HUMIDITY MAX LIMIT', unit: '%', rangeMax: 95, hasMin: true,  sliderMin: 20, sliderMax: 90, sliderStep: 1 },
-      press: { icon: 'compress',          iconBg: 'rgba(168,85,247,.15)', iconColor: '#a855f7', label: this.t.cpPressMax || 'PRESSURE MAX LIMIT', unit: 'hPa', rangeMax: 1200, hasMin: false,  sliderMin: 950, sliderMax: 1150, sliderStep: 1 },
-      co2:   { icon: 'co2',               iconBg: 'rgba(52,211,153,.15)', iconColor: '#34d399', label: this.t.cpCo2Limit || 'CO₂ LIMIT', unit: 'ppm', rangeMax: 2000, hasMin: false, sliderMin: 300, sliderMax: 2000, sliderStep: 10 },
-      pm25:  { icon: 'blur_on',           iconBg: 'rgba(251,191,36,.15)',  iconColor: '#fbbf24', label: this.t.cpPm25Limit || 'PM2.5 LIMIT', unit: 'µg/m³', rangeMax: 150, hasMin: false, sliderMin: 5, sliderMax: 150, sliderStep: 1 },
-      pm10:  { icon: 'grain',             iconBg: 'rgba(245,158,11,.15)', iconColor: '#f59e0b', label: this.t.cpPm10Limit || 'PM10 LIMIT', unit: 'µg/m³', rangeMax: 300, hasMin: false, sliderMin: 10, sliderMax: 300, sliderStep: 1 },
-      tvoc:  { icon: 'science',           iconBg: 'rgba(239,68,68,.15)',  iconColor: '#ef4444', label: this.t.cpTvocLimit || 'TVOC LIMIT', unit: 'ppb', rangeMax: 1500, hasMin: false, sliderMin: 100, sliderMax: 1500, sliderStep: 10 },
-      laeq:  { icon: 'equalizer',         iconBg: 'rgba(14,165,233,.15)', iconColor: '#0ea5e9', label: this.t.cpLaeqName || 'LAEQ', unit: 'dBA', rangeMax: 100, hasMin: false, sliderMin: 20, sliderMax: 100, sliderStep: 1 },
-      lai:   { icon: 'show_chart',        iconBg: 'rgba(99,102,241,.15)', iconColor: '#6366f1', label: this.t.cpLaiName || 'LAI', unit: 'dBA', rangeMax: 100, hasMin: false, sliderMin: 20, sliderMax: 100, sliderStep: 1 },
-      laimax:{ icon: 'trending_up',       iconBg: 'rgba(239,68,68,.15)', iconColor: '#ef4444', label: this.t.cpLaimaxName || 'LAIMAX', unit: 'dBA', rangeMax: 100, hasMin: false, sliderMin: 20, sliderMax: 100, sliderStep: 1 },
+      temp:  { icon: 'device_thermostat', iconBg: 'rgba(249,115,22,.15)', iconColor: '#f97316', label: this.t.cpTempMax || 'TEMP MAX', desc: 'Upper temperature limit before triggering high temp alerts.', unit: '°C', rangeMax: 45, hasMin: true,  sliderMin: 10, sliderMax: 40, sliderStep: 1 },
+      hum:   { icon: 'water_drop',        iconBg: 'rgba(56,189,248,.15)', iconColor: '#38bdf8', label: this.t.cpHumMax || 'HUMIDITY MAX', desc: 'Maximum indoor humidity allowed to prevent mold and dampness.', unit: '%', rangeMax: 95, hasMin: true,  sliderMin: 20, sliderMax: 90, sliderStep: 1 },
+      press: { icon: 'compress',          iconBg: 'rgba(168,85,247,.15)', iconColor: '#a855f7', label: this.t.cpPressMax || 'PRESSURE MAX', desc: 'Atmospheric pressure limit.', unit: 'hPa', rangeMax: 1200, hasMin: false,  sliderMin: 950, sliderMax: 1150, sliderStep: 1 },
+      co2:   { icon: 'co2',               iconBg: 'rgba(52,211,153,.15)', iconColor: '#34d399', label: this.t.cpCo2Limit || 'CO₂', desc: 'Carbon dioxide threshold; high levels indicate poor ventilation.', unit: 'ppm', rangeMax: 2000, hasMin: false, sliderMin: 300, sliderMax: 2000, sliderStep: 10 },
+      pm25:  { icon: 'blur_on',           iconBg: 'rgba(251,191,36,.15)',  iconColor: '#fbbf24', label: this.t.cpPm25Limit || 'PM2.5', desc: 'Fine particulate matter under 2.5 microns (dust, smoke).', unit: 'µg/m³', rangeMax: 150, hasMin: false, sliderMin: 5, sliderMax: 150, sliderStep: 1 },
+      pm10:  { icon: 'grain',             iconBg: 'rgba(245,158,11,.15)', iconColor: '#f59e0b', label: this.t.cpPm10Limit || 'PM10', desc: 'Coarse particulate matter under 10 microns (pollen, dust).', unit: 'µg/m³', rangeMax: 300, hasMin: false, sliderMin: 10, sliderMax: 300, sliderStep: 1 },
+      tvoc:  { icon: 'science',           iconBg: 'rgba(239,68,68,.15)',  iconColor: '#ef4444', label: this.t.cpTvocLimit || 'TVOC', desc: 'Total Volatile Organic Compounds (chemical odors, aerosols).', unit: 'ppb', rangeMax: 1500, hasMin: false, sliderMin: 100, sliderMax: 1500, sliderStep: 10 },
+      laeq:  { icon: 'equalizer',         iconBg: 'rgba(14,165,233,.15)', iconColor: '#0ea5e9', label: this.t.cpLaeqName || 'LAEQ', desc: this.t.cpLaeqHint || 'Equivalent continuous level — average sound energy over time; best gauge of ongoing comfort.', unit: 'dBA', rangeMax: 100, hasMin: false, sliderMin: 20, sliderMax: 100, sliderStep: 1 },
+      lai:   { icon: 'show_chart',        iconBg: 'rgba(99,102,241,.15)', iconColor: '#6366f1', label: this.t.cpLaiName || 'LAI', desc: this.t.cpLaiHint || 'Instantaneous level — captures short peaks and transient events.', unit: 'dBA', rangeMax: 100, hasMin: false, sliderMin: 20, sliderMax: 100, sliderStep: 1 },
+      laimax:{ icon: 'trending_up',       iconBg: 'rgba(239,68,68,.15)', iconColor: '#ef4444', label: this.t.cpLaimaxName || 'LAIMAX', desc: this.t.cpLaimaxHint || 'Maximum level recorded — the loudest moment in the interval.', unit: 'dBA', rangeMax: 100, hasMin: false, sliderMin: 20, sliderMax: 100, sliderStep: 1 },
     };
-    return meta[metric] || { icon: 'help', iconBg: 'rgba(100,100,100,.15)', iconColor: '#888', label: metric, unit: '', rangeMax: 100, hasMin: false, sliderMin: 0, sliderMax: 100, sliderStep: 1 };
+    return meta[metric] || { icon: 'help', iconBg: 'rgba(100,100,100,.15)', iconColor: '#888', label: metric, desc: '', unit: '', rangeMax: 100, hasMin: false, sliderMin: 0, sliderMax: 100, sliderStep: 1 };
   }
 
-  private buildThresholdCard(metric: string, maxLimit: number, minLimit: number): any {
+  private buildThresholdCard(metric: string, maxLimit: number, minLimit: number, warnGap: number): any {
     const meta = this.thresholdMeta(metric);
     const current = this.getLiveValue(metric);
-    const status = this.getMetricStatus(metric, current, maxLimit);
+    const status = this.getMetricStatus(current, maxLimit, warnGap, meta.hasMin ? minLimit : undefined);
     const statusColor = status === 'alert' ? 'var(--alert,#f87171)' : status === 'warning' ? 'var(--warn,#f5b54a)' : 'var(--ok,#34d399)';
     const statusBg = status === 'alert' ? 'var(--alertSoft,rgba(248,113,113,.13))' : status === 'warning' ? 'var(--warnSoft,rgba(245,181,74,.13))' : 'var(--okSoft,rgba(52,211,153,.13))';
     const statusLabel = status === 'alert' ? (this.t.alertC || 'EXCEEDED') : status === 'warning' ? (this.t.warningC || 'WARNING') : (this.t.normalC || 'NORMAL');
     const percent = Math.min(100, Math.round((current / maxLimit) * 100));
     return {
       key: metric, icon: meta.icon, iconBg: meta.iconBg, iconColor: meta.iconColor,
-      label: meta.label, unit: meta.unit, hasMin: meta.hasMin,
-      statusLabel, statusColor, statusBg, current, percent, maxLimit, minLimit,
+      label: meta.label, desc: meta.desc, unit: meta.unit, hasMin: meta.hasMin,
+      statusLabel, statusColor, statusBg, current, percent, maxLimit, minLimit, warnGap,
       sliderMin: meta.sliderMin, sliderMax: meta.sliderMax, sliderStep: meta.sliderStep,
     };
   }
 
   private _buildClimateThresholds(): any[] {
     if (!this.config?.airQuality) return [];
+    const aq: any = this.config.airQuality;
     return [
-      this.buildThresholdCard('temp', this.config.airQuality.tempMax, this.config.airQuality.tempMin),
-      this.buildThresholdCard('hum', this.config.airQuality.humMax, this.config.airQuality.humMin),
-      this.buildThresholdCard('press', this.config.airQuality.pressMax, this.config.airQuality.pressMin),
+      this.buildThresholdCard('temp',  aq.tempMax,  aq.tempMin,  aq.tempWarnGap  ?? 3),
+      this.buildThresholdCard('hum',   aq.humMax,   aq.humMin,   aq.humWarnGap   ?? 10),
+      this.buildThresholdCard('press', aq.pressMax, aq.pressMin, aq.pressWarnGap ?? 30),
     ];
   }
 
   private _buildPurityThresholds(): any[] {
     if (!this.config?.airQuality) return [];
+    const aq: any = this.config.airQuality;
     return [
-      this.buildThresholdCard('co2', this.config.airQuality.co2Max, this.config.airQuality.co2Min),
-      this.buildThresholdCard('pm25', this.config.airQuality.pm25Max, this.config.airQuality.pm25Min),
-      this.buildThresholdCard('pm10', this.config.airQuality.pm10Max, this.config.airQuality.pm10Min),
-      this.buildThresholdCard('tvoc', this.config.airQuality.tvocMax, this.config.airQuality.tvocMin),
+      this.buildThresholdCard('co2',  aq.co2Max,  aq.co2Min,  aq.co2WarnGap  ?? 200),
+      this.buildThresholdCard('pm25', aq.pm25Max, aq.pm25Min, aq.pm25WarnGap ?? 10),
+      this.buildThresholdCard('pm10', aq.pm10Max, aq.pm10Min, aq.pm10WarnGap ?? 40),
+      this.buildThresholdCard('tvoc', aq.tvocMax, aq.tvocMin, aq.tvocWarnGap ?? 150),
     ];
   }
 
@@ -929,8 +1056,10 @@ export class ControlPanelComponent implements OnInit, OnDestroy {
     for (const th of allCards) {
       const maxKey = th.key + 'Max';
       const minKey = th.key + 'Min';
+      const warnKey = th.key + 'WarnGap';
       if (maxKey in aq) aq[maxKey] = th.maxLimit;
       if (minKey in aq) aq[minKey] = th.minLimit;
+      aq[warnKey] = th.warnGap;
     }
     this.rebuildDerived();
   }
@@ -964,14 +1093,16 @@ export class ControlPanelComponent implements OnInit, OnDestroy {
   private _buildNoiseCard(periodKey: string, metric: string, limit: number): any {
     const meta = this.thresholdMeta(metric);
     const current = this.getLiveValue(metric);
-    const status = this.getMetricStatus(metric, current, limit);
+    // Noise uses a 20% gap below the limit as the warning zone (no per-metric config for noise yet)
+    const noiseWarnGap = Math.round(limit * 0.2);
+    const status = this.getMetricStatus(current, limit, noiseWarnGap);
     const statusColor = status === 'alert' ? 'var(--alert,#f87171)' : status === 'warning' ? 'var(--warn,#f5b54a)' : 'var(--ok,#34d399)';
     const statusBg = status === 'alert' ? 'var(--alertSoft,rgba(248,113,113,.13))' : status === 'warning' ? 'var(--warnSoft,rgba(245,181,74,.13))' : 'var(--okSoft,rgba(52,211,153,.13))';
     const statusLabel = status === 'alert' ? (this.t.alertC || 'EXCEEDED') : status === 'warning' ? (this.t.warningC || 'WARNING') : (this.t.normalC || 'NORMAL');
     const percent = Math.min(100, Math.round((current / limit) * 100));
     return {
       key: metric, periodKey, icon: meta.icon, iconBg: meta.iconBg, iconColor: meta.iconColor,
-      label: meta.label, unit: meta.unit,
+      label: meta.label, desc: meta.desc, unit: meta.unit,
       statusLabel, statusColor, statusBg, current, percent, limit,
     };
   }
@@ -1033,10 +1164,19 @@ export class ControlPanelComponent implements OnInit, OnDestroy {
     for (const r of this.rooms) {
       if (!r.roomData) continue;
       const roomName = r.roomData.roomName || r.entityName || '';
-      for (const w of Object.values(r.roomData.windowDevices || {})) {
-        if ((w as any).contact === true || (w as any).open === true) {
+      const winDevices = r.roomData.windowDevices || {};
+      for (const [entityName, w] of Object.entries(winDevices)) {
+        const contact = (w as any).contact;
+        const isOpen = contact === 'open' || contact === true || (w as any).open === true;
+        if (isOpen) {
+          // Parse room number and window index from entity name.
+          // Entity name format: anything + first number = room number,
+          //                     second number (if present) = window index, else 1.
+          const numbers = entityName.match(/\d+/g) || [];
+          const roomNumber = numbers[0] || roomName;
+          const windowIndex = numbers.length > 1 ? Number(numbers[1]) : 1;
           const dur = (w as any).openDuration || (w as any).duration || '';
-          list.push({ room: roomName, duration: dur || 'Open' });
+          list.push({ room: roomName, roomNumber, windowIndex, sensor: entityName, duration: dur || 'Open' });
         }
       }
     }
@@ -1069,28 +1209,6 @@ export class ControlPanelComponent implements OnInit, OnDestroy {
     this.cdr.detectChanges();
   }
 
-  // ── Telegram ──
-
-  private _buildTelegramAlertRows(): any[] {
-    if (!this.config?.telegram?.alerts) return [];
-    const alerts = this.config.telegram.alerts;
-    return [
-      { key: 'temp', icon: 'device_thermostat', color: '#f97316', label: this.t.tempAlert || 'Temperature', on: alerts.temp },
-      { key: 'humidity', icon: 'water_drop', color: '#38bdf8', label: this.t.humidityAlert || 'Humidity', on: alerts.humidity },
-      { key: 'co2', icon: 'co2', color: '#34d399', label: this.t.co2Alert || 'CO₂', on: alerts.co2 },
-      { key: 'noise', icon: 'volume_up', color: '#a855f7', label: this.t.noiseAlert || 'Noise', on: alerts.noise },
-      { key: 'water', icon: 'water_damage', color: '#ef4444', label: this.t.waterAlert || 'Water Leak', on: alerts.water },
-      { key: 'window', icon: 'window', color: '#f59e0b', label: this.t.windowAlert || 'Window Open', on: alerts.window },
-      { key: 'battery', icon: 'battery_alert', color: '#fbbf24', label: this.t.batteryAlert || 'Low Battery', on: alerts.battery },
-      { key: 'checkin', icon: 'meeting_room', color: '#06b6d4', label: this.t.checkinAlert || 'Check-in', on: alerts.checkin },
-    ];
-  }
-
-  toggleTelegramAlert(key: string): void {
-    (this.config.telegram.alerts as any)[key] = !(this.config.telegram.alerts as any)[key];
-    this.rebuildDerived();
-    this.cdr.detectChanges();
-  }
 
   // ── Common ──
 
@@ -1190,9 +1308,9 @@ export class ControlPanelComponent implements OnInit, OnDestroy {
     return segments.map(seg => {
       const duration = seg.end - seg.start;
       const pct = (duration / 1440) * 100;
-      let bg = 'rgba(255,255,255,0.05)';
+      let bg = !this.isDark ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.05)';
       let label = '';
-      let color = 'var(--t3, #8b97a8)';
+      let color = !this.isDark ? 'var(--t3, #475569)' : 'var(--t3, #8b97a8)';
       
       if (seg.isConflict) {
         bg = 'var(--alert, #ef4444)';
@@ -1246,6 +1364,13 @@ export class ControlPanelComponent implements OnInit, OnDestroy {
         alert('Please enter valid times in 24-hour style HH:MM format (e.g., 07:00, 22:00) for acoustic noise periods.');
         return;
       }
+    }
+
+    const seasonPattern = /^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$/;
+    const ws = this.config.thermostat.winterSeason;
+    if (ws && ws.enabled && (!seasonPattern.test(ws.start) || !seasonPattern.test(ws.end))) {
+      alert('Please enter valid season dates in the calendar.');
+      return;
     }
 
     if (this.hasScheduleOverlap()) {
@@ -1401,23 +1526,34 @@ export class ControlPanelComponent implements OnInit, OnDestroy {
     return fb[metric] || 0;
   }
 
-  getMetricStatus(metric: string, val: number, limit: number): 'normal' | 'warning' | 'alert' {
-    const pct = limit > 0 ? val / limit : 0;
-    if (pct >= 1.0) return 'alert';
-    if (pct >= 0.8) return 'warning';
-    return 'normal';
+  /**
+   * Determine metric status using an absolute warning gap.
+   * - EXCEEDED : val >= limit
+   * - WARNING  : val >= (limit - warnGap)
+   * - NORMAL   : otherwise
+   */
+  getMetricStatus(val: number, limit: number, warnGap: number = 0, minLimit?: number): 'normal' | 'warning' | 'alert' {
+    if (minLimit !== undefined) {
+      if (val <= minLimit || val >= limit) return 'alert';
+      if ((warnGap > 0 && val <= minLimit + warnGap) || (warnGap > 0 && val >= limit - warnGap)) return 'warning';
+      return 'normal';
+    } else {
+      if (val >= limit) return 'alert';
+      if (warnGap > 0 && val >= limit - warnGap) return 'warning';
+      return 'normal';
+    }
   }
 
   get countNormal(): number {
-    return this.allAqMetrics.filter(m => this.getMetricStatus(m, this.getLiveValue(m), this.getLimitFor(m)) === 'normal').length;
+    return this.allAqMetrics.filter(m => this.getMetricStatus(this.getLiveValue(m), this.getLimitFor(m), this.getWarnGapFor(m), this.getMinLimitFor(m)) === 'normal').length;
   }
 
   get countWarning(): number {
-    return this.allAqMetrics.filter(m => this.getMetricStatus(m, this.getLiveValue(m), this.getLimitFor(m)) === 'warning').length;
+    return this.allAqMetrics.filter(m => this.getMetricStatus(this.getLiveValue(m), this.getLimitFor(m), this.getWarnGapFor(m), this.getMinLimitFor(m)) === 'warning').length;
   }
 
   get countAlert(): number {
-    return this.allAqMetrics.filter(m => this.getMetricStatus(m, this.getLiveValue(m), this.getLimitFor(m)) === 'alert').length;
+    return this.allAqMetrics.filter(m => this.getMetricStatus(this.getLiveValue(m), this.getLimitFor(m), this.getWarnGapFor(m), this.getMinLimitFor(m)) === 'alert').length;
   }
 
   private get allAqMetrics(): string[] {
@@ -1428,5 +1564,31 @@ export class ControlPanelComponent implements OnInit, OnDestroy {
     const aq: any = this.config.airQuality;
     const map: any = { co2: aq.co2Max, pm25: aq.pm25Max, pm10: aq.pm10Max, tvoc: aq.tvocMax, temp: aq.tempMax, hum: aq.humMax, press: aq.pressMax };
     return map[metric] || 100;
+  }
+
+  private getMinLimitFor(metric: string): number | undefined {
+    const aq: any = this.config.airQuality;
+    const map: any = { temp: aq.tempMin, hum: aq.humMin };
+    return map[metric];
+  }
+
+  private getWarnGapFor(metric: string): number {
+    const aq: any = this.config.airQuality;
+    const map: any = { co2: aq.co2WarnGap, pm25: aq.pm25WarnGap, pm10: aq.pm10WarnGap, tvoc: aq.tvocWarnGap, temp: aq.tempWarnGap, hum: aq.humWarnGap, press: aq.pressWarnGap };
+    return map[metric] ?? 0;
+  }
+
+  get isWinterSeasonActive(): boolean {
+    const ws = this.config?.thermostat?.winterSeason;
+    if (!ws || !ws.start || !ws.end) return false;
+
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+
+    const start = new Date(ws.start);
+    const end = new Date(ws.end);
+    end.setHours(23, 59, 59, 999);
+
+    return now >= start && now <= end;
   }
 }

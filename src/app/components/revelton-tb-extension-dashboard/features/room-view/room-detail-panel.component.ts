@@ -468,7 +468,7 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
       const deviceId = this.deviceEntityIdMap[trv.entityName];
       if (!deviceId) continue;
 
-      ctx.http.get(`/api/plugins/telemetry/DEVICE/${deviceId}/values/attributes/SHARED_SCOPE?keys=current_heating_setpoint,system_mode,preset`).subscribe(
+      ctx.http.get(`/api/plugins/telemetry/DEVICE/${deviceId}/values/attributes/SHARED_SCOPE?keys=current_heating_setpoint,system_mode,preset`, { ignoreErrors: true, ignoreLoading: true }).subscribe(
         (res: any) => {
           if (!this.data.trvDevices || !this.data.trvDevices[trv.entityName]) return;
           const trvData = this.data.trvDevices[trv.entityName];
@@ -493,6 +493,14 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
       this.dialogRef.close();
     }
     this.close.emit();
+  }
+
+  private isDeviceOffline(name: string): boolean {
+    const active = this.data?.activeDevices?.[name];
+    if (active === false || active === 'false' || active === 0 || active === '0') {
+      return true;
+    }
+    return this.data?.offlineDevices?.[name] ?? false;
   }
 
   public buildFromPassedData(): void {
@@ -574,7 +582,7 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
         linkquality: this.data.linkQualityDevices?.[name] ?? 200,
         model: this.data.deviceMeta?.[name]?.model ?? 'Tuya TS0601',
         lastSeen: this.data.lastSeenDevices?.[name] ?? null,
-        offline: this.data.offlineDevices?.[name] ?? false,
+        offline: this.isDeviceOffline(name),
         ecoTemp: data.eco_temperature ?? 15,
         comfortTemp: data.comfort_temperature ?? 20
       };
@@ -614,7 +622,7 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
         linkquality: this.data.linkQualityDevices?.[name] ?? null,
         model: this.data.deviceMeta?.[name]?.model ?? 'Tuya TS0203',
         lastSeen: this.data.lastSeenDevices?.[name] ?? null,
-        offline: this.data.offlineDevices?.[name] ?? false,
+        offline: this.isDeviceOffline(name),
         tamper: this.data.tamperDevices?.[name]
       });
     }
@@ -655,7 +663,7 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
         linkquality: this.data.linkQualityDevices?.[name] ?? null,
         model: this.data.deviceMeta?.[name]?.model || 'WS303',
         lastSeen: this.data.lastSeenDevices?.[name] ?? null,
-        offline: this.data.offlineDevices?.[name] ?? false,
+        offline: this.isDeviceOffline(name),
         snr: data.snr ?? null,
         rssi: data.rssi ?? null,
         fCnt: data.fCnt ?? null,
@@ -720,7 +728,7 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
         linkquality: this.data.linkQualityDevices?.[name] ?? null,
         model: this.data.deviceMeta?.[name]?.model || 'WS302',
         lastSeen: this.data.lastSeenDevices?.[name] ?? null,
-        offline: this.data.offlineDevices?.[name] ?? false,
+        offline: this.isDeviceOffline(name),
         laeq: data.laeq ?? null,
         lai: data.lai ?? null,
         laimax: data.laimax ?? null,
@@ -770,7 +778,7 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
         linkquality: this.data.linkQualityDevices?.[name] ?? null,
         model: this.data.deviceMeta?.[name]?.model || 'VS370',
         lastSeen: this.data.lastSeenDevices?.[name] ?? null,
-        offline: this.data.offlineDevices?.[name] ?? false,
+        offline: this.isDeviceOffline(name),
         snr: data.snr ?? null,
         rssi: data.rssi ?? null,
         fCnt: data.fCnt ?? null,
@@ -817,7 +825,7 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
         battery: this.data.batteryDevices?.[name] ?? null,
         linkquality: this.data.linkQualityDevices?.[name] ?? null,
         lastSeen: this.data.lastSeenDevices?.[name] ?? null,
-        offline: this.data.offlineDevices?.[name] ?? false,
+        offline: this.isDeviceOffline(name),
       });
     }
 
@@ -844,7 +852,7 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
         linkquality: this.data.linkQualityDevices?.[name] ?? null,
         model: this.data.deviceMeta?.[name]?.model ?? 'Smart Plug',
         lastSeen: this.data.lastSeenDevices?.[name] ?? null,
-        offline: this.data.offlineDevices?.[name] ?? false,
+        offline: this.isDeviceOffline(name),
         controlKey: data.controlKey || 'state',
       };
 
@@ -1300,7 +1308,7 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
     }
 
     // Sync Shared Attribute
-    ctx.http.post(`/api/plugins/telemetry/DEVICE/${deviceId}/SHARED_SCOPE`, { [key]: value }).subscribe(
+    ctx.http.post(`/api/plugins/telemetry/DEVICE/${deviceId}/SHARED_SCOPE`, { [key]: value }, { ignoreErrors: true, ignoreLoading: true }).subscribe(
       () => { trv.rpcPending = false; this.cdr.detectChanges(); },
       () => { trv.rpcPending = false; this.cdr.detectChanges(); }
     );
@@ -1308,7 +1316,7 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
     // One-way RPC
     const methods: any = { 'current_heating_setpoint': 'set_temperature', 'system_mode': 'set_system_mode', 'preset': 'set_preset' };
     if (methods[key]) {
-      ctx.http.post(`/api/rpc/oneway/${deviceId}`, { method: methods[key], params: value }).subscribe();
+      ctx.http.post(`/api/rpc/oneway/${deviceId}`, { method: methods[key], params: value }, { ignoreErrors: true, ignoreLoading: true }).subscribe();
     }
   }
 
@@ -1342,7 +1350,7 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
     ctx.http.post(`/api/plugins/telemetry/DEVICE/${deviceId}/SHARED_SCOPE`, { 
       [controlKey]: valueToSend,
       relayState: nextState === 'ON'
-    }).subscribe(
+    }, { ignoreErrors: true, ignoreLoading: true }).subscribe(
       () => { this.cdr.detectChanges(); },
       (err) => {
         socket.state = isCurrentlyOn ? 'ON' : 'OFF';
@@ -1352,7 +1360,7 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
       }
     );
 
-    ctx.http.post(`/api/rpc/oneway/${deviceId}`, { method: 'set_state', params: valueToSend }).subscribe(
+    ctx.http.post(`/api/rpc/oneway/${deviceId}`, { method: 'set_state', params: valueToSend }, { ignoreErrors: true, ignoreLoading: true }).subscribe(
       () => {},
       () => {}
     );
@@ -1551,7 +1559,7 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
     const keysToFetch = 'temperature,humidity,co2,temp,hum,data_temperature,data_humidity,data_co2';
     const safeFetch = (id: string | null): Promise<any> => {
       if (!id) return Promise.resolve(null);
-      return firstValueFrom(http.get(`/api/plugins/telemetry/DEVICE/${id}/values/timeseries?keys=${keysToFetch}&startTs=${startTs}&endTs=${endTs}&limit=${limit}&orderBy=ASC`)).catch(() => null);
+      return firstValueFrom(http.get(`/api/plugins/telemetry/DEVICE/${id}/values/timeseries?keys=${keysToFetch}&startTs=${startTs}&endTs=${endTs}&limit=${limit}&orderBy=ASC`, { ignoreErrors: true, ignoreLoading: true })).catch(() => null);
     };
 
     const uniqueIds = [...new Set([aqDeviceId, tempDeviceId, humDeviceId].filter(Boolean))];

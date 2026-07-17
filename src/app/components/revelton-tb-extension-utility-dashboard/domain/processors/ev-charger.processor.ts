@@ -13,18 +13,19 @@ import {
   EV_CHARGER_ALL_KEYS,
 } from '../../core/constants';
 import { ThingsBoardTelemetryService } from '../../../revelton-tb-extension-historical-dashboard/data/services/thingsboard-telemetry.service';
-import { DiscoveredDevice, TimeWindow } from '../../../revelton-tb-extension-historical-dashboard/core/models/time-range.models';
+import { DiscoveredDevice } from '../../../revelton-tb-extension-historical-dashboard/core/models/time-range.models';
 
 @Injectable({ providedIn: 'any' })
 export class EvChargerProcessor implements IUtilityProcessor {
 
   constructor(private telemetry: ThingsBoardTelemetryService) {}
 
-  canHandle(availableKeys: string[], _deviceName: string): boolean {
-    return EV_CHARGER_IDENTIFIER_KEYS.some(k => availableKeys.includes(k));
+  canHandle(availableKeys: string[]): boolean {
+    const lower = availableKeys.map(k => k.toLowerCase());
+    return EV_CHARGER_IDENTIFIER_KEYS.some(k => lower.includes(k));
   }
 
-  process(device: DiscoveredDevice, keys: string[], _tw: TimeWindow): Observable<EvChargerResult | null> {
+  process(device: DiscoveredDevice, keys: string[]): Observable<EvChargerResult | null> {
     const fetchKeys = keys.filter(k => EV_CHARGER_ALL_KEYS.includes(k.toLowerCase()));
 
     return this.telemetry.getLatestTelemetry(device.id, fetchKeys).pipe(

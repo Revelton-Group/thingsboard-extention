@@ -10,6 +10,9 @@ export interface TranslationSet {
   rooms: string;
   lastSync: string;
   loading: string;
+  loadingRooms: string;
+  connectionError: string;
+  retryConnection: string;
 
   // Dashboard Header/KPIs
   occupancy: string;
@@ -348,6 +351,9 @@ export class TranslationService {
       rooms: "rooms",
       lastSync: "Last sync",
       loading: "Loading...",
+      loadingRooms: "Loading rooms…",
+      connectionError: "Cannot reach the server. Retrying…",
+      retryConnection: "Retry",
 
       occupancy: "OCCUPANCY",
       checkInsToday: "CHECK-INS TODAY",
@@ -499,10 +505,10 @@ export class TranslationService {
       smartSockets: "Smart Sockets",
       noSockets: "No smart sockets in this room",
 
-      cpCo2Limit: "CO₂ Limit (ppm)",
-      cpPmbLimit: "PM2.5 Limit (µg/m³)",
-      cpPm10Limit: "PM10 Limit (µg/m³)",
-      cpTvocLimit: "TVOC Limit (ppb)",
+      cpCo2Limit: "CO₂",
+      cpPmbLimit: "PM2.5",
+      cpPm10Limit: "PM10",
+      cpTvocLimit: "TVOC",
       cpNoiseLimit: "Noise Limit (dB)",
       cpTempMaxLimit: "Temp Max Limit (°C)",
       cpHumMaxLimit: "Humidity Max Limit (%)",
@@ -561,10 +567,10 @@ export class TranslationService {
       cpSendTest: "Send Test Message",
       cpUnsavedChanges: "Unsaved changes",
       cpSaveThresholds: "Save",
-      cpPm25Limit: "PM2.5 LIMIT",
-      cpTempMax: "TEMP MAX LIMIT",
-      cpHumMax: "HUMIDITY MAX LIMIT",
-      cpPressMax: "PRESSURE MAX LIMIT",
+      cpPm25Limit: "PM2.5",
+      cpTempMax: "TEMP MAX",
+      cpHumMax: "HUMIDITY MAX",
+      cpPressMax: "PRESSURE MAX",
 
       schedule: "Schedule",
       scheduleHint: "Define heating periods with target temperatures for each time block.",
@@ -668,6 +674,9 @@ export class TranslationService {
       rooms: "комнат",
       lastSync: "Синхр.",
       loading: "Загрузка...",
+      loadingRooms: "Загрузка комнат…",
+      connectionError: "Нет связи с сервером. Повтор…",
+      retryConnection: "Повторить",
 
       occupancy: "ЗАГРУЗКА ОТЕЛЯ",
       checkInsToday: "ЗАЕЗДЫ СЕГОДНЯ",
@@ -819,10 +828,10 @@ export class TranslationService {
       smartSockets: "Умные розетки",
       noSockets: "В этой комнате нет умных розеток",
 
-      cpCo2Limit: "Лимит CO₂ (ppm)",
-      cpPmbLimit: "Лимит PM2.5 (мкг/м³)",
-      cpPm10Limit: "Лимит PM10 (мкг/м³)",
-      cpTvocLimit: "Лимит TVOC (ppb)",
+      cpCo2Limit: "CO₂",
+      cpPmbLimit: "PM2.5",
+      cpPm10Limit: "PM10",
+      cpTvocLimit: "TVOC",
       cpNoiseLimit: "Лимит шума (дБ)",
       cpTempMaxLimit: "Макс. лимит темп. (°C)",
       cpHumMaxLimit: "Макс. лимит влажн. (%)",
@@ -881,10 +890,10 @@ export class TranslationService {
       cpSendTest: "Отправить тестовое сообщение",
       cpUnsavedChanges: "Несохранённые изменения",
       cpSaveThresholds: "Сохранить",
-      cpPm25Limit: "ЛИМИТ PM2.5",
-      cpTempMax: "МАКС. ЛИМИТ ТЕМП.",
-      cpHumMax: "МАКС. ЛИМИТ ВЛАЖН.",
-      cpPressMax: "МАКС. ЛИМИТ ДАВЛ.",
+      cpPm25Limit: "PM2.5",
+      cpTempMax: "ТЕМП МАКС",
+      cpHumMax: "ВЛАЖН МАКС",
+      cpPressMax: "ДАВЛ МАКС",
 
       schedule: "Расписание",
       scheduleHint: "Задайте периоды отопления с целевой температурой для каждого временного блока.",

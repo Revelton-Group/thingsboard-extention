@@ -128,15 +128,45 @@ export class OtherDevicesPanelComponent implements OnChanges {
       );
 
       for (const d of devices) {
+        const v =
+          d.data?.batteryLow ??
+          d.data?.battery_low ??
+          d.data?.data_battery_low ??
+          d.data?.status_battery_low ??
+          d.data?.low_battery ??
+          d.data?.battery_alarm ??
+          d.data?.status_battery_alarm ??
+          d.data?.batteryState ??
+          d.data?.battery_status ??
+          d.data?.battery_defect;
+        const valStr = v !== null && v !== undefined ? String(v).toLowerCase().trim() : "";
+        const isBatLow =
+          v === true ||
+          valStr === "true" ||
+          v === 1 ||
+          valStr === "1" ||
+          valStr === "low" ||
+          valStr === "alarm" ||
+          valStr === "bad" ||
+          valStr === "critical" ||
+          valStr === "defect";
+
+        const batVal =
+          d.data?.battery ??
+          d.data?.data_battery ??
+          d.data?.status_battery_level ??
+          d.data?.battery_level ??
+          d.data?.batteryLevel;
+        const batNum = batVal !== undefined && batVal !== null ? parseFloat(batVal) : undefined;
+
         if (
-          d.data?.batteryLow === true ||
-          String(d.data?.battery_low).toLowerCase() === "true" ||
-          (d.data?.battery !== undefined && d.data?.battery < 20)
+          isBatLow ||
+          (batNum !== undefined && !isNaN(batNum) && batNum < 20)
         ) {
           alerts.push({
             name: d.name || "Unknown Device",
             location: subLocation,
-            battery: d.data.battery,
+            battery: batNum,
           });
         }
       }

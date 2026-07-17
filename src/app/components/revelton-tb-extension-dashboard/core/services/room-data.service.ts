@@ -81,6 +81,7 @@ export interface RoomData {
   batteryLowDevices: any;
   linkQualityDevices: any;
   lastSeenDevices: any;
+  lastSeenRaw: any;
   offlineDevices: any;
   tamperDevices: any;
   airSensors: any;
@@ -130,14 +131,15 @@ export class RoomDataService {
         if (config.airQuality?.enabled) {
           const tMin = config.airQuality.tempMin ?? 18;
           const tMax = config.airQuality.tempMax ?? 28;
+          const tWarnGap = (config.airQuality as any).tempWarnGap ?? 3;
           this.THRESHOLDS.temperature = {
-            warning: { min: tMin, max: tMax },
-            danger: { min: tMin - 4, max: tMax + 4 }
+            warning: { min: tMin,            max: tMax - tWarnGap },
+            danger:  { min: tMin - tWarnGap, max: tMax }
           };
         } else {
           this.THRESHOLDS.temperature = {
             warning: { min: 16, max: 28 },
-            danger: { min: 14, max: 32 }
+            danger:  { min: 14, max: 32 }
           };
         }
 
@@ -145,14 +147,15 @@ export class RoomDataService {
         if (config.airQuality?.enabled) {
           const hMin = config.airQuality.humMin ?? 30;
           const hMax = config.airQuality.humMax ?? 65;
+          const hWarnGap = (config.airQuality as any).humWarnGap ?? 10;
           this.THRESHOLDS.humidity = {
-            warning: { min: hMin, max: hMax },
-            danger: { min: hMin - 10, max: hMax + 10 }
+            warning: { min: hMin,            max: hMax - hWarnGap },
+            danger:  { min: hMin - hWarnGap, max: hMax }
           };
         } else {
           this.THRESHOLDS.humidity = {
             warning: { min: 30, max: 65 },
-            danger: { min: 20, max: 80 }
+            danger:  { min: 20, max: 80 }
           };
         }
 
@@ -179,6 +182,7 @@ export class RoomDataService {
 
     const newData = { ...currentData };
     if (!newData.plugDevices) newData.plugDevices = {};
+    if (!newData.lastSeenRaw) newData.lastSeenRaw = {};
 
     for (const item of ctx.data) {
       if (!item || !item.dataKey) continue;
@@ -290,17 +294,49 @@ export class RoomDataService {
           break;
         case 'battery_low':
         case 'batteryLow':
-          newData.batteryLowDevices[entityName] = (value === true || String(value).toLowerCase() === 'true' || value === 1);
+        case 'data_battery_low':
+        case 'status_battery_low':
+        case 'low_battery':
+        case 'battery_alarm':
+        case 'status_battery_alarm':
+        case 'battery_state':
+        case 'batteryState':
+        case 'battery_status':
+        case 'battery_defect': {
+          const valStr = String(value).toLowerCase().trim();
+          newData.batteryLowDevices[entityName] = (
+            value === true ||
+            valStr === 'true' ||
+            value === 1 ||
+            valStr === '1' ||
+            valStr === 'low' ||
+            valStr === 'alarm' ||
+            valStr === 'bad' ||
+            valStr === 'critical' ||
+            valStr === 'defect'
+          );
           break;
+        }
         case 'tamper':
           newData.tamperDevices[entityName] = (value === true || value === 'true' || value === 1);
           break;
-        case 'active':
-          newData.activeDevices[entityName] = (value === true || String(value).toLowerCase() === 'true' || value === 1 || value === '1');
+        case 'active': {
+          if (entityName !== 'unknown' && !this.isVirtualRoomOrMewsEntity(entityName, newData.deviceMeta)) {
+            const isActive = (value === true || String(value).toLowerCase() === 'true' || value === 1 || value === '1');
+            newData.activeDevices[entityName] = isActive;
+            if (!isActive) {
+              newData.offlineDevices[entityName] = true;
+            } else {
+              newData.offlineDevices[entityName] = false;
+            }
+          }
           break;
+        }
         case 'battery':
         case 'data_battery':
         case 'status_battery_level':
+        case 'battery_level':
+        case 'batteryLevel':
           newData.batteryDevices[entityName] = parseFloat(value);
           break;
         case 'linkquality':
@@ -330,15 +366,22 @@ export class RoomDataService {
           break;
         }
         case 'last_seen':
-        case 'lastActivityTime':
-          const ts = Date.parse(value) || parseInt(value, 10);
-          if (!isNaN(ts)) {
-            const finalTs = Math.max(this.lastSeenTimestamps[entityName] || 0, ts);
-            this.lastSeenTimestamps[entityName] = finalTs;
-            newData.lastSeenDevices[entityName] = this.timeAgo(finalTs);
-            newData.offlineDevices[entityName] = (Date.now() - finalTs) > (24 * 60 * 60 * 1000);
+        case 'lastActivityTime': {
+          if (entityName !== 'unknown' && !this.isVirtualRoomOrMewsEntity(entityName, newData.deviceMeta)) {
+            const ts = Date.parse(value) || parseInt(value, 10);
+            if (!isNaN(ts)) {
+              const finalTs = Math.max(this.lastSeenTimestamps[entityName] || 0, ts);
+              this.lastSeenTimestamps[entityName] = finalTs;
+              newData.lastSeenDevices[entityName] = this.timeAgo(finalTs);
+              newData.lastSeenRaw[entityName] = finalTs;
+              const activeFalse = newData.activeDevices[entityName] === false || newData.activeDevices[entityName] === 'false' || newData.activeDevices[entityName] === 0 || newData.activeDevices[entityName] === '0';
+              if (activeFalse) {
+                newData.offlineDevices[entityName] = true;
+              }
+            }
           }
           break;
+        }
         case 'airQuality':
           newData.sensorData.airQuality = parseFloat(value);
           newData.hasData.airQuality = true;
@@ -642,6 +685,29 @@ export class RoomDataService {
       }
     }
 
+    if (newData.activeDevices) {
+      for (const [entityName, isActive] of Object.entries(newData.activeDevices)) {
+        if (this.isVirtualRoomOrMewsEntity(entityName, newData.deviceMeta)) {
+          delete newData.activeDevices[entityName];
+          delete newData.offlineDevices[entityName];
+          delete newData.lastSeenDevices[entityName];
+          continue;
+        }
+        if (isActive === false || isActive === 'false' || isActive === 0 || isActive === '0') {
+          newData.offlineDevices[entityName] = true;
+        } else {
+          newData.offlineDevices[entityName] = false;
+        }
+      }
+    }
+    if (newData.offlineDevices) {
+      for (const name of Object.keys(newData.offlineDevices)) {
+        if (this.isVirtualRoomOrMewsEntity(name, newData.deviceMeta)) {
+          delete newData.offlineDevices[name];
+        }
+      }
+    }
+
     this.aggregateAll(newData);
     this.computeReservationDisplay(newData);
     this.updateStatuses(newData);
@@ -878,7 +944,66 @@ export class RoomDataService {
            meta[name]?.type === 'Plug';
   }
 
+  public isVirtualRoomOrMewsEntity(name: string, meta?: any): boolean {
+    if (!name || name === 'unknown') return false;
+    const lower = name.toLowerCase().trim();
+    if (lower.includes('mews') || lower.includes('sim') || lower.includes('virtual') || lower.includes('gateway') || lower.includes('bridge')) {
+      return true;
+    }
+    const type = (meta?.[name]?.type || meta?.[name]?.model || '').toLowerCase().trim();
+    if (type.includes('mews') || type.includes('sim') || type.includes('virtual') || type.includes('gateway') || type.includes('bridge') || type.includes('room asset') || type === 'room') {
+      return true;
+    }
+    if (/(?:^|[-_])room[-_]?\d+(?:[-_].*)?$/i.test(lower)) {
+      const hasSensorKeyword =
+        lower.includes('trv') ||
+        lower.includes('thermo') ||
+        lower.includes('win') ||
+        lower.includes('leak') ||
+        lower.includes('wl') ||
+        lower.includes('noise') ||
+        lower.includes('ws303') ||
+        lower.includes('ws302') ||
+        lower.includes('air') ||
+        lower.includes('am_') ||
+        lower.includes('-am-') ||
+        lower.includes('_am_') ||
+        lower.includes('plug') ||
+        lower.includes('socket') ||
+        lower.includes('occ') ||
+        lower.includes('presence') ||
+        lower.includes('lock') ||
+        lower.includes('light');
+      if (!hasSensorKeyword) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   private aggregateAll(data: RoomData) {
+    if (data.activeDevices) {
+      for (const [entityName, isActive] of Object.entries(data.activeDevices)) {
+        if (this.isVirtualRoomOrMewsEntity(entityName, data.deviceMeta)) {
+          delete data.activeDevices[entityName];
+          delete data.offlineDevices[entityName];
+          continue;
+        }
+        if (isActive === false || isActive === 'false' || isActive === 0 || isActive === '0') {
+          data.offlineDevices[entityName] = true;
+        } else {
+          data.offlineDevices[entityName] = false;
+        }
+      }
+    }
+    if (data.offlineDevices) {
+      for (const name of Object.keys(data.offlineDevices)) {
+        if (this.isVirtualRoomOrMewsEntity(name, data.deviceMeta)) {
+          delete data.offlineDevices[name];
+        }
+      }
+    }
+
     // Temp — Prefer dedicated sensors over TRV internal sensors. isTRV() is a
     // name-based fallback (TRV_*/*THERMOSTAT*); data.trvDevices is the reliable
     // signal since it's populated from actual TRV-only telemetry keys
@@ -927,24 +1052,18 @@ export class RoomDataService {
       const config = this.controlPanelService.config;
       const customBreakpoints: Partial<AQBreakpoints> = {};
       if (config?.airQuality?.enabled) {
-        customBreakpoints.co2 = {
-          good: Math.round(config.airQuality.co2Max * 0.8),
-          fair: config.airQuality.co2Max,
-          poor: Math.round(config.airQuality.co2Max * 1.5),
-          hazardous: Math.round(config.airQuality.co2Max * 3.0)
-        };
-        customBreakpoints.pm25 = {
-          good: Math.round(config.airQuality.pm25Max * 0.35),
-          fair: config.airQuality.pm25Max,
-          poor: Math.round(config.airQuality.pm25Max * 1.5),
-          hazardous: Math.round(config.airQuality.pm25Max * 4.0)
-        };
-        customBreakpoints.pm10 = {
-          good: Math.round(config.airQuality.pm10Max * 0.35),
-          fair: config.airQuality.pm10Max,
-          poor: Math.round(config.airQuality.pm10Max * 1.5),
-          hazardous: Math.round(config.airQuality.pm10Max * 2.8)
-        };
+        const aq: any = config.airQuality;
+        const getBp = (max: number, warnGap: number) => ({
+          good: Math.max(0, max - 2 * warnGap),
+          fair: Math.max(0, max - warnGap),
+          poor: max + warnGap,
+          hazardous: max + 3 * warnGap
+        });
+
+        customBreakpoints.co2 = getBp(aq.co2Max, aq.co2WarnGap ?? 200);
+        customBreakpoints.pm25 = getBp(aq.pm25Max, aq.pm25WarnGap ?? 10);
+        customBreakpoints.pm10 = getBp(aq.pm10Max, aq.pm10WarnGap ?? 40);
+        customBreakpoints.tvoc = getBp(aq.tvocMax ?? 10, aq.tvocWarnGap ?? 1);
         customBreakpoints.temp = {
           comfortMin: 18,
           comfortMax: Math.max(18, config.airQuality.tempMax - 2),
@@ -990,11 +1109,30 @@ export class RoomDataService {
     data.airStatus = data.hasData.airQuality ? this.calcStatus('airQuality', data.sensorData.airQuality!) : 'normal';
     data.noiseStatus = data.hasData.noise ? this.calcStatus('noise', data.sensorData.noise!) : 'normal';
 
-    const hasBatteryLow = Object.values(data.batteryLowDevices).some(v => v === true) || 
-                          Object.values(data.batteryDevices).some((v: any) => v < 20);
+    const missingBatteryCount = Object.entries(data.deviceEntityIdMap || {}).filter(
+      ([name, type]) => {
+        const n = name.toLowerCase();
+        const t = ((type as string) || '').toLowerCase();
+        const isSim = n.includes('mews') || n.includes('sim') || n.includes('virtual') || t.includes('mews') || t.includes('sim') || t.includes('virtual');
+        const isExempt = isSim || n.includes('ws523') || t.includes('ws523') || n.includes('socket') || t.includes('socket');
+        return !isExempt && data.batteryLowDevices?.[name] === undefined && data.batteryDevices?.[name] === undefined;
+      }
+    ).length;
+
+    const exemptKeys = Object.entries(data.deviceEntityIdMap || {})
+      .filter(([name, type]) => {
+        const n = name.toLowerCase();
+        const t = ((type as string) || '').toLowerCase();
+        return n.includes('ws523') || t.includes('ws523') || n.includes('socket') || t.includes('socket');
+      })
+      .map(([name]) => name);
+
+    const hasBatteryLow = Object.entries(data.batteryLowDevices).some(([k, v]) => !exemptKeys.includes(k) && v === true) || 
+                          Object.entries(data.batteryDevices).some(([k, v]) => !exemptKeys.includes(k) && (v as number) < 20) || 
+                          missingBatteryCount > 0;
     data.hasBatteryLow = hasBatteryLow;
 
-    const s = [data.tempStatus, data.humStatus, data.airStatus, data.noiseStatus, data.sensorData.waterLeak ? 'danger' : 'normal', hasBatteryLow ? 'warning' : 'normal'];
+    const s = [data.tempStatus, data.humStatus, data.airStatus, data.noiseStatus, data.sensorData.waterLeak ? 'danger' : 'normal'];
     data.roomStatus = s.includes('danger') ? 'danger' : s.includes('warning') ? 'warning' : 'normal';
 
     // sensorAlarmCount — only sensor/environmental alerts drive the bell RED

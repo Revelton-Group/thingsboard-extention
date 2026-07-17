@@ -17,11 +17,11 @@
   <div class="dashboard-content" [class.is-loading]="vm.isLoading">
     <revelton-ev-charger-panel
       [chargers]="vm.chargers"
-      [activeCount]="vm.activeChargers"
-      [totalCount]="vm.totalChargers"
+      [activeSockets]="vm.activeSockets"
+      [totalSockets]="vm.totalSockets"
       [totalPower]="vm.totalPowerKw"
       [totalEnergy]="vm.totalEnergyKwh"
-      [totalRevenue]="vm.totalRevenueEuro"
+      [activeSessions]="vm.activeSessions"
       [activeFaults]="vm.activeFaults">
     </revelton-ev-charger-panel>
   </div>

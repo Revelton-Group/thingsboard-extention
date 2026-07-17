@@ -73,6 +73,12 @@
         }}</i>
         {{ battery }}%
       </span>
+      <span
+        class="ct-chip ct-chip-green"
+        *ngIf="batteryLow === false && battery == null"
+      >
+        <i class="material-icons">battery_std</i>Good
+      </span>
     </ng-container>
 
     <!-- Offline Status -->

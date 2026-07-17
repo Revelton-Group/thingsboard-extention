@@ -43,18 +43,43 @@ export class CompactThermostatComponent implements OnChanges {
   }
 
   get battery(): number | null {
-    const v = this.device?.data?.battery;
-    return v !== null && v !== undefined ? parseFloat(v) : null;
+    const v =
+      this.device?.data?.battery ??
+      this.device?.data?.data_battery ??
+      this.device?.data?.status_battery_level ??
+      this.device?.data?.battery_level ??
+      this.device?.data?.batteryLevel;
+    const parsed = v !== null && v !== undefined ? parseFloat(v) : null;
+    return parsed !== null && !isNaN(parsed) ? parsed : null;
   }
 
   get batteryLow(): boolean | null {
-    const v = this.device?.data?.battery_low ?? this.device?.data?.batteryLow;
-    if (v === null || v === undefined || v === "") return false;
+    const v =
+      this.device?.data?.battery_low ??
+      this.device?.data?.batteryLow ??
+      this.device?.data?.data_battery_low ??
+      this.device?.data?.status_battery_low ??
+      this.device?.data?.low_battery ??
+      this.device?.data?.battery_alarm ??
+      this.device?.data?.status_battery_alarm ??
+      this.device?.data?.batteryState ??
+      this.device?.data?.battery_status ??
+      this.device?.data?.battery_defect;
+    if (v === null || v === undefined || v === "") return null;
+    const valStr = String(v).toLowerCase().trim();
+    if (valStr === "false" || valStr === "0" || valStr === "good" || valStr === "ok" || valStr === "normal") {
+      return false;
+    }
     return (
       v === true ||
-      String(v).toLowerCase() === "true" ||
+      valStr === "true" ||
       v === 1 ||
-      String(v) === "1"
+      valStr === "1" ||
+      valStr === "low" ||
+      valStr === "alarm" ||
+      valStr === "bad" ||
+      valStr === "critical" ||
+      valStr === "defect"
     );
   }
 
@@ -66,9 +91,14 @@ export class CompactThermostatComponent implements OnChanges {
   }
 
   get isOffline(): boolean {
+    if (this.device?.status === "offline") return true;
+    const active = this.device?.data?.active;
+    if (active === false || active === "false" || active === 0 || active === "0") {
+      return true;
+    }
     const ts = this.device?.lastUpdateTs;
     if (ts) {
-      return Date.now() - ts > 12 * 60 * 60 * 1000;
+      return Date.now() - ts > 24 * 60 * 60 * 1000;
     }
     return false;
   }

@@ -56,31 +56,46 @@ export class ThermostatCardComponent {
 
   getBatteryLabel(trv: any): string {
     if (trv.batteryLow === true) return 'Low';
-    if (trv.battery != null) return trv.battery + '%';
-    if (trv.batteryLow === false && trv.battery == null) return 'Good';
+    if (trv.battery != null && !isNaN(trv.battery)) return trv.battery + '%';
+    if (trv.batteryLow === false && (trv.battery == null || isNaN(trv.battery))) return 'Good';
     return '--';
   }
 
-  getBatteryBg(battery: number | null): string {
-    if (battery == null) return 'var(--panel2, #1a2230)';
-    if (battery <= 20) return 'var(--alert-soft, rgba(248,113,113,.13))';
-    if (battery <= 50) return 'var(--warn-soft, rgba(245,181,74,.13))';
+  getBatteryBg(trvOrBattery: any): string {
+    const bat = typeof trvOrBattery === 'object' && trvOrBattery !== null ? trvOrBattery.battery : trvOrBattery;
+    const batLow = typeof trvOrBattery === 'object' && trvOrBattery !== null ? trvOrBattery.batteryLow : null;
+
+    if (batLow === true) return 'var(--alert-soft, rgba(248,113,113,.13))';
+    if (batLow === false && (bat == null || isNaN(bat))) return 'var(--ok-soft, rgba(52,211,153,.13))';
+    if (bat == null || isNaN(bat)) return 'var(--panel2, #1a2230)';
+    if (bat <= 20) return 'var(--alert-soft, rgba(248,113,113,.13))';
+    if (bat <= 50) return 'var(--warn-soft, rgba(245,181,74,.13))';
     return 'var(--ok-soft, rgba(52,211,153,.13))';
   }
 
-  getBatteryColor(battery: number | null): string {
-    if (battery == null) return 'var(--t3, #5c6675)';
-    if (battery <= 20) return 'var(--alert, #f87171)';
-    if (battery <= 50) return 'var(--warn, #f5b54a)';
+  getBatteryColor(trvOrBattery: any): string {
+    const bat = typeof trvOrBattery === 'object' && trvOrBattery !== null ? trvOrBattery.battery : trvOrBattery;
+    const batLow = typeof trvOrBattery === 'object' && trvOrBattery !== null ? trvOrBattery.batteryLow : null;
+
+    if (batLow === true) return 'var(--alert, #f87171)';
+    if (batLow === false && (bat == null || isNaN(bat))) return 'var(--ok, #34d399)';
+    if (bat == null || isNaN(bat)) return 'var(--t3, #5c6675)';
+    if (bat <= 20) return 'var(--alert, #f87171)';
+    if (bat <= 50) return 'var(--warn, #f5b54a)';
     return 'var(--ok, #34d399)';
   }
 
-  getBatteryIcon(battery: number | null): string {
-    if (battery == null) return 'battery_unknown';
-    if (battery <= 10) return 'battery_alert';
-    if (battery <= 25) return 'battery_2_bar';
-    if (battery <= 50) return 'battery_4_bar';
-    if (battery <= 75) return 'battery_5_bar';
+  getBatteryIcon(trvOrBattery: any): string {
+    const bat = typeof trvOrBattery === 'object' && trvOrBattery !== null ? trvOrBattery.battery : trvOrBattery;
+    const batLow = typeof trvOrBattery === 'object' && trvOrBattery !== null ? trvOrBattery.batteryLow : null;
+
+    if (batLow === true) return 'battery_alert';
+    if (batLow === false && (bat == null || isNaN(bat))) return 'battery_std';
+    if (bat == null || isNaN(bat)) return 'battery_unknown';
+    if (bat <= 10) return 'battery_alert';
+    if (bat <= 25) return 'battery_2_bar';
+    if (bat <= 50) return 'battery_4_bar';
+    if (bat <= 75) return 'battery_5_bar';
     return 'battery_full';
   }
 

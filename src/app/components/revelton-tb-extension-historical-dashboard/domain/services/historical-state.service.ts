@@ -222,11 +222,16 @@ export class HistoricalStateService implements OnDestroy {
     // Reset panels before new fetch
     this.patch({
       isLoading: true,
+      thermostatStats: DEFAULT_THERMOSTAT_STATS(),
       thermostatChartData: [],
+      airQualityStats: DEFAULT_AIR_QUALITY_STATS(),
       airQualityChart: EMPTY_AIR_QUALITY_CHART(),
       windowStats: DEFAULT_WINDOW_STATS(),
+      waterLeakStats: DEFAULT_WATER_LEAK_STATS(),
       waterLeakChartData: [],
+      noiseStats: DEFAULT_NOISE_STATS(),
       noiseChartData: [],
+      occupancyStats: DEFAULT_OCCUPANCY_STATS(),
       occupancyChartData: [],
     });
     this.windowProc.reset();
@@ -241,15 +246,15 @@ export class HistoricalStateService implements OnDestroy {
         // For each device: discover keys → pick processor(s) → fetch & process
         const deviceFetches = devices.map(device =>
           this.telemetry.getDeviceKeys(device.id).pipe(
-            switchMap(lowerKeys => {
-              const rawKeys = lowerKeys; // already lowercased from service
+            switchMap(rawKeys => {
+              const lowerKeys = rawKeys.map((k: string) => k.toLowerCase());
               const processors = [
                 this.thermostatProc, this.airQualityProc, this.windowProc,
                 this.waterLeakProc, this.noiseProc, this.occupancyProc,
               ];
               const matchedProcessors = processors.filter(p => p.canHandle(lowerKeys, device.name));
               if (matchedProcessors.length === 0) {
-                console.warn(`[HistoricalState] ⚠️ Unrecognized sensor: ${device.name}`, lowerKeys);
+                console.warn(`[HistoricalState] ⚠️ Unrecognized sensor: ${device.name}`, rawKeys);
                 return of([]);
               }
               const obs = matchedProcessors.map(p => p.process(device, rawKeys, tw));

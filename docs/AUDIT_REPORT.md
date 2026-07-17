@@ -83,10 +83,10 @@ The periodic refresh timer closed over the `ctx` captured at discovery time. `la
 
 ## 2. Loading section
 
-- **No loading state for the main room grid.** `features/hotel-dashboard/revelton-hotel.component.html:488` renders an empty-state block when `rooms.length === 0` — indistinguishable from "still loading". Staff see "no rooms" during startup. Only `room-historical-data` implements a real `loading` flag + spinner (and it does it correctly — every set has a matching reset, including catch paths).
-- **Connection errors are invisible.** `HotelStateService.connectionError$` (:174-175) emits on HTTP failure/timeout (:251, :263) but has **zero consumers** anywhere in the codebase. There is no error banner; a dead network looks like a healthy-but-empty hotel. → Wire a banner in refactor Phase 6.
+- **No loading state for the main room grid.** ✅ **Fixed.** The grid previously rendered the empty-state block when `rooms.length === 0` — indistinguishable from "still loading". A shimmering **skeleton grid** now shows on first load (gated on `loading && rooms.length === 0`), a 12s fallback drops the skeleton for a genuinely empty hotel, and the real empty state only shows once `!loading`.
+- **Connection errors are invisible.** ✅ **Fixed.** `connectionError$` had **zero consumers** — a dead network looked like a healthy-but-empty hotel. It is now wired to a dismissible **error banner** with a Retry button (localized EN/RU), shown only while there is nothing on screen (`rooms.length === 0`) so a transient poll hiccup doesn't alarm staff. The wave-1 relations failure now also emits `connectionError$` (previously only the profile fetch did), so a backend outage during discovery actually surfaces.
 - **`room-detail-panel` fetches silently.** `initializeSharedAttributes` (:474+) and `fetchHistoricalVitals` (:1550+) have no loading indicator (only a static "Loading devices…" text behind an `*ngIf` on an empty list).
-- **Startup discovery fan-out.** Every discovered device triggers **5 HTTP calls** (keys + telemetry + 3 attribute scopes, `fetchDeviceData` :1409-1456), and before this change set every response individually re-emitted `rooms$` and recomputed hotel stats (`mergeDeviceDataIntoRoom` :1732-1739): N devices = N full re-emissions + N change-detection storms at load. ✅ Emissions are now **batched** (see §5); the 5-calls-per-device fan-out itself remains and is addressed in the refactor plan (batch/WebSocket strategy).
+- **Startup discovery fan-out.** ✅ **Reduced.** Every discovered device used to trigger **6 HTTP calls** (device-profile + keys + telemetry + **3 separate attribute-scope calls**), and every response individually re-emitted `rooms$` and recomputed hotel stats (`mergeDeviceDataIntoRoom`): N devices = N full re-emissions + N change-detection storms at load. Under the browser's ~6-connections-per-host cap this request volume — not CPU — is the dominant cold-start latency. Two fixes applied: (1) emissions are **batched** behind a `debounceTime(100)` emitter (see §5); (2) the 3 per-scope attribute calls (`SERVER_SCOPE` + `SHARED_SCOPE` + `CLIENT_SCOPE`) are collapsed into **one scope-less `/values/attributes` call** in `fetchDeviceData`, cutting ~2 requests per device on both cold start and the 30s re-poll (~40% fewer requests at ~30 rooms × 4 devices). The remaining keys+values 2-call dependency chain and the profile call move to the batch/WebSocket strategy in the refactor plan.
 - **`httpGetWithRetry`** (:237-271) never clears its 10s timeout guard on success (harmless but leaves pending timers) and uses the deprecated `subscribe(next, err)` signature — as does most of the service.
 
 ## 3. Data-updating section
@@ -94,7 +94,7 @@ The periodic refresh timer closed over the `ctx` captured at discovery time. `la
 - **Zero `OnPush` components** in the entire dashboard (verified repo-wide grep). Instead, ~60 manual `detectChanges()` calls are spread across 6 components (revelton-hotel ~21, room-detail-panel ~18, control-panel ~20).
 - **Three parallel 10-second `setInterval`s each force full CD:** `revelton-hotel.component.ts:320`, `room-card.component.ts:151`, `room-detail-panel.component.ts:428`. ✅ These now skip work while the tab is hidden. Additionally the `document:click` HostListener (revelton-hotel :221) runs `closeAllDropdowns()` + `detectChanges()` on *every click anywhere* in the ThingsBoard page.
 - **One data tick used to cause 4–5 synchronous CD passes:** the four service subscriptions in revelton-hotel (:254-271) each call `detectChanges()`, and `_doProcessDataUpdate` emitted rooms$ + stats (twice, L1) + otherDevices$. L1 fix + discovery batching reduce this substantially.
-- **30s full-telemetry re-poll scales poorly.** `refreshAllDeviceTelemetry` (:1745) re-runs the 5-call fan-out for every discovered device every 30 s. At ~30 rooms × 4 devices that is ≈ 600 requests/30s against the TB REST API. No batching, no use of TB WebSocket subscriptions, no visibility pause. → Refactor plan Phase 5.
+- **30s full-telemetry re-poll scales poorly.** ✅ **Partly mitigated.** `refreshAllDeviceTelemetry` re-runs the per-device fan-out every 30 s. The attribute-scope collapse (§2) drops it from ~5 to ~3 calls per device, and it now **skips entirely while the tab is hidden** (`document.hidden` guard), re-syncing on the next tick when the tab is visible again. The deeper move to TB WebSocket subscriptions or batched REST remains → Refactor plan Phase 5.
 - **Template hot paths** (all run every CD cycle because of Default CD):
   - `formatRoomTitle()` was called 3× per room per cycle (revelton-hotel.component.html:320-323) — ✅ now memoized.
   - `getSelectedRoomData()` (:496) and `getArray()` (:541-542) returned **fresh object/array references on every CD cycle**, churning child `ngOnChanges` while the room/historical overlays were open — ✅ now cached, recomputed only when the source changes.
@@ -147,11 +147,21 @@ The periodic refresh timer closed over the `ctx` captured at discovery time. `la
 8. The three 10s periodic-CD timers skip work while `document.hidden`.
 9. Control-panel info logs gated behind DEBUG.
 
+**Loading request-reduction (one commit):**
+10. Per-device attribute fetch collapsed from 3 scope calls (`SERVER`/`SHARED`/`CLIENT`) to **one scope-less `/values/attributes` call** — ~2 fewer requests per device on every discovery and every 30s refresh; the single biggest cold-start lever under the browser connection cap.
+11. The 30s telemetry re-poll (`refreshAllDeviceTelemetry`) now **short-circuits while the tab is hidden**, eliminating background request storms for an unviewed dashboard.
+12. Thermostat display names normalized to `TRV-<index>` (`formatTrvDisplayName`) so vendor-prefixed device names (`RST-KLV-trv-room-13-2`) render as `TRV-2` instead of the raw entity name.
+
+**Refresh performance + loading UX (one commit):**
+13. **Device-topology cache (sessionStorage).** The room→device→keys layout is persisted (debounced) and restored on reload. A page refresh now **fast-paints room data in one request wave** (`refreshAllDeviceTelemetry` over the cached devices) instead of re-running the 3-wave relations→keys→values discovery. A background reconcile runs ~2.5s later to pick up added/removed devices (known devices are skipped via a `reconcile` guard, so it isn't a second full fan-out). Cache is keyed by a hash of the datasource entity IDs (per-hotel isolation) with a 30-min TTL.
+14. **Loading skeleton** on the main grid (shimmer placeholder cards) with a 12s fallback, replacing the empty-state-looks-like-loading ambiguity.
+15. **Connection-error banner** wired to `connectionError$` (localized EN/RU, Retry button), plus a new `connectionError$` emission on wave-1 relations failure so backend outages actually surface.
+
 ## 6. Production-readiness gaps (not addressed in this change set)
 
 1. **No test suite** — zero `*.spec.ts` files; the riskiest gap for any refactor. First specs should target the pure processor functions (see refactor plan Phase 6).
-2. **No error UX** — wire `connectionError$` to a dismissible banner; add retry affordance.
-3. **No skeleton/loading state** for the main grid (distinguish "loading" from "no rooms").
+2. ~~**No error UX**~~ ✅ Addressed — `connectionError$` now drives a dismissible banner with retry.
+3. ~~**No skeleton/loading state**~~ ✅ Addressed — skeleton grid on first load.
 4. Weather fetched via bare `fetch()` with no timeout/abort.
 5. `HotelStats.batteryAlertDevices` local type declares `battery: number` but `null` is pushed (hotel-state.service.ts:733-838) — typing looseness.
 6. Deprecated RxJS `subscribe(next, err)` signatures throughout the services.

@@ -9,8 +9,8 @@ import { EvChargerStats } from '../models/ev-charger.models';
  *      The orchestrator loop never changes.
  */
 export interface IUtilityProcessor {
-  canHandle(availableKeys: string[], deviceName: string): boolean;
-  process(device: DiscoveredDevice, keys: string[], timeWindow: TimeWindow): Observable<UtilityPanelResult>;
+  canHandle(availableKeys: string[], deviceName?: string): boolean;
+  process(device: DiscoveredDevice, keys: string[], timeWindow?: TimeWindow): Observable<UtilityPanelResult>;
 }
 
 /** Discriminated union — add new result types when adding new utility device types */
