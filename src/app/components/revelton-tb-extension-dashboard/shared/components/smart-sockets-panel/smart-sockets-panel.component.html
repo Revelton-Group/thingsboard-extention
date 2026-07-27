@@ -44,7 +44,7 @@
                 </div>
                 <div class="socket-metric">
                     <span class="socket-metric-lbl">TOTAL ENERGY</span>
-                    <span class="socket-metric-val">{{ socket.energyToday || '0.00' }} <small>Wh</small></span>
+                    <span class="socket-metric-val">{{ getEnergyKWh(socket) }} <small>kWh</small></span>
                 </div>
             </div>
         </div>

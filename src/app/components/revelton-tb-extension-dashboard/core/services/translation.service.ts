@@ -214,6 +214,13 @@ export interface TranslationSet {
   cpWindowAutoPauseHint: string;
   cpWindowAlertT: string;
   cpWindowAlertHint: string;
+  smartSocket: string;
+  socketPowerHigh: string;
+  cpSocketHint: string;
+  cpSocketOverloadT: string;
+  cpSocketOverloadHint: string;
+  cpSocketMaxPowerT: string;
+  cpSocketMaxPowerHint: string;
   cpOn: string;
   cpOff: string;
   cpCurrentlyOpen: string;
@@ -549,6 +556,13 @@ export class TranslationService {
       cpWindowAutoPauseHint: "Pause the valve automatically while a window is open in the room",
       cpWindowAlertT: "Open-Window Alert",
       cpWindowAlertHint: "Notify staff if a window stays open longer than this",
+      smartSocket: "Smart Socket",
+      socketPowerHigh: "Power draw high",
+      cpSocketHint: "Alert staff when a smart socket draws more power than expected (overload protection)",
+      cpSocketOverloadT: "Over-Power Alert",
+      cpSocketOverloadHint: "Raise an alert when a socket exceeds the maximum power draw",
+      cpSocketMaxPowerT: "Max Power",
+      cpSocketMaxPowerHint: "Trigger an over-power alert at or above this wattage",
       cpOn: "On",
       cpOff: "Off",
       cpCurrentlyOpen: "Currently Open Windows",
@@ -872,6 +886,13 @@ export class TranslationService {
       cpWindowAutoPauseHint: "Автоматически приостанавливать клапан, пока окно открыто в комнате",
       cpWindowAlertT: "Оповещение об открытом окне",
       cpWindowAlertHint: "Уведомить персонал, если окно открыто дольше указанного",
+      smartSocket: "Умная розетка",
+      socketPowerHigh: "Высокое энергопотребление",
+      cpSocketHint: "Оповещать персонал, когда розетка потребляет больше мощности, чем ожидается (защита от перегрузки)",
+      cpSocketOverloadT: "Оповещение о перегрузке",
+      cpSocketOverloadHint: "Создавать оповещение, когда розетка превышает максимальную мощность",
+      cpSocketMaxPowerT: "Макс. мощность",
+      cpSocketMaxPowerHint: "Создавать оповещение о перегрузке при этой мощности или выше",
       cpOn: "Вкл",
       cpOff: "Выкл",
       cpCurrentlyOpen: "Сейчас открытые окна",

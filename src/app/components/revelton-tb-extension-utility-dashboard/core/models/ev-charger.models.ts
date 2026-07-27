@@ -28,7 +28,8 @@ export interface SocketViewModel {
   sessionKw?: number | null;
   sessionKwh?: number | null;
   sessionUser?: string;       // username, falls back to RFID hex
-  sessionDuration?: string;   // '1 h 08 m'
+  sessionDuration?: string;   // '1 h 08 m' — static fallback when no start anchor
+  sessionStartTime?: number | null; // epoch ms anchor so duration ticks live
   usedCurrentA?: number | null;
 }
 
@@ -38,7 +39,7 @@ export interface ChargerCardViewModel {
   deviceCode: string;         // model, e.g. 'CityCharge Mini 2'
   online: boolean;            // station_online AND data fresher than 20 min
   onlineLabel: string;        // 'Online' | 'Offline'
-  syncedAgo: string;          // '4m ago'
+  syncTime: number | null;    // epoch ms of last sync; card renders "X ago" live from this
   activePowerKw: number;
   lifetimeKwh: number | null;
   chargingTimeH: number | null;

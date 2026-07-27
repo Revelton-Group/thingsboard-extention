@@ -56,11 +56,11 @@
       </span>
       <span
         class="ce-chip"
-        [ngClass]="battery <= 5 ? 'ce-chip-orange' : 'ce-chip-green'"
+        [ngClass]="battery <= 20 ? 'ce-chip-orange' : 'ce-chip-green'"
         *ngIf="batteryLow !== true && battery != null"
       >
         <i class="material-icons">{{
-          battery <= 5 ? "battery_alert" : "battery_std"
+          battery <= 20 ? "battery_alert" : "battery_std"
         }}</i>
         {{ battery }}%
       </span>

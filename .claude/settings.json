@@ -55,7 +55,12 @@
       "Bash(echo \"TSC_CLEAN=$?\")",
       "Bash(git -C /home/nurlansarkhanov/Desktop/code/Revelton/thingsboard-extention diff --stat)",
       "Bash(python3 -c ' *)",
-      "Bash(python3 -)"
+      "Bash(python3 -)",
+      "Bash(graphify --help)",
+      "Bash(graphify explain *)",
+      "Bash(grep -n \"THRESHOLDS\\\\|config\\\\$\\\\|controlPanelService\\\\|calcStatus\\\\|customBreakpoints\\\\|co2Max\\\\|humMax\\\\|tempMax\\\\|noiseMax\\\\|laeqMax\" src/app/components/revelton-tb-extension-dashboard/core/services/room-data.service.ts)",
+      "Bash(grep -A 30 \"room-historical-data.component.ts$\")",
+      "Bash(awk '/room-detail-panel.component.ts$/{f=1;next} /^\\\\/home/{f=0} f')"
     ]
   },
   "hooks": {

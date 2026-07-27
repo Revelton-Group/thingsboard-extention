@@ -1,6 +1,16 @@
-import { ChangeDetectionStrategy, Component, Input, ViewContainerRef } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  Component,
+  Input,
+  OnDestroy,
+  OnInit,
+  ViewContainerRef,
+} from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
-import { ChargerCardViewModel } from '../../../core/models';
+import { Subject, interval } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
+import { ChargerCardViewModel, SocketViewModel } from '../../../core/models';
 import { EvStationHistoryModalComponent } from '../ev-station-history-modal/ev-station-history-modal.component';
 
 @Component({
@@ -21,7 +31,7 @@ import { EvStationHistoryModalComponent } from '../ev-station-history-modal/ev-s
           <span class="status-pill" [class.online]="charger.online" [class.offline]="!charger.online">
             <span class="dot"></span>{{ charger.onlineLabel }}
           </span>
-          <span class="fresh">synced {{ charger.syncedAgo }}</span>
+          <span class="fresh">synced {{ syncedAgo }}</span>
         </div>
       </div>
 
@@ -66,7 +76,7 @@ import { EvStationHistoryModalComponent } from '../ev-station-history-modal/ev-s
             </div>
             <div class="sess-lines">
               <span *ngIf="s.sessionUser">
-                <b>{{ s.sessionUser }}</b><ng-container *ngIf="s.sessionDuration"> · {{ s.sessionDuration }}</ng-container>
+                <b>{{ s.sessionUser }}</b><ng-container *ngIf="socketDuration(s) as dur"> · {{ dur }}</ng-container>
               </span>
               <span *ngIf="s.sessionKwh !== null && s.sessionKwh !== undefined">
                 <b>{{ s.sessionKwh | number:'1.1-1' }} kWh</b> delivered<ng-container
@@ -179,19 +189,67 @@ import { EvStationHistoryModalComponent } from '../ev-station-history-modal/ev-s
     .ev-card:hover .card-foot .chev { transform: translateX(3px); }
   `],
 })
-export class ChargerStatusCardComponent {
+export class ChargerStatusCardComponent implements OnInit, OnDestroy {
   @Input() charger!: ChargerCardViewModel;
+
+  private readonly destroy$ = new Subject<void>();
 
   constructor(
     private dialog: MatDialog,
     private viewContainerRef: ViewContainerRef,
+    private cdr: ChangeDetectorRef,
   ) {}
+
+  ngOnInit(): void {
+    // Re-render once a second so "synced X ago" and the live session duration keep
+    // ticking between ThingsBoard telemetry pushes — without any backend re-fetch.
+    interval(1000).pipe(takeUntil(this.destroy$)).subscribe(() => this.cdr.markForCheck());
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  /** Live "X ago" label derived from the stored sync timestamp. */
+  get syncedAgo(): string {
+    return this.formatTimeAgo(this.charger?.syncTime ?? null);
+  }
+
+  /** Live session duration: ticks from the start anchor, else the static fallback string. */
+  socketDuration(socket: SocketViewModel): string | undefined {
+    if (socket.sessionStartTime != null) {
+      return this.formatMinutes((Date.now() - socket.sessionStartTime) / 60000);
+    }
+    return socket.sessionDuration;
+  }
+
+  private formatTimeAgo(time: number | null): string {
+    if (time == null || isNaN(time)) return 'unknown';
+    const diff = Math.floor((Date.now() - time) / 1000);
+    if (diff < 0) return 'just now';
+    if (diff < 60) return `${diff}s ago`;
+    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+    return `${Math.floor(diff / 86400)}d ago`;
+  }
+
+  private formatMinutes(totalMin: number): string {
+    const min = Math.max(0, Math.round(totalMin));
+    const h = Math.floor(min / 60);
+    const m = min % 60;
+    if (h > 0) return `${h} h ${m.toString().padStart(2, '0')} m`;
+    return `${m} min`;
+  }
 
   openHistory(): void {
     this.dialog.open(EvStationHistoryModalComponent, {
       panelClass: 'rev-evh-dialog',
       autoFocus: false,
       maxHeight: '92vh',
+      // Let the modal use its own responsive width (min(760px, 92vw)); the MatDialog
+      // default maxWidth of 80vw would otherwise clip it on phones and tablets.
+      maxWidth: '96vw',
       // Resolve the dashboard-scoped ThingsBoardTelemetryService inside the dialog
       viewContainerRef: this.viewContainerRef,
       data: {

@@ -716,6 +716,61 @@ import {
             </div>
           </ng-container>
 
+          <!-- ═══ SMART SOCKET ═══ -->
+          <ng-container *ngIf="activeSection === 'socket'">
+            <div class="cp-section">
+
+              <!-- Header -->
+              <div class="cp-section-hdr">
+                <div class="cp-section-icon cp-section-icon--accent">
+                  <i class="material-icons">power</i>
+                </div>
+                <div class="cp-section-title-area">
+                  <p>{{ t.cpSocketHint || 'Alert staff when a smart socket draws more power than expected (overload protection).' }}</p>
+                </div>
+              </div>
+
+              <div class="cp-card-stack">
+                <div class="cp-card-grid-2">
+                  <!-- Enable Card -->
+                  <div class="cp-card">
+                    <div class="cp-card-head">
+                      <i class="material-icons" [style.color]="config.socket.enabled ? 'var(--ok,#34d399)' : 'var(--t3,#5c6675)'">bolt</i>
+                      <span>{{ t.cpSocketOverloadT || 'Over-Power Alert' }}</span>
+                    </div>
+                    <div class="cp-toggle-row" (click)="config.socket.enabled = !config.socket.enabled"
+                      [class.cp-toggle-row--on]="config.socket.enabled">
+                      <div class="cp-knob" [class.cp-knob--on]="config.socket.enabled">
+                        <span></span>
+                      </div>
+                      <span [style.color]="config.socket.enabled ? 'var(--ok,#34d399)' : 'var(--t3,#5c6675)'">
+                        {{ config.socket.enabled ? (t.cpOn || 'On') : (t.cpOff || 'Off') }}
+                      </span>
+                    </div>
+                    <p class="cp-card-hint">{{ t.cpSocketOverloadHint || 'Raise an alert when a socket exceeds the maximum power draw.' }}</p>
+                  </div>
+
+                  <!-- Max Power Card -->
+                  <div class="cp-card cp-card--center" [class.cp-disabled-section]="!config.socket.enabled">
+                    <div class="cp-card-head">
+                      <i class="material-icons" style="color: var(--warn,#f5b54a)">flash_on</i>
+                      <span>{{ t.cpSocketMaxPowerT || 'Max Power' }}</span>
+                    </div>
+                    <div class="cp-big-stepper">
+                      <button class="cp-step-btn cp-step-btn--lg" (click)="bumpSocketPowerMax(-100)"><i class="material-icons">remove</i></button>
+                      <div class="cp-big-step-val">
+                        <span class="cp-big-num">{{ config.socket.powerMax }}</span>
+                        <span class="cp-big-unit">W</span>
+                      </div>
+                      <button class="cp-step-btn cp-step-btn--lg" (click)="bumpSocketPowerMax(100)"><i class="material-icons">add</i></button>
+                    </div>
+                    <p class="cp-card-hint cp-card-hint--center">{{ t.cpSocketMaxPowerHint || 'Trigger an over-power alert at or above this wattage.' }}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </ng-container>
+
 
         </div>
       </div>
@@ -802,6 +857,7 @@ export class ControlPanelComponent implements OnInit, OnDestroy {
       case 'thermostat': return this.t.thermostatsT || 'Thermostats';
       case 'noise': return this.t.acousticNoise || 'Acoustic Noise';
       case 'window': return this.t.windowOpenAlert || 'Window';
+      case 'socket': return this.t.smartSocket || 'Smart Socket';
       case 'mews': return this.t.mewsB || 'Mews Bridge';
 
       default: return id;
@@ -960,6 +1016,13 @@ export class ControlPanelComponent implements OnInit, OnDestroy {
     if (this.config.window.autoPauseHeating === undefined) this.config.window.autoPauseHeating = d.window.autoPauseHeating;
     if (this.config.window.thresholdMinutes === undefined) this.config.window.thresholdMinutes = d.window.thresholdMinutes;
 
+    // Smart Socket
+    if (!this.config.socket) {
+      this.config.socket = JSON.parse(JSON.stringify(d.socket));
+    }
+    if (this.config.socket.enabled === undefined) this.config.socket.enabled = d.socket.enabled;
+    if (this.config.socket.powerMax === undefined) this.config.socket.powerMax = d.socket.powerMax;
+
     // Mews
     if (!this.config.mews) {
       this.config.mews = JSON.parse(JSON.stringify(d.mews));
@@ -984,10 +1047,11 @@ export class ControlPanelComponent implements OnInit, OnDestroy {
   }
 
   get roomScopeCount(): number {
-    if (this.config.roomScope === 'all') {
-      return Math.max(0, this.totalRooms - (this.config.roomScopeList?.length || 0));
+    if (this.config.roomScope === 'selected') {
+      return this.config.roomScopeList?.length || 0;
     }
-    return this.config.roomScopeList?.length || 0;
+    // 'all' and 'except' both target all rooms minus the excluded list
+    return Math.max(0, this.totalRooms - (this.config.roomScopeList?.length || 0));
   }
 
   // ── Air Quality Thresholds ──
@@ -1156,6 +1220,11 @@ export class ControlPanelComponent implements OnInit, OnDestroy {
   bumpWindowMinutes(delta: number): void {
     this.config.window.thresholdMinutes = Math.min(60, Math.max(1, this.config.window.thresholdMinutes + delta));
     this.rebuildDerived();
+    this.cdr.detectChanges();
+  }
+
+  bumpSocketPowerMax(delta: number): void {
+    this.config.socket.powerMax = Math.min(4000, Math.max(100, this.config.socket.powerMax + delta));
     this.cdr.detectChanges();
   }
 
@@ -1388,9 +1457,12 @@ export class ControlPanelComponent implements OnInit, OnDestroy {
 
   /**
    * Resolve ASSET entity IDs for rooms matching the current scope selection.
-   * - 'all' with empty roomScopeList → all rooms
-   * - 'all' with roomScopeList entries → all rooms EXCEPT those listed
-   * - 'except' / 'selected' → only rooms in roomScopeList
+   * - 'all' → all rooms EXCEPT those in roomScopeList
+   * - 'except' → all rooms EXCEPT those in roomScopeList (the only scope the
+   *   "Exclude rooms" UI ever sets — chips toggle rooms INTO roomScopeList to
+   *   exclude them, so this must stay an exclusion filter, not an allow-list)
+   * - 'selected' → only rooms in roomScopeList (reserved for a future
+   *   "apply to selected rooms only" UI; not currently reachable from the panel)
    */
   private resolveRoomEntityIds(): string[] {
     if (!this.rooms || this.rooms.length === 0) return [];
@@ -1400,15 +1472,16 @@ export class ControlPanelComponent implements OnInit, OnDestroy {
 
     // Filter rooms to get the set covered by the current scope
     let targetRooms: any[];
-    if (roomScope === 'all') {
-      targetRooms = this.rooms.filter(r => {
-        const roomNum = parseInt(r.id, 10);
-        return isNaN(roomNum) || !scopeList.includes(roomNum);
-      });
-    } else {
+    if (roomScope === 'selected') {
       targetRooms = this.rooms.filter(r => {
         const roomNum = parseInt(r.id, 10);
         return !isNaN(roomNum) && scopeList.includes(roomNum);
+      });
+    } else {
+      // 'all' and 'except' both mean "all rooms minus the excluded list"
+      targetRooms = this.rooms.filter(r => {
+        const roomNum = parseInt(r.id, 10);
+        return isNaN(roomNum) || !scopeList.includes(roomNum);
       });
     }
 

@@ -5,9 +5,9 @@
     "semantic_hash": "afecd73da696ff6dccbc7010756e2870"
   },
   ".claude/settings.local.json": {
-    "mtime": 1783328499.740154,
-    "ast_hash": "8ced2b4519b2872e4cb32fe81add3bc4",
-    "semantic_hash": "8ced2b4519b2872e4cb32fe81add3bc4"
+    "mtime": 1784288568.4198728,
+    "ast_hash": "b305585c07d11e1bf3e7792dd68b5129",
+    "semantic_hash": ""
   },
   ".vscode/settings.json": {
     "mtime": 1781762034.1028266,
@@ -110,13 +110,13 @@
     "semantic_hash": "6e59a276d0acdb2b0f4496959b74c6b5"
   },
   "src/app/components/revelton-tb-extension-dashboard/core/services/hotel-state.service.ts": {
-    "mtime": 1784205597.1337287,
-    "ast_hash": "df11599e4fc3f038884c64b9f4ab29e7",
+    "mtime": 1784213278.0760365,
+    "ast_hash": "51589360401ee051958e652d6202c6d3",
     "semantic_hash": ""
   },
   "src/app/components/revelton-tb-extension-dashboard/core/services/room-data.service.ts": {
-    "mtime": 1784205732.5526695,
-    "ast_hash": "056f9d9896def972e410edf14dbb3810",
+    "mtime": 1784213268.725902,
+    "ast_hash": "12a5e0a8c275ea7b2ec58d3453061cd8",
     "semantic_hash": ""
   },
   "src/app/components/revelton-tb-extension-dashboard/core/services/theme.service.ts": {
@@ -130,23 +130,23 @@
     "semantic_hash": "266cdea7b37b4a89ebb73caf9853e721"
   },
   "src/app/components/revelton-tb-extension-dashboard/features/control-panel/control-panel.component.ts": {
-    "mtime": 1784203148.987684,
-    "ast_hash": "2c16763ca7827631cca87e6bbab65400",
+    "mtime": 1784210763.5468912,
+    "ast_hash": "87ac88b8bb6f11d29c7a0093bc9db91c",
     "semantic_hash": ""
   },
   "src/app/components/revelton-tb-extension-dashboard/features/control-panel/models/control-panel.models.ts": {
-    "mtime": 1784032378.699773,
+    "mtime": 1784209660.0980217,
     "ast_hash": "8dd6b93454515cad27b47839319464e4",
     "semantic_hash": "8dd6b93454515cad27b47839319464e4"
   },
   "src/app/components/revelton-tb-extension-dashboard/features/control-panel/services/control-panel.service.ts": {
-    "mtime": 1784036339.7818928,
-    "ast_hash": "6cc0bdfb38f6646e115fa0eddc853769",
-    "semantic_hash": "6cc0bdfb38f6646e115fa0eddc853769"
+    "mtime": 1784207847.7779703,
+    "ast_hash": "9128dc6c2bc52ba9fff49aad9ae190c1",
+    "semantic_hash": ""
   },
   "src/app/components/revelton-tb-extension-dashboard/features/hotel-dashboard/revelton-hotel.component.ts": {
-    "mtime": 1784204698.0168571,
-    "ast_hash": "3c6f1f42c98b8c70074b4ea24c205808",
+    "mtime": 1784213504.2252903,
+    "ast_hash": "c39c98c569ae6b0bf039b286cdfd1e96",
     "semantic_hash": ""
   },
   "src/app/components/revelton-tb-extension-dashboard/features/hotel-dashboard/settings-schema.json": {
@@ -160,13 +160,13 @@
     "semantic_hash": ""
   },
   "src/app/components/revelton-tb-extension-dashboard/features/room-view/room-card.component.ts": {
-    "mtime": 1781777202.8691714,
-    "ast_hash": "54f42e312e94949c3c520b22c705edaf",
-    "semantic_hash": "54f42e312e94949c3c520b22c705edaf"
+    "mtime": 1784209185.5681973,
+    "ast_hash": "e0d9b7fe81c9dfcb33ccabfbb3e71637",
+    "semantic_hash": ""
   },
   "src/app/components/revelton-tb-extension-dashboard/features/room-view/room-detail-panel.component.ts": {
-    "mtime": 1784203994.2027872,
-    "ast_hash": "128822d4fe9ceba364de186918d40f0d",
+    "mtime": 1784206393.5471418,
+    "ast_hash": "f3b9a87ac62f85ee25862b13cc11a937",
     "semantic_hash": ""
   },
   "src/app/components/revelton-tb-extension-dashboard/features/room-view/room-historical-data.component.ts": {
@@ -305,9 +305,9 @@
     "semantic_hash": "e91134b995df76cc95449eaf6256d5d2"
   },
   "src/app/components/revelton-tb-extension-historical-dashboard/data/services/thingsboard-telemetry.service.ts": {
-    "mtime": 1784036826.030596,
-    "ast_hash": "095a8ad27b3d88ce5d9175081df6d897",
-    "semantic_hash": "095a8ad27b3d88ce5d9175081df6d897"
+    "mtime": 1784206414.0274353,
+    "ast_hash": "86e4a6b7eb309bcd72c218f180ef5912",
+    "semantic_hash": ""
   },
   "src/app/components/revelton-tb-extension-historical-dashboard/domain/processors/air-quality.processor.ts": {
     "mtime": 1781701437.4373682,
@@ -420,9 +420,9 @@
     "semantic_hash": "b3d6286c6752bdff3bbd90302e7ebbeb"
   },
   "src/app/components/revelton-tb-extension-utility-dashboard/core/constants/ev-charger-keys.constants.ts": {
-    "mtime": 1781701437.4400425,
-    "ast_hash": "12e93d8c2583f88f5fa57e9681ee823c",
-    "semantic_hash": "12e93d8c2583f88f5fa57e9681ee823c"
+    "mtime": 1784288120.2423947,
+    "ast_hash": "d4e4cbf88c21415475c769ee20a94797",
+    "semantic_hash": ""
   },
   "src/app/components/revelton-tb-extension-utility-dashboard/core/constants/index.ts": {
     "mtime": 1781701437.440561,
@@ -440,14 +440,14 @@
     "semantic_hash": "150a2458ef299cda699295c9e624952f"
   },
   "src/app/components/revelton-tb-extension-utility-dashboard/core/interfaces/utility-processor.interface.ts": {
-    "mtime": 1781701437.4407182,
-    "ast_hash": "af1776ced4bf6f57deaa6a858048ea85",
-    "semantic_hash": "af1776ced4bf6f57deaa6a858048ea85"
+    "mtime": 1784288471.6994746,
+    "ast_hash": "d0f1131230fa235e3a2c033f17632203",
+    "semantic_hash": ""
   },
   "src/app/components/revelton-tb-extension-utility-dashboard/core/models/ev-charger.models.ts": {
-    "mtime": 1781701437.4407182,
-    "ast_hash": "0b0c520cee733fe6599dee6d36d92940",
-    "semantic_hash": "0b0c520cee733fe6599dee6d36d92940"
+    "mtime": 1784288102.1281328,
+    "ast_hash": "2b6ec77fa3483412a8be2012541b346a",
+    "semantic_hash": ""
   },
   "src/app/components/revelton-tb-extension-utility-dashboard/core/models/index.ts": {
     "mtime": 1781701437.4407725,
@@ -455,9 +455,9 @@
     "semantic_hash": "74785f47c7324c2d35813e6e10f7b23a"
   },
   "src/app/components/revelton-tb-extension-utility-dashboard/domain/processors/ev-charger.processor.ts": {
-    "mtime": 1781701437.4407997,
-    "ast_hash": "22024a188dc87a36fbcac371c79c835c",
-    "semantic_hash": "22024a188dc87a36fbcac371c79c835c"
+    "mtime": 1784288456.910261,
+    "ast_hash": "082e55d30d03d8811be461f64e1516c4",
+    "semantic_hash": ""
   },
   "src/app/components/revelton-tb-extension-utility-dashboard/domain/processors/index.ts": {
     "mtime": 1781701437.4408314,
@@ -470,14 +470,14 @@
     "semantic_hash": "c5ab59789e785562e80c5e67e43ec33c"
   },
   "src/app/components/revelton-tb-extension-utility-dashboard/domain/services/utility-state.service.ts": {
-    "mtime": 1781701437.4408638,
-    "ast_hash": "e274b4ddd718722202d5de7f5be8c33b",
-    "semantic_hash": "e274b4ddd718722202d5de7f5be8c33b"
+    "mtime": 1784288458.92929,
+    "ast_hash": "059f61d87a1c95cce0335945da9f8123",
+    "semantic_hash": ""
   },
   "src/app/components/revelton-tb-extension-utility-dashboard/features/ev-charger-panel/ev-charger-panel.component.ts": {
-    "mtime": 1781701437.4409432,
-    "ast_hash": "394cb0bf0ba48d588165add4fe49ec93",
-    "semantic_hash": "394cb0bf0ba48d588165add4fe49ec93"
+    "mtime": 1784288448.056133,
+    "ast_hash": "dc51fbf9f0ca88878c58551bc2911089",
+    "semantic_hash": ""
   },
   "src/app/components/revelton-tb-extension-utility-dashboard/revelton-tb-extension-utility-dashboard.component.ts": {
     "mtime": 1781701437.4409432,
@@ -485,19 +485,19 @@
     "semantic_hash": "2295b4c0a1e0a820727b442deb10dba6"
   },
   "src/app/components/revelton-tb-extension-utility-dashboard/shared/components/charger-status-card/charger-status-card.component.ts": {
-    "mtime": 1781701437.4410546,
-    "ast_hash": "896a03a9b83e2877e8f124e7024e0201",
-    "semantic_hash": "896a03a9b83e2877e8f124e7024e0201"
+    "mtime": 1784288218.6688173,
+    "ast_hash": "092a842cc9ce43218d3d803df8a7b298",
+    "semantic_hash": ""
   },
   "src/app/components/revelton-tb-extension-utility-dashboard/shared/components/ev-station-history-modal/ev-station-history-modal.component.ts": {
-    "mtime": 1781701437.4410546,
-    "ast_hash": "d2676c5982be989d33086fd6e340ddb9",
-    "semantic_hash": "d2676c5982be989d33086fd6e340ddb9"
+    "mtime": 1784288508.192002,
+    "ast_hash": "384d3f299ae51833360e2127fa71b674",
+    "semantic_hash": ""
   },
   "src/app/components/revelton-tb-extension-utility-dashboard/shared/components/utility-header/utility-header.component.ts": {
-    "mtime": 1781701437.4410546,
-    "ast_hash": "9e3ab25eed751b79c9ad4bf45e772559",
-    "semantic_hash": "9e3ab25eed751b79c9ad4bf45e772559"
+    "mtime": 1784288390.299298,
+    "ast_hash": "169fe3901d220be24ef96ebc482cbb83",
+    "semantic_hash": ""
   },
   "src/app/locale/custom-widget-locale.constant.ts": {
     "mtime": 1781701437.4410546,
@@ -630,8 +630,8 @@
     "semantic_hash": "fc8f830406f09961a2dbff49c07520fb"
   },
   "src/app/components/revelton-tb-extension-dashboard/features/hotel-dashboard/revelton-hotel.component.html": {
-    "mtime": 1784205109.7637506,
-    "ast_hash": "e931d4a0088ae5dd6c03f88202914b2e",
+    "mtime": 1784211233.1246397,
+    "ast_hash": "acc4a7b4a86f15a3fd556b14876b6d60",
     "semantic_hash": ""
   },
   "src/app/components/revelton-tb-extension-dashboard/features/room-view/room-card.component.html": {
@@ -740,9 +740,9 @@
     "semantic_hash": "dddf49f3a2cf006bfa3a9f167d271966"
   },
   "src/app/components/revelton-tb-extension-utility-dashboard/revelton-tb-extension-utility-dashboard.component.html": {
-    "mtime": 1781701437.4409432,
-    "ast_hash": "dbe360571e21b7b5905bf973b3adf640",
-    "semantic_hash": "dbe360571e21b7b5905bf973b3adf640"
+    "mtime": 1784288409.4710953,
+    "ast_hash": "28fd41c0e875b50117cbecaf9ff3372d",
+    "semantic_hash": ""
   },
   "thingsboard/SETUP_GUIDE.md": {
     "mtime": 1782120424.9199667,

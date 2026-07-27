@@ -70,7 +70,7 @@
           *ngIf="card.hasData && (!card.isBinary || card.useLineChart)"
           [data]="card.data"
           [colors]="[card.color]"
-          [type]="card.key === 'power' ? 'bar' : 'line'"
+          [type]="'line'"
           [step]="card.useLineChart ? 'start' : false"
           [yAxisMin]="card.useLineChart ? 0 : undefined"
           [yAxisMax]="card.useLineChart ? 1 : undefined"
