@@ -207,7 +207,6 @@ export class UtilityStateService implements OnDestroy {
     const online = onlineRaw !== undefined
       ? this.parseBool(onlineRaw) && fresh
       : (isNaN(syncTime) ? sockets.some(s => s.state !== 'offline') : fresh);
-    const syncedAgo = !isNaN(syncTime) ? this.formatTimeAgo(syncTime) : 'unknown';
 
     return {
       deviceName,
@@ -215,7 +214,7 @@ export class UtilityStateService implements OnDestroy {
       deviceCode,
       online,
       onlineLabel: online ? 'Online' : 'Offline',
-      syncedAgo,
+      syncTime: isNaN(syncTime) ? null : syncTime,
       activePowerKw,
       lifetimeKwh,
       chargingTimeH,
@@ -267,9 +266,10 @@ export class UtilityStateService implements OnDestroy {
       socket.sessionKw = stats.powerKw || null;
       socket.sessionKwh = stats.energyKwh > 0 ? stats.energyKwh : null;
       socket.usedCurrentA = stats.currentA > 0 ? stats.currentA : null;
-      socket.sessionDuration = stats.sessionDurationMs > 0
-        ? this.formatMinutes(stats.sessionDurationMs / 60000)
-        : undefined;
+      if (stats.sessionDurationMs > 0) {
+        socket.sessionStartTime = Date.now() - stats.sessionDurationMs;
+        socket.sessionDuration = this.formatMinutes(stats.sessionDurationMs / 60000);
+      }
     } else if (state === 'ready') {
       socket.subLabel = 'Available';
     } else if (state === 'offline') {
@@ -302,7 +302,11 @@ export class UtilityStateService implements OnDestroy {
         ? String(user)
         : '—';
       const durMin = this.getNum(latest(`connector_${n}_session_duration_min`));
-      socket.sessionDuration = durMin !== null ? this.formatMinutes(durMin) : undefined;
+      if (durMin !== null) {
+        // Anchor the session start so the card can tick the duration live between syncs.
+        socket.sessionStartTime = Date.now() - durMin * 60000;
+        socket.sessionDuration = this.formatMinutes(durMin);
+      }
       socket.usedCurrentA = this.getNum(latest(`connector_${n}_used_current_a`));
     } else if (state === 'fault') {
       socket.statusLabel = `⚠ ${statusText || 'Fault'}`;
@@ -382,25 +386,6 @@ export class UtilityStateService implements OnDestroy {
     if (typeof raw === 'boolean') return raw;
     const s = String(raw).toLowerCase().trim();
     return s === 'true' || s === '1' || s === 'on' || s === 'yes';
-  }
-
-  /** Format a timestamp (ISO string or epoch ms) as a human-readable "X ago" string */
-  private formatTimeAgo(ts: any): string {
-    if (!ts) return 'unknown';
-    try {
-      const d = this.parseDate(ts);
-      const time = d.getTime();
-      if (isNaN(time)) return 'unknown';
-
-      const diff = Math.floor((Date.now() - time) / 1000);
-      if (diff < 0) return 'just now';
-      if (diff < 60) return `${diff}s ago`;
-      if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-      if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-      return `${Math.floor(diff / 86400)}d ago`;
-    } catch {
-      return 'unknown';
-    }
   }
 
   private parseDate(ts: any): Date {

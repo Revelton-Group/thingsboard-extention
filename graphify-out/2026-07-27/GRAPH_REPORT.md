@@ -1,11 +1,11 @@
 # Graph Report - thingsboard-extention  (2026-07-27)
 
 ## Corpus Check
-- 129 files · ~102,639 words
+- 129 files · ~102,704 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1652 nodes · 2814 edges · 148 communities (88 shown, 60 thin omitted)
+- 1650 nodes · 2808 edges · 153 communities (92 shown, 61 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 8 edges (avg confidence: 0.57)
 - Token cost: 0 input · 0 output
 
@@ -78,6 +78,7 @@
 - Community 63
 - WaterLeakSensorComponent
 - Community 65
+- WindowPanelComponent
 - Community 67
 - theme.service.ts
 - Community 69
@@ -150,14 +151,17 @@
 - 2. Sensor Widgets
 - angular-eslint
 - .closeHistoricalData
+- MetricCellComponent
 - .isSocketOn
+- .isSocketOn
+- @angular/animations
 
 ## God Nodes (most connected - your core abstractions)
 1. `RoomDetailPanelComponent` - 67 edges
 2. `ControlPanelComponent` - 65 edges
 3. `ReveltonDashboardComponent` - 65 edges
 4. `TranslationService` - 49 edges
-5. `EvStationHistoryModalComponent` - 47 edges
+5. `EvStationHistoryModalComponent` - 45 edges
 6. `HotelStateService` - 41 edges
 7. `ThingsBoardTelemetryService` - 32 edges
 8. `ThermostatCardComponent` - 30 edges
@@ -179,7 +183,7 @@
 ## Import Cycles
 - None detected.
 
-## Communities (148 total, 60 thin omitted)
+## Communities (153 total, 61 thin omitted)
 
 ### Community 0 - "Community 0"
 Cohesion: 0.11
@@ -202,7 +206,7 @@ Cohesion: 0.18
 Nodes (3): getPragueParts(), HotelStateService, Injectable
 
 ### Community 6 - "Community 6"
-Cohesion: 0.17
+Cohesion: 0.16
 Nodes (11): TIME_RANGE_LIST, TIME_RANGE_OPTIONS, TimeRangeOption, TimeRangeConfig, TimeRangeKey, TimeRangeService, Injectable, HistoricalFilterBarComponent (+3 more)
 
 ### Community 7 - "Community 7"
@@ -210,12 +214,12 @@ Cohesion: 0.06
 Nodes (35): chart.js, echarts, flot, flot.curvedlines, moment, dependencies, chart.js, echarts (+27 more)
 
 ### Community 8 - "Community 8"
-Cohesion: 0.09
-Nodes (22): CONNECTOR_KEY_SUFFIXES, EV_CHARGER_ALL_KEYS, EV_CHARGER_CURRENT_KEYS, EV_CHARGER_ENERGY_KEYS, EV_CHARGER_IDENTIFIER_KEYS, EV_CHARGER_LOG_KEYS, EV_CHARGER_POWER_KEYS, EV_CHARGER_SESSION_KEYS (+14 more)
+Cohesion: 0.06
+Nodes (25): CONNECTOR_KEY_SUFFIXES, EV_CHARGER_ALL_KEYS, EV_CHARGER_CURRENT_KEYS, EV_CHARGER_ENERGY_KEYS, EV_CHARGER_IDENTIFIER_KEYS, EV_CHARGER_POWER_KEYS, EV_CHARGER_SESSION_KEYS, EV_CHARGER_STATION_KEYS (+17 more)
 
 ### Community 9 - "Community 9"
-Cohesion: 0.09
-Nodes (11): TranslationService, TranslationSet, Injectable, ActivityLogsComponent, Component, Component, Input, WaterLeakPanelComponent (+3 more)
+Cohesion: 0.18
+Nodes (5): HISTORICAL_FEATURE_PANELS, UTILITY_FEATURES, TranslationService, TranslationSet, Injectable
 
 ### Community 10 - "Community 10"
 Cohesion: 0.07
@@ -226,20 +230,20 @@ Cohesion: 0.08
 Nodes (7): ThermostatDevice, TrvMode, TrvPreset, ThermostatCardComponent, Component, Input, Output
 
 ### Community 12 - "Community 12"
-Cohesion: 0.10
-Nodes (7): SocketState, SocketViewModel, Injectable, UtilityStateService, ChargerStatusCardComponent, Component, Input
+Cohesion: 0.20
+Nodes (3): ChargerStatusCardComponent, Component, Input
 
 ### Community 14 - "Community 14"
-Cohesion: 0.12
-Nodes (29): SensorPanelResult, DEFAULT_ROOM_DETAILS(), FloorGroup, Room, RoomDetails, AirQualityChartData, ChartPoint, ChartSeries (+21 more)
+Cohesion: 0.18
+Nodes (22): DEFAULT_ROOM_DETAILS(), FloorGroup, Room, RoomDetails, EMPTY_AIR_QUALITY_CHART(), AirQualityStats, DEFAULT_AIR_QUALITY_STATS(), DEFAULT_NOISE_STATS() (+14 more)
 
 ### Community 16 - "Community 16"
 Cohesion: 0.09
 Nodes (3): CompactThermostatComponent, Component, Input
 
 ### Community 17 - "Community 17"
-Cohesion: 0.10
-Nodes (14): NOISE_KEYS, OCCUPANCY_KEYS, AirQualityResult, NoiseResult, OccupancyResult, TelemetryPoint, AirQualityProcessor, Injectable (+6 more)
+Cohesion: 0.13
+Nodes (12): OCCUPANCY_KEYS, TEMPERATURE_VARIANTS, AirQualityResult, NoiseResult, OccupancyResult, SensorPanelResult, ThermostatResult, ChartPoint (+4 more)
 
 ### Community 18 - "Community 18"
 Cohesion: 0.09
@@ -270,8 +274,8 @@ Cohesion: 0.12
 Nodes (17): dist/widget-extension, node_modules/ace-builds/src-noconflict/ace.js, node_modules/thingsboard/src/app/*, node_modules/thingsboard/src/app/core/*, node_modules/thingsboard/src/app/modules/*, node_modules/thingsboard/src/app/modules/home/*, node_modules/thingsboard/src/app/shared/*, node_modules/tooltipster/dist/js/tooltipster.bundle.min.js (+9 more)
 
 ### Community 26 - "Community 26"
-Cohesion: 0.12
-Nodes (7): ThermostatResult, EntityId, TelemetryMap, ThingsBoardTelemetryService, Injectable, ThermostatProcessor, Injectable
+Cohesion: 0.18
+Nodes (7): WindowResult, EntityId, TelemetryMap, ThingsBoardTelemetryService, Injectable, Injectable, WindowProcessor
 
 ### Community 27 - "Community 27"
 Cohesion: 0.12
@@ -286,7 +290,7 @@ Cohesion: 0.13
 Nodes (15): schematics, type, typeSeparator, typeSeparator, typeSeparator, typeSeparator, typeSeparator, type (+7 more)
 
 ### Community 30 - "Community 30"
-Cohesion: 0.33
+Cohesion: 0.40
 Nodes (3): OccupancyPanelComponent, Component, Input
 
 ### Community 31 - "Community 31"
@@ -298,7 +302,7 @@ Cohesion: 0.15
 Nodes (13): Data flow after refactor, Effort & sequencing notes, Guiding decision: copy the pattern that already exists in this repo, Hotel Dashboard — SOLID Component-Based Refactor Plan, Phase 1 — Shared utils (pure extraction, zero behavior change), Phase 2 — Typed models (compile-time only), Phase 3 — Processor registry (behavior-preserving Strategy migration), Phase 4 — Presentation components + OnPush (leaf-first) (+5 more)
 
 ### Community 33 - "Community 33"
-Cohesion: 0.14
+Cohesion: 0.15
 Nodes (3): OccupancySensorComponent, Component, Input
 
 ### Community 34 - "Community 34"
@@ -307,7 +311,7 @@ Nodes (4): SmartSocketsPanelComponent, Component, Input, Output
 
 ### Community 35 - "Community 35"
 Cohesion: 0.15
-Nodes (13): @angular/animations, @angular-devkit/schematics, eslint-plugin-import, ngrx-store-freeze, devDependencies, @angular/animations, @angular/common, @angular-devkit/schematics (+5 more)
+Nodes (13): @angular-devkit/schematics, eslint-plugin-import, ngrx-store-freeze, devDependencies, @angular/common, @angular/compiler-cli, @angular-devkit/schematics, @angular/router (+5 more)
 
 ### Community 36 - "Community 36"
 Cohesion: 0.23
@@ -315,7 +319,7 @@ Nodes (9): ExamplesModule, NgModule, addCustomWidgetLocale(), addLibraryStyles()
 
 ### Community 37 - "Community 37"
 Cohesion: 0.07
-Nodes (12): BarSlot, EMPTY_TIP, EvChargerHistoryModalData, EvStationHistoryModalComponent, GridLine, SessionRow, SocketFilter, TipState (+4 more)
+Nodes (13): EV_CHARGER_LOG_KEYS, BarSlot, EMPTY_TIP, EvChargerHistoryModalData, EvStationHistoryModalComponent, GridLine, SessionRow, SocketFilter (+5 more)
 
 ### Community 38 - "Community 38"
 Cohesion: 0.20
@@ -334,12 +338,12 @@ Cohesion: 0.18
 Nodes (8): classes, distDir, fs, path, postcss, selectorParser, tbClassesJson, tbStylesCss
 
 ### Community 42 - "Community 42"
-Cohesion: 0.18
+Cohesion: 0.20
 Nodes (4): AlertsPanelComponent, Component, Input, Output
 
 ### Community 44 - "Community 44"
-Cohesion: 0.24
-Nodes (7): WATER_LEAK_KEYS, ISensorProcessor, WaterLeakResult, DiscoveredDevice, TimeWindow, Injectable, WaterLeakProcessor
+Cohesion: 0.18
+Nodes (13): AIR_QUALITY_IDENTIFIER_KEYS, AIR_QUALITY_KEYS, THERMOSTAT_IDENTIFIER_KEYS, THERMOSTAT_KEYS, THERMOSTAT_TIMESERIES_KEYS, WINDOW_DEVICE_COLORS, WINDOW_EXCLUDE_NAME_FRAGMENTS, WINDOW_IDENTIFIER_KEYS (+5 more)
 
 ### Community 45 - "Community 45"
 Cohesion: 0.20
@@ -354,8 +358,8 @@ Cohesion: 0.06
 Nodes (28): Architecture, Build Chain, Commands, Data Flow, File Registration Checklist, graphify, Key Patterns, Mews PMS Integration (+20 more)
 
 ### Community 48 - "Community 48"
-Cohesion: 0.13
-Nodes (16): AIR_QUALITY_IDENTIFIER_KEYS, AIR_QUALITY_KEYS, TEMPERATURE_VARIANTS, THERMOSTAT_IDENTIFIER_KEYS, THERMOSTAT_KEYS, THERMOSTAT_TIMESERIES_KEYS, WINDOW_DEVICE_COLORS, WINDOW_EXCLUDE_NAME_FRAGMENTS (+8 more)
+Cohesion: 0.14
+Nodes (7): NOISE_KEYS, AirQualityProcessor, Injectable, NoiseProcessor, Injectable, ThermostatProcessor, Injectable
 
 ### Community 49 - "Community 49"
 Cohesion: 0.22
@@ -374,7 +378,7 @@ Cohesion: 0.29
 Nodes (3): OtherDevicesPanelComponent, Component, Input
 
 ### Community 54 - "Community 54"
-Cohesion: 0.25
+Cohesion: 0.29
 Nodes (3): SensorTileComponent, Component, Input
 
 ### Community 56 - "Community 56"
@@ -382,11 +386,11 @@ Cohesion: 0.12
 Nodes (16): 1. Development Mode (Local Testing), 2. Production Mode (Deployment), 3. Widget Integration (HTML & JS), Gateway & Data Mapping, HTML Tab, JavaScript Tab, License, Prerequisites (+8 more)
 
 ### Community 57 - "Community 57"
-Cohesion: 0.11
-Nodes (16): HISTORICAL_FEATURE_PANELS, UTILITY_FEATURES, MetricCellComponent, Component, Input, SparklineComponent, Component, Input (+8 more)
+Cohesion: 0.14
+Nodes (10): SparklineComponent, Component, Input, HistoricalSummaryCardComponent, Component, Input, ChargerCardViewModel, EvChargerPanelComponent (+2 more)
 
 ### Community 58 - "Community 58"
-Cohesion: 0.10
+Cohesion: 0.12
 Nodes (9): ThemeDefinition, ThemePalette, THEMES, ThemeMode, ThemeService, Injectable, Component, Input (+1 more)
 
 ### Community 59 - "Community 59"
@@ -397,6 +401,10 @@ Nodes (7): angularCompilerOptions, enableI18nLegacyMessageIdFormat, fullTemplate
 Cohesion: 0.38
 Nodes (5): fse, path, projectRoot(), sourcePackage(), targetPackage()
 
+### Community 61 - "Community 61"
+Cohesion: 0.39
+Nodes (4): WATER_LEAK_KEYS, WaterLeakResult, Injectable, WaterLeakProcessor
+
 ### Community 62 - "Community 62"
 Cohesion: 0.25
 Nodes (4): ControlPanelConfig, ControlPanelService, debugWarn(), Injectable
@@ -406,12 +414,16 @@ Cohesion: 0.33
 Nodes (6): lint, builder, options, lintFilePatterns, src/**/*.html, src/**/*.ts
 
 ### Community 64 - "WaterLeakSensorComponent"
-Cohesion: 0.25
+Cohesion: 0.29
 Nodes (3): Component, Input, WaterLeakSensorComponent
 
 ### Community 65 - "Community 65"
 Cohesion: 0.40
 Nodes (5): configurations, development, production, tsConfig, tsConfig
+
+### Community 66 - "WindowPanelComponent"
+Cohesion: 0.29
+Nodes (3): Component, Input, WindowPanelComponent
 
 ### Community 67 - "Community 67"
 Cohesion: 0.25
@@ -422,7 +434,7 @@ Cohesion: 0.40
 Nodes (4): dest, lib, entryFile, $schema
 
 ### Community 70 - "Community 70"
-Cohesion: 0.25
+Cohesion: 0.29
 Nodes (3): Component, Input, WindowSensorComponent
 
 ### Community 74 - "Community 74"
@@ -458,7 +470,7 @@ Cohesion: 0.29
 Nodes (6): Notes / anything odd, QA Checklist — Round 2: refresh performance + loading UX, SECTION E — Topology cache / refresh speed (the main goal), SECTION F — Loading skeleton, SECTION G — Connection error banner, SECTION H — Regression (quick confirm, ~1 min)
 
 ### Community 130 - "water-leak-panel.component.ts"
-Cohesion: 0.25
+Cohesion: 0.29
 Nodes (3): NoiseSensorComponent, Component, Input
 
 ### Community 131 - "base_instructions.md"
@@ -470,8 +482,8 @@ Cohesion: 0.20
 Nodes (10): 1. Logic errors, L1 — Hotel KPI stats clobbered by stale re-emission ✅ FIXED, L2 — Air-quality status thresholds in wrong units (alerts can never fire) ✅ FIXED, L3 — Duplicate `switch` case: plug status unreachable ✅ FIXED, L4 — Mews heartbeat key typo ✅ FIXED, L5 — Mews bridge detection swallows unrelated devices ✅ FIXED, L6 — 30s refresh timer polls a stale widget context ✅ FIXED, L7 — Datasource dedup broken by object-typed entityId ✅ FIXED (+2 more)
 
 ### Community 137 - "AirQualityMetricsPanelComponent"
-Cohesion: 0.32
-Nodes (3): AirQualityMetricsPanelComponent, Component, Input
+Cohesion: 0.11
+Nodes (15): AirQualityChartData, ChartSeries, AirQualityMetricsPanelComponent, MetricTab, Component, Input, AirQualityPanelComponent, Component (+7 more)
 
 ### Community 138 - "3. Room Detail Panel & Historical Chart"
 Cohesion: 0.22
@@ -485,19 +497,23 @@ Nodes (7): 1. Control Panel, CP1 — "Exclude rooms" scope inverted: settings sa
 Cohesion: 0.40
 Nodes (5): 2. Sensor Widgets, SW1 — `compact-env-sensor` battery-low cutoff diverged (5% vs. 20% everywhere else) 🟠 HIGH ✅ FIXED, SW2 — `lastSeen` "X minutes ago" labels freeze between telemetry ticks 🟡 MEDIUM (not fixed — deferred), SW3 — Water-leak/noise sensor status falls back to the literal word "on" 🟢 LOW (currently dead code), SW4 — Unanchored substring room-number fallback match 🟢 INFO (currently a no-op, latent risk)
 
+### Community 147 - "MetricCellComponent"
+Cohesion: 0.50
+Nodes (3): MetricCellComponent, Component, Input
+
 ## Knowledge Gaps
 - **411 isolated node(s):** `$schema`, `version`, `newProjectRoot`, `projectType`, `root` (+406 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **60 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **61 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `ControlPanelComponent` connect `Community 4` to `water-leak-panel.component.ts`, `ControlPanelSectionId`, `Community 13`, `Community 19`, `Community 57`, `Community 58`, `Community 62`?**
-  _High betweenness centrality (0.062) - this node is a cross-community bridge._
-- **Why does `ReveltonDashboardComponent` connect `Community 1` to `.closeAllDropdowns`, `RoomCardComponent`, `Community 46`, `.closeHistoricalData`, `.parseDateStr`, `.setLanguage`, `.ngOnInit`, `Community 57`, `Community 58`?**
+- **Why does `ControlPanelComponent` connect `Community 4` to `water-leak-panel.component.ts`, `ControlPanelSectionId`, `Community 9`, `Community 13`, `Community 19`, `Community 58`, `Community 62`?**
+  _High betweenness centrality (0.068) - this node is a cross-community bridge._
+- **Why does `ReveltonDashboardComponent` connect `Community 1` to `Community 9`, `.closeAllDropdowns`, `RoomCardComponent`, `Community 46`, `.closeHistoricalData`, `.parseDateStr`, `WaterLeakPanelComponent`, `.setLanguage`, `.ngOnInit`, `Community 57`, `Community 58`?**
   _High betweenness centrality (0.051) - this node is a cross-community bridge._
-- **Why does `EvStationHistoryModalComponent` connect `Community 37` to `Community 57`, `Community 12`?**
+- **Why does `EvStationHistoryModalComponent` connect `Community 37` to `Community 9`, `Community 12`, `Community 57`?**
   _High betweenness centrality (0.038) - this node is a cross-community bridge._
 - **What connects `$schema`, `version`, `newProjectRoot` to the rest of the system?**
   _411 weakly-connected nodes found - possible documentation gaps or missing edges._

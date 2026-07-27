@@ -69,51 +69,78 @@ const EMPTY_TIP: TipState = { show: false, x: 0, y: 0, l1: '', l2: '', l2suffix:
                   [attr.aria-selected]="tab === t.id"
                   (click)="setTab(t.id)">{{ t.label }}</button>
         </div>
-        <div class="evh-controls-right">
-          <div class="evh-ranges" role="group" aria-label="Socket selection" *ngIf="tab !== 'power'">
+        <div class="evh-filters">
+          <div class="evh-ranges" role="group" aria-label="Socket selection">
             <button class="evh-range" type="button"
                     *ngFor="let s of socketOptions"
                     [attr.aria-pressed]="socketFilter === s.id"
                     (click)="setSocketFilter(s.id)">{{ s.label }}</button>
           </div>
-          <div class="evh-ranges" role="group" aria-label="Date range">
+          <div class="evh-ranges" role="group" aria-label="Date range" *ngIf="tab !== 'power'">
             <button class="evh-range" type="button"
                     *ngFor="let r of rangeOptions"
                     [attr.aria-pressed]="rangeDays === r"
-                    (click)="setRange(r)">{{ r }}D</button>
+                    (click)="setRange(r)">{{ r === 1 ? '24H' : r + 'D' }}</button>
             <button class="evh-range" type="button"
                     [attr.aria-pressed]="rangeDays === 'custom'"
                     (click)="setRange('custom')">Custom</button>
           </div>
-        </div>
-        <div class="evh-custom-dates" *ngIf="rangeDays === 'custom'">
-          <label class="evh-date-wrap">
-            From
-            <input type="text" placeholder="DD-MM-YY" [value]="customStartStr"
-                   (input)="onCustomDateChange('start', $any($event.target).value)"
-                   (change)="onCustomDateChange('start', $any($event.target).value)">
-            <button type="button" class="evh-cal-btn" (click)="startPicker.showPicker()" title="Pick from calendar" aria-label="Pick from calendar">
-              <mat-icon>calendar_today</mat-icon>
-            </button>
-            <input #startPicker type="date" class="evh-hidden-date" [value]="customStartIso"
-                   (change)="onPickerChange('start', startPicker.value)">
-          </label>
-          <label class="evh-date-wrap">
-            To
-            <input type="text" placeholder="DD-MM-YY" [value]="customEndStr"
-                   (input)="onCustomDateChange('end', $any($event.target).value)"
-                   (change)="onCustomDateChange('end', $any($event.target).value)"
-                   (keyup.enter)="applyCustomRange()">
-            <button type="button" class="evh-cal-btn" (click)="endPicker.showPicker()" title="Pick from calendar" aria-label="Pick from calendar">
-              <mat-icon>calendar_today</mat-icon>
-            </button>
-            <input #endPicker type="date" class="evh-hidden-date" [value]="customEndIso"
-                   (change)="onPickerChange('end', endPicker.value)">
-          </label>
-          <button type="button" class="evh-apply-btn" (click)="applyCustomRange()" [disabled]="loadingLogs">
-            <div *ngIf="loadingLogs" class="evh-spinner-sm"></div>
-            <span>{{ loadingLogs ? 'Loading…' : 'Apply' }}</span>
-          </button>
+          <div class="evh-ranges" role="group" aria-label="Power time range" *ngIf="tab === 'power'">
+            <button class="evh-range" type="button"
+                    *ngFor="let r of rangeOptions"
+                    [attr.aria-pressed]="powerRangeDays === r"
+                    (click)="setPowerRange(r)">{{ r === 1 ? '24H' : r + 'D' }}</button>
+            <button class="evh-range" type="button"
+                    [attr.aria-pressed]="powerRangeDays === 'custom'"
+                    (click)="setPowerRange('custom')">Custom</button>
+          </div>
+
+          <!-- Custom range dropdown, anchored under the range buttons -->
+          <div class="evh-custom-pop" *ngIf="showCustomPanel" role="dialog" aria-label="Custom range">
+            <div class="evh-custom-card">
+              <div class="evh-custom-title">Custom Range</div>
+
+              <div class="evh-date-row">
+                <span class="evh-date-lbl">Start</span>
+                <div class="evh-date-inputs">
+                  <input type="date" class="evh-native evh-native-date" [value]="customStartDateIso"
+                         (change)="setCustomPart('start', 'date', $any($event.target).value)" aria-label="Start date">
+                  <div class="evh-time-24">
+                    <input type="number" class="evh-native evh-native-hhmm" [value]="customStartHour"
+                           min="0" max="23" placeholder="HH"
+                           (change)="setCustomTimePart('start', 'hour', $any($event.target).value)" aria-label="Start hour">
+                    <span class="evh-time-sep">:</span>
+                    <input type="number" class="evh-native evh-native-hhmm" [value]="customStartMinute"
+                           min="0" max="59" placeholder="MM"
+                           (change)="setCustomTimePart('start', 'minute', $any($event.target).value)" aria-label="Start minute">
+                  </div>
+                </div>
+              </div>
+
+              <div class="evh-date-row">
+                <span class="evh-date-lbl">End</span>
+                <div class="evh-date-inputs">
+                  <input type="date" class="evh-native evh-native-date" [value]="customEndDateIso"
+                         (change)="setCustomPart('end', 'date', $any($event.target).value)" aria-label="End date">
+                  <div class="evh-time-24">
+                    <input type="number" class="evh-native evh-native-hhmm" [value]="customEndHour"
+                           min="0" max="23" placeholder="HH"
+                           (change)="setCustomTimePart('end', 'hour', $any($event.target).value)" aria-label="End hour">
+                    <span class="evh-time-sep">:</span>
+                    <input type="number" class="evh-native evh-native-hhmm" [value]="customEndMinute"
+                           min="0" max="59" placeholder="MM"
+                           (change)="setCustomTimePart('end', 'minute', $any($event.target).value)"
+                           (keyup.enter)="applyCustomRange()" aria-label="End minute">
+                  </div>
+                </div>
+              </div>
+
+              <button type="button" class="evh-apply-btn evh-apply-full" (click)="applyCustomRange()" [disabled]="loadingLogs || loadingPower">
+                <div *ngIf="loadingLogs || loadingPower" class="evh-spinner-sm"></div>
+                <span>{{ (loadingLogs || loadingPower) ? 'Loading…' : 'Apply' }}</span>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -137,7 +164,7 @@ const EMPTY_TIP: TipState = { show: false, x: 0, y: 0, l1: '', l2: '', l2suffix:
       </div>
 
       <!-- ── Energy tab ── -->
-      <div *ngIf="tab === 'energy'">
+      <div class="evh-tabpanel" *ngIf="tab === 'energy'">
         <div class="evh-charttitle">Energy delivered per day</div>
         <div class="evh-chartsub">kWh · sum of completed sessions per day</div>
         
@@ -179,7 +206,7 @@ const EMPTY_TIP: TipState = { show: false, x: 0, y: 0, l1: '', l2: '', l2suffix:
       </div>
 
       <!-- ── Sessions tab ── -->
-      <div *ngIf="tab === 'sessions'">
+      <div class="evh-tabpanel" *ngIf="tab === 'sessions'">
         <div class="evh-charttitle">Completed sessions</div>
         <div class="evh-chartsub">Newest first · one row per charge log entry</div>
         
@@ -209,8 +236,11 @@ const EMPTY_TIP: TipState = { show: false, x: 0, y: 0, l1: '', l2: '', l2suffix:
       </div>
 
       <!-- ── Power tab ── -->
-      <div *ngIf="tab === 'power'">
-        <div class="evh-charttitle">Charging power — last 24 h</div>
+      <div class="evh-tabpanel" *ngIf="tab === 'power'">
+        <div class="evh-charttitle">
+          Charging power — {{ powerRangeLabel }}{{ socketFilter !== 'all' ? ' · Socket ' + socketFilter : '' }}
+          <span class="evh-live" *ngIf="chargingNow"><span class="evh-live-dot"></span>Charging now</span>
+        </div>
         <div class="evh-chartsub">kW · sampled at the charger sync interval</div>
         
         <div class="evh-loading-box" *ngIf="loadingPower">
@@ -246,7 +276,7 @@ const EMPTY_TIP: TipState = { show: false, x: 0, y: 0, l1: '', l2: '', l2suffix:
           </div>
         </div>
         <div class="evh-empty" *ngIf="!loadingPower && !linePath">
-          No power samples in the last 24 h.
+          No power samples in the {{ powerRangeLabel }}.
         </div>
       </div>
     </div>
@@ -272,6 +302,7 @@ const EMPTY_TIP: TipState = { show: false, x: 0, y: 0, l1: '', l2: '', l2suffix:
     .rev-evh-modal {
       --page: #f9f9f7;
       --surface: #fcfcfb;
+      --track: #efeee8;
       --ink: #0b0b0b;
       --ink-2: #52514e;
       --muted: #898781;
@@ -289,6 +320,7 @@ const EMPTY_TIP: TipState = { show: false, x: 0, y: 0, l1: '', l2: '', l2suffix:
     @media (prefers-color-scheme: dark) {
       .rev-evh-modal {
         --surface: #1a1a19;
+        --track: #232322;
         --ink: #ffffff;
         --ink-2: #c3c2b7;
         --grid: #2c2c2a;
@@ -303,6 +335,7 @@ const EMPTY_TIP: TipState = { show: false, x: 0, y: 0, l1: '', l2: '', l2suffix:
     }
     [data-mode="dark"] .rev-evh-modal {
       --surface: #1a1a19;
+      --track: #232322;
       --ink: #ffffff;
       --ink-2: #c3c2b7;
       --grid: #2c2c2a;
@@ -316,6 +349,7 @@ const EMPTY_TIP: TipState = { show: false, x: 0, y: 0, l1: '', l2: '', l2suffix:
     }
     [data-mode="light"] .rev-evh-modal {
       --surface: #fcfcfb;
+      --track: #efeee8;
       --ink: #0b0b0b;
       --ink-2: #52514e;
       --grid: #e1e0d9;
@@ -364,45 +398,81 @@ const EMPTY_TIP: TipState = { show: false, x: 0, y: 0, l1: '', l2: '', l2suffix:
     }
 
     .rev-evh-modal .evh-controls {
+      display: flex; align-items: center; gap: 12px;
+      flex-wrap: wrap; margin: 14px 0 18px;
+    }
+    /* Filter row sits full-width under the tabs: sockets pinned left, date range pinned right.
+       position:relative anchors the custom-range dropdown. */
+    .rev-evh-modal .evh-filters {
       display: flex; align-items: center; justify-content: space-between;
-      gap: 12px; flex-wrap: wrap; margin: 14px 0 18px;
+      gap: 12px; flex-wrap: wrap; flex: 1 1 100%; min-height: 34px; position: relative;
     }
-    .rev-evh-modal .evh-controls-right { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
-    .rev-evh-modal .evh-tabs, .rev-evh-modal .evh-ranges { display: flex; gap: 4px; }
+    .rev-evh-modal .evh-tabs, .rev-evh-modal .evh-ranges {
+      display: inline-flex; gap: 2px; padding: 3px;
+      background: var(--track); border: 1px solid var(--grid); border-radius: 10px;
+      max-width: 100%; overflow-x: auto; scrollbar-width: none;
+    }
+    .rev-evh-modal .evh-tabs::-webkit-scrollbar,
+    .rev-evh-modal .evh-ranges::-webkit-scrollbar { display: none; }
     .rev-evh-modal .evh-tab, .rev-evh-modal .evh-range {
-      font: inherit; font-size: 13px; padding: 5px 12px; border-radius: 8px;
+      font: inherit; font-size: 13px; padding: 5px 12px; border-radius: 7px;
       border: 1px solid transparent; background: none; color: var(--ink-2); cursor: pointer;
+      white-space: nowrap; transition: background .15s ease, color .15s ease;
     }
-    .rev-evh-modal .evh-tab:hover, .rev-evh-modal .evh-range:hover { background: var(--accent-wash); }
+    .rev-evh-modal .evh-tab:hover, .rev-evh-modal .evh-range:hover {
+      background: var(--accent-wash); color: var(--ink);
+    }
     .rev-evh-modal .evh-tab[aria-selected="true"] {
       background: var(--ink); color: var(--surface); font-weight: 600;
     }
     .rev-evh-modal .evh-range[aria-pressed="true"] {
-      border-color: var(--baseline); background: var(--surface); color: var(--ink); font-weight: 600;
+      background: var(--surface); color: var(--ink); font-weight: 600;
+      box-shadow: 0 1px 2px rgba(11,11,11,0.10);
     }
 
-    .rev-evh-modal .evh-custom-dates {
-      width: 100%; display: flex; gap: 16px; margin-top: 10px; justify-content: flex-end; flex-wrap: wrap;
+    /* ── Custom range: dropdown popover anchored under the range buttons ── */
+    .rev-evh-modal .evh-custom-pop {
+      position: absolute; top: calc(100% + 8px); right: 0; z-index: 40;
     }
-    .rev-evh-modal .evh-date-wrap {
-      display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); position: relative;
+    .rev-evh-modal .evh-custom-card {
+      position: relative; width: 264px; max-width: min(264px, 84vw);
+      background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+      padding: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.30), 0 2px 8px rgba(0,0,0,0.14);
     }
-    .rev-evh-modal .evh-custom-dates input[type="text"] {
-      font-family: inherit; font-size: 13px; padding: 4px 8px; border-radius: 6px; width: 88px; text-align: center;
-      border: 1px solid var(--grid); background: var(--surface); color: var(--ink);
+    /* Caret pointing up to the Custom button */
+    .rev-evh-modal .evh-custom-card::before {
+      content: ''; position: absolute; top: -6px; right: 26px; width: 11px; height: 11px;
+      background: var(--surface); border-left: 1px solid var(--border); border-top: 1px solid var(--border);
+      transform: rotate(45deg);
     }
-    .rev-evh-modal .evh-custom-dates input[type="text"]:focus {
+    .rev-evh-modal .evh-custom-title {
+      font-size: 13px; font-weight: 700; color: var(--ink); margin-bottom: 12px;
+    }
+    .rev-evh-modal .evh-date-row { margin-bottom: 12px; }
+    .rev-evh-modal .evh-date-lbl {
+      display: block; font-size: 12px; color: var(--ink-2); font-weight: 600; margin-bottom: 5px;
+    }
+    .rev-evh-modal .evh-date-inputs { display: flex; align-items: center; gap: 8px; }
+    .rev-evh-modal .evh-native {
+      font-family: inherit; font-size: 13.5px; padding: 7px 10px; border-radius: 9px;
+      border: 1px solid var(--grid); background: var(--track); color: var(--ink);
+      font-variant-numeric: tabular-nums; color-scheme: light dark;
+    }
+    .rev-evh-modal .evh-native-date { flex: 1 1 auto; min-width: 0; }
+    .rev-evh-modal .evh-time-24 { display: flex; align-items: center; gap: 4px; flex: 0 0 auto; }
+    .rev-evh-modal .evh-time-sep { color: var(--ink-2); font-weight: 700; line-height: 1; }
+    .rev-evh-modal .evh-native-hhmm {
+      width: 44px; text-align: center; padding: 7px 4px;
+      -moz-appearance: textfield;
+    }
+    .rev-evh-modal .evh-native-hhmm::-webkit-inner-spin-button,
+    .rev-evh-modal .evh-native-hhmm::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    .rev-evh-modal .evh-native:focus {
       outline: 2px solid var(--accent); outline-offset: -1px; border-color: var(--accent);
     }
-    .rev-evh-modal .evh-cal-btn {
-      display: flex; align-items: center; justify-content: center; width: 26px; height: 26px;
-      border: 1px solid var(--grid); border-radius: 6px; background: var(--surface); color: var(--muted); cursor: pointer; padding: 0;
-    }
-    .rev-evh-modal .evh-cal-btn:hover { color: var(--ink); background: var(--accent-wash); border-color: var(--baseline); }
-    .rev-evh-modal .evh-cal-btn mat-icon { font-size: 15px; width: 15px; height: 15px; }
-    .rev-evh-modal .evh-hidden-date {
-      position: absolute; opacity: 0; pointer-events: none; width: 0; height: 0; border: none; padding: 0;
-    }
+    .rev-evh-modal .evh-native::-webkit-calendar-picker-indicator { cursor: pointer; opacity: 0.6; }
+    .rev-evh-modal .evh-native:hover::-webkit-calendar-picker-indicator { opacity: 1; }
+    .rev-evh-modal .evh-apply-full { width: 100%; justify-content: center; margin-top: 4px; padding: 9px 14px; font-size: 14px; }
 
     .rev-evh-modal .evh-apply-btn {
       display: flex; align-items: center; gap: 6px; font: inherit; font-size: 13px; font-weight: 600;
@@ -430,8 +500,25 @@ const EMPTY_TIP: TipState = { show: false, x: 0, y: 0, l1: '', l2: '', l2suffix:
     .rev-evh-modal .evh-kpis {
       display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 18px;
     }
+    /* Tablet: keep 4 KPIs but tighten spacing so the filter row fits one line */
+    @media (max-width: 760px) {
+      .rev-evh-modal { padding: 20px 20px 22px; }
+      .rev-evh-modal .evh-tab, .rev-evh-modal .evh-range { padding: 5px 10px; }
+    }
+    /* Mobile: stack controls, 2-up KPIs, shorter reserved chart height */
     @media (max-width: 620px) {
-      .rev-evh-modal .evh-kpis { grid-template-columns: repeat(2, 1fr); }
+      .rev-evh-modal { padding: 16px 14px 18px; font-size: 14px; }
+      .rev-evh-modal .evh-kpis { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+      .rev-evh-modal .evh-filters {
+        flex-direction: column; align-items: stretch; gap: 8px;
+      }
+      .rev-evh-modal .evh-tabs, .rev-evh-modal .evh-ranges { justify-content: flex-start; }
+      .rev-evh-modal .evh-tabpanel { min-height: 240px; }
+      /* Custom dropdown spans the row on mobile instead of a narrow right-aligned card */
+      .rev-evh-modal .evh-custom-pop { left: 0; right: 0; }
+      .rev-evh-modal .evh-custom-card { width: 100%; max-width: 100%; }
+      .rev-evh-modal .evh-custom-card::before { right: 50%; }
+      .rev-evh-modal .evh-kpi-val { font-size: 17px; }
     }
     .rev-evh-modal .evh-kpi { border: 1px solid var(--grid); border-radius: 10px; padding: 10px 14px; }
     .rev-evh-modal .evh-kpi-lbl {
@@ -444,7 +531,23 @@ const EMPTY_TIP: TipState = { show: false, x: 0, y: 0, l1: '', l2: '', l2suffix:
     }
     .rev-evh-modal .evh-kpi-val small { font-size: 11px; font-weight: 600; color: var(--ink-2); }
 
+    /* Reserve a constant height for the tab body so switching Energy / Sessions /
+       Power (or hitting an empty/loading state) never resizes the modal. */
+    .rev-evh-modal .evh-tabpanel { min-height: 340px; }
     .rev-evh-modal .evh-charttitle { font-size: 13px; font-weight: 700; margin-bottom: 2px; }
+    .rev-evh-modal .evh-live {
+      display: inline-flex; align-items: center; gap: 5px; margin-left: 8px;
+      font-size: 11px; font-weight: 600; color: var(--good-text);
+      padding: 1px 8px; border-radius: 999px;
+      background: rgba(12,163,12,0.10); border: 1px solid rgba(12,163,12,0.25);
+      vertical-align: middle;
+    }
+    .rev-evh-modal .evh-live-dot {
+      width: 7px; height: 7px; border-radius: 50%; background: var(--good);
+      animation: evhLivePulse 1.6s ease-in-out infinite;
+    }
+    @keyframes evhLivePulse { 50% { opacity: 0.3; } }
+    @media (prefers-reduced-motion: reduce) { .rev-evh-modal .evh-live-dot { animation: none; } }
     .rev-evh-modal .evh-chartsub { font-size: 12px; color: var(--muted); margin-bottom: 10px; }
     .rev-evh-modal .evh-chartbox { position: relative; }
     .rev-evh-modal .evh-chartbox svg { display: block; width: 100%; height: auto; }
@@ -476,7 +579,7 @@ const EMPTY_TIP: TipState = { show: false, x: 0, y: 0, l1: '', l2: '', l2suffix:
     .rev-evh-modal .evh-tip b { font-variant-numeric: tabular-nums; }
 
     .rev-evh-modal .evh-tablewrap {
-      overflow-x: auto; max-height: 340px; overflow-y: auto;
+      overflow-x: auto; max-height: 300px; overflow-y: auto;
       border: 1px solid var(--grid); border-radius: 10px;
     }
     .rev-evh-modal table.evh-sess { width: 100%; border-collapse: collapse; font-size: 13.5px; }
@@ -503,7 +606,7 @@ export class EvStationHistoryModalComponent implements OnInit {
     { id: 'sessions' as const, label: 'Sessions' },
     { id: 'power' as const, label: 'Power' },
   ];
-  readonly rangeOptions = [7, 30, 90];
+  readonly rangeOptions = [1, 7, 30, 90];
   readonly socketOptions: { id: SocketFilter, label: string }[] = [
     { id: 'all', label: 'All Sockets' },
     { id: 'A', label: 'Socket A' },
@@ -515,21 +618,27 @@ export class EvStationHistoryModalComponent implements OnInit {
   rangeDays: number | 'custom' = 30;
   socketFilter: SocketFilter = 'all';
 
-  customStartStr = '';
-  customEndStr = '';
+  // Custom range is stored as epoch ms; the native date/time inputs bind to these getters.
   private customStartTs = 0;
   private customEndTs = 0;
 
-  get customStartIso(): string {
-    if (!this.customStartTs) return '';
-    const d = new Date(this.customStartTs);
-    return `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getDate().toString().padStart(2, '0')}`;
-  }
+  get customStartDateIso(): string { return this.toDateIso(this.customStartTs); }
+  get customStartTimeStr(): string { return this.toTimeStr(this.customStartTs); }
+  get customStartHour(): number { return this.customStartTs ? new Date(this.customStartTs).getHours() : 0; }
+  get customStartMinute(): number { return this.customStartTs ? new Date(this.customStartTs).getMinutes() : 0; }
+  get customEndDateIso(): string { return this.toDateIso(this.customEndTs); }
+  get customEndTimeStr(): string { return this.toTimeStr(this.customEndTs); }
+  get customEndHour(): number { return this.customEndTs ? new Date(this.customEndTs).getHours() : 0; }
+  get customEndMinute(): number { return this.customEndTs ? new Date(this.customEndTs).getMinutes() : 0; }
 
-  get customEndIso(): string {
-    if (!this.customEndTs) return '';
-    const d = new Date(this.customEndTs);
-    return `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getDate().toString().padStart(2, '0')}`;
+  /** Update the hour or minute part of the start/end time from the 24-h number inputs. */
+  setCustomTimePart(which: 'start' | 'end', part: 'hour' | 'minute', rawValue: string): void {
+    const current = which === 'start' ? this.customStartTs : this.customEndTs;
+    const d = current ? new Date(current) : new Date();
+    const v = Math.max(0, Math.min(part === 'hour' ? 23 : 59, parseInt(rawValue, 10) || 0));
+    if (part === 'hour') d.setHours(v); else d.setMinutes(v);
+    const timeStr = `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+    this.setCustomPart(which, 'time', timeStr);
   }
 
   loadingLogs = true;
@@ -571,6 +680,18 @@ export class EvStationHistoryModalComponent implements OnInit {
   private allRows: SessionRow[] = [];
   private linePts: { x: number; y: number; ts: number; kw: number }[] = [];
 
+  // Power chart: samples for every socket over the selected window, fetched together
+  // so switching A/B/all is instant. Refetched when the power range changes.
+  private powerTsMap: Record<string, { ts: number; value: any }[]> = {};
+  private powerNow = 0;
+  private powerSpanMs = DAY_MS;
+  private powerIsLive = true;
+  private powerSub?: any;
+  /** Power tab has its own range (24H default); it does not share the Energy/Sessions range. */
+  powerRangeDays: number | 'custom' = 1;
+  // Socket → per-connector power telemetry key, discovered from the device's key list.
+  private socketPowerKey: { A?: string; B?: string } = {};
+
   constructor(
     public dialogRef: MatDialogRef<EvStationHistoryModalComponent>,
     @Inject(MAT_DIALOG_DATA) public data: EvChargerHistoryModalData,
@@ -582,24 +703,19 @@ export class EvStationHistoryModalComponent implements OnInit {
     const entityId: EntityId = { id: this.data.deviceId, entityType: 'DEVICE' };
     const now = Date.now();
 
-    const dEnd = new Date(now);
-    const dStart = new Date(now - 30 * DAY_MS);
-    this.customEndStr = this.dateInputString(dEnd);
-    this.customStartStr = this.dateInputString(dStart);
     this.customEndTs = now;
     this.customStartTs = now - 30 * DAY_MS;
 
     this.loadLogs(now - 90 * DAY_MS, now);
 
-    this.telemetry
-      .getTimeseries(entityId, ['total_active_kw'], now - DAY_MS, now, 0)
-      .subscribe(tsMap => {
-        this.loadingPower = false;
-        const pts = tsMap['total_active_kw'] || [];
-        console.info(`[EvHistory] ${this.data.deviceName}: ${pts.length} power samples in the last 24h`);
-        this.buildLineChart(pts, now);
-        this.cdr.detectChanges();
-      });
+    // Discover per-connector power keys so the socket filter can drive the chart,
+    // then load the default power window (last 24h).
+    this.telemetry.getDeviceKeys(entityId).subscribe(deviceKeys => {
+      this.resolveSocketPowerKeys(deviceKeys);
+      console.info(`[EvHistory] ${this.data.deviceName}: power keys`,
+        { all: 'total_active_kw', ...this.socketPowerKey });
+      this.loadPower();
+    });
 
     this.recompute();
   }
@@ -612,7 +728,58 @@ export class EvStationHistoryModalComponent implements OnInit {
     this.tab = tab;
     this.barTip = EMPTY_TIP;
     this.hideLineTip();
+    this.recompute();               // KPIs follow the active tab's window
+    if (tab === 'power') this.refreshPowerChart();
     this.cdr.detectChanges();
+  }
+
+  setPowerRange(days: number | 'custom'): void {
+    if (this.powerRangeDays === days) return;
+    this.powerRangeDays = days;
+    this.hideLineTip();
+    if (days === 'custom') {
+      // Wait for Apply before fetching; just reveal the picker and refresh KPIs.
+      this.recompute();
+      this.cdr.detectChanges();
+      return;
+    }
+    this.loadPower();
+    this.recompute();               // keep KPIs in step with the power window
+  }
+
+  /** Whether the From/To picker is currently open (either tab in custom mode). */
+  get showCustomPanel(): boolean {
+    return this.tab === 'power' ? this.powerRangeDays === 'custom' : this.rangeDays === 'custom';
+  }
+
+  /** Human label for the current power window, used in the chart title and empty state. */
+  get powerRangeLabel(): string {
+    switch (this.powerRangeDays) {
+      case 'custom': return this.customStartTs && this.customEndTs
+        ? `${this.formatAxisDate(new Date(this.customStartTs))} → ${this.formatAxisDate(new Date(this.customEndTs))}`
+        : 'custom range';
+      case 1: return 'last 24 h';
+      case 7: return 'last 7 days';
+      case 30: return 'last 30 days';
+      case 90: return 'last 90 days';
+      default: return `last ${this.powerRangeDays} days`;
+    }
+  }
+
+  /**
+   * True when the selected socket is drawing power right now — i.e. its most recent
+   * sample is fresh (< 15 min) and above ~0. The completed-session KPIs can't show an
+   * in-progress charge (it isn't logged until it ends), so this drives a live badge.
+   */
+  get chargingNow(): boolean {
+    const key = this.socketFilter === 'all'
+      ? 'total_active_kw'
+      : (this.socketFilter === 'A' ? this.socketPowerKey.A : this.socketPowerKey.B);
+    if (!key) return false;
+    const arr = this.powerTsMap[key];
+    if (!arr || !arr.length) return false;
+    const last = arr[arr.length - 1];
+    return (Date.now() - last.ts) < 15 * 60_000 && Number(last.value) > 0.1;
   }
 
   setRange(r: number | 'custom'): void {
@@ -634,72 +801,44 @@ export class EvStationHistoryModalComponent implements OnInit {
     }
   }
 
-  onPickerChange(field: 'start' | 'end', isoValue: string): void {
-    if (!isoValue) return;
-    const parts = isoValue.split('-');
-    if (parts.length === 3) {
-      const year = parseInt(parts[0], 10);
-      const month = parseInt(parts[1], 10) - 1;
-      const day = parseInt(parts[2], 10);
-      const d = new Date(year, month, day);
-      if (!isNaN(d.getTime())) {
-        if (field === 'start') {
-          this.customStartTs = d.getTime();
-          this.customStartStr = this.dateInputString(d);
-        } else {
-          d.setHours(23, 59, 59, 999);
-          this.customEndTs = d.getTime();
-          this.customEndStr = this.dateInputString(d);
-        }
-      }
-    }
-  }
-
-  onCustomDateChange(field: 'start' | 'end', value: string): void {
-    if (field === 'start') this.customStartStr = value;
-    else this.customEndStr = value;
-
-    const dStart = this.parseCustomDate(this.customStartStr);
-    const dEnd = this.parseCustomDate(this.customEndStr);
-
-    if (dStart && dEnd && !isNaN(dStart.getTime()) && !isNaN(dEnd.getTime())) {
-      dEnd.setHours(23, 59, 59, 999);
-      this.customStartTs = dStart.getTime();
-      this.customEndTs = dEnd.getTime();
-    }
+  /** Update one part (date or time) of the start/end bound from the native inputs. */
+  setCustomPart(which: 'start' | 'end', part: 'date' | 'time', value: string): void {
+    const current = which === 'start' ? this.customStartTs : this.customEndTs;
+    const dateIso = part === 'date' ? value : this.toDateIso(current);
+    const timeStr = part === 'time' ? value : this.toTimeStr(current);
+    const ts = this.combineDateTime(dateIso, timeStr);
+    if (ts === null) return;
+    if (which === 'start') this.customStartTs = ts;
+    else this.customEndTs = ts;
   }
 
   applyCustomRange(): void {
-    const dStart = this.parseCustomDate(this.customStartStr);
-    const dEnd = this.parseCustomDate(this.customEndStr);
-
-    if (dStart && dEnd && !isNaN(dStart.getTime()) && !isNaN(dEnd.getTime())) {
-      dEnd.setHours(23, 59, 59, 999);
-      this.customStartTs = dStart.getTime();
-      this.customEndTs = dEnd.getTime();
-      this.loadCustomRange();
-    }
-  }
-
-  private parseCustomDate(str: string): Date | null {
-    if (!str) return null;
-    const parts = str.trim().split(/[-/.]/);
-    if (parts.length === 3) {
-      const day = parseInt(parts[0], 10);
-      const month = parseInt(parts[1], 10) - 1;
-      let year = parseInt(parts[2], 10);
-      if (year < 100) year += 2000;
-      const d = new Date(year, month, day);
-      if (!isNaN(d.getTime()) && d.getDate() === day && d.getMonth() === month) return d;
-    }
-    const d = new Date(str);
-    return isNaN(d.getTime()) ? null : d;
-  }
-
-  private loadCustomRange(): void {
-    if (this.rangeDays !== 'custom') return;
+    if (!this.customStartTs || !this.customEndTs || this.customStartTs >= this.customEndTs) return;
+    // Logs feed the KPIs (and the Energy/Sessions views); the power chart needs its own fetch.
     this.loadLogs(this.customStartTs, this.customEndTs);
+    if (this.tab === 'power') this.loadPower();
   }
+
+  private toDateIso(ts: number): string {
+    if (!ts) return '';
+    const d = new Date(ts);
+    return `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getDate().toString().padStart(2, '0')}`;
+  }
+
+  private toTimeStr(ts: number): string {
+    if (!ts) return '00:00';
+    const d = new Date(ts);
+    return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+  }
+
+  private combineDateTime(dateIso: string, timeStr: string): number | null {
+    if (!dateIso) return null;
+    const [y, m, day] = dateIso.split('-').map(Number);
+    const [hh, mm] = (timeStr || '00:00').split(':').map(Number);
+    const d = new Date(y, (m || 1) - 1, day || 1, hh || 0, mm || 0, 0, 0);
+    return isNaN(d.getTime()) ? null : d.getTime();
+  }
+
 
   private loadLogs(startTs: number, endTs: number): void {
     if (this.logsSub) {
@@ -730,7 +869,9 @@ export class EvStationHistoryModalComponent implements OnInit {
   setSocketFilter(filter: SocketFilter): void {
     this.socketFilter = filter;
     this.barTip = EMPTY_TIP;
+    this.hideLineTip();
     this.allRows = this.buildRows(this.latestTsMap, filter);
+    this.refreshPowerChart();
     this.recompute();
   }
 
@@ -770,9 +911,25 @@ export class EvStationHistoryModalComponent implements OnInit {
     return [...byTs.values()].sort((a, b) => a.ts - b.ts);
   }
 
-  private rangeStart(): Date {
+  /**
+   * Window that drives the KPIs (and, on Energy, the bar chart). On the Power tab the
+   * KPIs follow the power window so the numbers line up with the chart instead of
+   * silently reporting a different (30-day) range.
+   */
+  private effectiveRange(): { start: Date; endTs: number } {
+    const now = Date.now();
+
+    if (this.tab === 'power') {
+      if (this.powerRangeDays === 'custom') {
+        return { start: new Date(this.customStartTs), endTs: this.customEndTs };
+      }
+      let start = new Date(now - this.powerRangeDays * DAY_MS);
+      if (this.allRows.length && start < this.allRows[0].date) start = this.allRows[0].date;
+      return { start, endTs: now };
+    }
+
     if (this.rangeDays === 'custom') {
-      return new Date(this.customStartTs);
+      return { start: new Date(this.customStartTs), endTs: this.customEndTs };
     }
 
     const start = this.startOfDay(new Date());
@@ -780,14 +937,13 @@ export class EvStationHistoryModalComponent implements OnInit {
     // History depth is finite — clamp instead of pretending the range is full
     if (this.allRows.length) {
       const first = this.startOfDay(this.allRows[0].date);
-      if (start < first) return first;
+      if (start < first) return { start: first, endTs: now };
     }
-    return start;
+    return { start, endTs: now };
   }
 
   private recompute(): void {
-    const start = this.rangeStart();
-    const endTs = this.rangeDays === 'custom' ? this.customEndTs : Date.now();
+    const { start, endTs } = this.effectiveRange();
     const rows = this.allRows.filter(r => r.ts >= start.getTime() && r.ts <= endTs);
 
     const kwh = rows.reduce((a, r) => a + r.kwh, 0);
@@ -888,8 +1044,84 @@ export class EvStationHistoryModalComponent implements OnInit {
 
   // ─── Power line chart ───────────────────────────────────────────────────────
 
-  private buildLineChart(points: { ts: number; value: any }[], now: number): void {
-    const t0 = now - DAY_MS;
+  /**
+   * Map Socket A / B to their per-connector power telemetry key.
+   * Mirrors the live card's socket ordering: connectors sorted ascending, the lowest
+   * number is Socket A. Prefers connector_N_session_kw, falls back to connector_N_power.
+   */
+  private resolveSocketPowerKeys(deviceKeys: string[]): void {
+    const kw = new Map<number, string>();
+    const pw = new Map<number, string>();
+    for (const k of deviceKeys) {
+      const key = k.toLowerCase();
+      let m = key.match(/^connector_(\d+)_session_kw$/);
+      if (m) { kw.set(Number(m[1]), key); continue; }
+      m = key.match(/^connector_(\d+)_power$/);
+      if (m) pw.set(Number(m[1]), key);
+    }
+    const source = kw.size ? kw : pw;
+    const nums = [...source.keys()].sort((a, b) => a - b);
+    this.socketPowerKey = {};
+    if (nums.length > 0) this.socketPowerKey.A = source.get(nums[0]);
+    if (nums.length > 1) this.socketPowerKey.B = source.get(nums[1]);
+  }
+
+  /** Rebuild the power line from the already-fetched samples for the selected socket. */
+  private refreshPowerChart(): void {
+    let pts: { ts: number; value: any }[];
+    if (this.socketFilter === 'all') {
+      pts = this.powerTsMap['total_active_kw'] || [];
+    } else {
+      const key = this.socketFilter === 'A' ? this.socketPowerKey.A : this.socketPowerKey.B;
+      pts = key ? (this.powerTsMap[key] || []) : [];
+    }
+    this.buildLineChart(pts, this.powerNow || Date.now(), this.powerSpanMs);
+  }
+
+  /** Fetch total + per-socket power over the selected power range (aggregated for long windows). */
+  private loadPower(): void {
+    const entityId: EntityId = { id: this.data.deviceId, entityType: 'DEVICE' };
+    let startTs: number;
+    let endTs: number;
+    if (this.powerRangeDays === 'custom') {
+      startTs = this.customStartTs;
+      endTs = this.customEndTs;
+    } else {
+      endTs = Date.now();
+      startTs = endTs - this.powerRangeDays * DAY_MS;
+    }
+    const spanMs = Math.max(1, endTs - startTs);
+    const { interval, agg } = this.powerAgg(spanMs);
+
+    const keys = ['total_active_kw'];
+    if (this.socketPowerKey.A) keys.push(this.socketPowerKey.A);
+    if (this.socketPowerKey.B) keys.push(this.socketPowerKey.B);
+
+    this.loadingPower = true;
+    if (this.powerSub) this.powerSub.unsubscribe();
+    this.powerSub = this.telemetry
+      .getTimeseries(entityId, keys, startTs, endTs, interval, 50_000, agg)
+      .subscribe(tsMap => {
+        this.loadingPower = false;
+        this.powerTsMap = tsMap;
+        this.powerNow = endTs;
+        this.powerSpanMs = spanMs;
+        this.powerIsLive = (Date.now() - endTs) < 2 * 60_000;
+        this.refreshPowerChart();
+        this.cdr.detectChanges();
+      });
+  }
+
+  /** 24h → raw points; longer ranges → ~400 AVG buckets so the request stays light. */
+  private powerAgg(spanMs: number): { interval: number; agg: 'NONE' | 'AVG' } {
+    if (spanMs <= DAY_MS) return { interval: 0, agg: 'NONE' };
+    const interval = Math.max(60_000, Math.round(spanMs / 400 / 60_000) * 60_000);
+    return { interval, agg: 'AVG' };
+  }
+
+  private buildLineChart(points: { ts: number; value: any }[], now: number, spanMs: number): void {
+    const t0 = now - spanMs;
+    const multiDay = spanMs > DAY_MS;
     const pts = points
       .map(p => ({ ts: p.ts, kw: Number(p.value) }))
       .filter(p => !isNaN(p.kw) && p.ts >= t0)
@@ -907,7 +1139,7 @@ export class EvStationHistoryModalComponent implements OnInit {
 
     const maxKw = pts.reduce((a, p) => Math.max(a, p.kw), 0);
     const maxV = Math.max(12, Math.ceil(maxKw / 4) * 4);
-    const x = (ts: number) => L_PAD_L + L_PLOT_W * ((ts - t0) / DAY_MS);
+    const x = (ts: number) => L_PAD_L + L_PLOT_W * ((ts - t0) / spanMs);
     const y = (v: number) => L_PAD_T + L_PLOT_H * (1 - v / maxV);
 
     this.lineGrid = [];
@@ -915,11 +1147,13 @@ export class EvStationHistoryModalComponent implements OnInit {
       this.lineGrid.push({ y: y(g), baseline: g === 0, label: g > 0 ? String(g) : undefined });
     }
 
+    const edgeLabel = (ts: number) => multiDay ? this.formatAxisDate(new Date(ts)) : this.formatClock(new Date(ts));
     this.lineXLabels = [0, 0.25, 0.5, 0.75, 1].map(f => {
-      const ts = t0 + f * DAY_MS;
+      const ts = t0 + f * spanMs;
       return {
         x: L_PAD_L + L_PLOT_W * f,
-        text: f === 1 ? 'now' : this.formatClock(new Date(ts)),
+        // Right edge reads "now" only for the live window; a past custom range shows its end.
+        text: f === 1 ? (this.powerIsLive ? 'now' : edgeLabel(ts)) : edgeLabel(ts),
         anchor: f === 1 ? 'end' : (f === 0 ? 'start' : 'middle'),
       };
     });
@@ -951,13 +1185,17 @@ export class EvStationHistoryModalComponent implements OnInit {
     this.lineCross = { show: true, x: nearest.x, dotY: nearest.y };
     const minsAgo = Math.round((Date.now() - nearest.ts) / 60000);
     const hoursAgo = minsAgo / 60;
+    // Multi-day or a past custom window: relative "X h ago" is unreadable, so show the date/time.
+    const l1 = (this.powerSpanMs > DAY_MS || !this.powerIsLive)
+      ? this.formatTipDateTime(new Date(nearest.ts))
+      : (minsAgo < 5 ? 'now' : (hoursAgo >= 1
+        ? `${hoursAgo.toFixed(1).replace('.0', '')} h ago`
+        : `${minsAgo} min ago`));
     this.lineTip = {
       show: true,
       x: svgRect.left - boxRect.left + nearest.x * scale,
       y: svgRect.top - boxRect.top + nearest.y * scale,
-      l1: minsAgo < 5 ? 'now' : (hoursAgo >= 1
-        ? `${hoursAgo.toFixed(1).replace('.0', '')} h ago`
-        : `${minsAgo} min ago`),
+      l1,
       l2: `${nearest.kw.toFixed(1)} kW`,
       l2suffix: '',
     };
@@ -996,6 +1234,16 @@ export class EvStationHistoryModalComponent implements OnInit {
     return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
   }
 
+  /** Short axis date for multi-day power windows, e.g. "9 Jun". */
+  private formatAxisDate(d: Date): string {
+    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+  }
+
+  /** Tooltip date + time for multi-day power windows, e.g. "9 Jun, 14:04". */
+  private formatTipDateTime(d: Date): string {
+    return `${this.formatAxisDate(d)}, ${this.formatClock(d)}`;
+  }
+
   private startOfDay(d: Date): Date {
     const r = new Date(d);
     r.setHours(0, 0, 0, 0);
@@ -1005,13 +1253,6 @@ export class EvStationHistoryModalComponent implements OnInit {
   /** Local date parts — toISOString() is UTC and can shift the day */
   private dayKey(d: Date): string {
     return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
-  }
-
-  private dateInputString(d: Date): string {
-    const dd = d.getDate().toString().padStart(2, '0');
-    const mm = (d.getMonth() + 1).toString().padStart(2, '0');
-    const yy = d.getFullYear().toString().slice(-2);
-    return `${dd}-${mm}-${yy}`;
   }
 
   private roundedTopBar(x: number, y: number, w: number, h: number, r: number): string {

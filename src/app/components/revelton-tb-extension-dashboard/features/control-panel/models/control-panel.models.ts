@@ -16,6 +16,7 @@ export type ControlPanelSectionId =
   | 'thermostat'
   | 'noise'
   | 'window'
+  | 'socket'
   | 'mews';
 
 export const CONTROL_PANEL_SECTIONS: ControlPanelSection[] = [
@@ -23,6 +24,7 @@ export const CONTROL_PANEL_SECTIONS: ControlPanelSection[] = [
   { id: 'thermostat',  label: 'Thermostat',  icon: 'thermostat' },
   { id: 'noise',       label: 'Noise Sensor',icon: 'volume_up' },
   { id: 'window',      label: 'Window Alert',icon: 'window' },
+  { id: 'socket',      label: 'Smart Socket',icon: 'power' },
   { id: 'mews',        label: 'Mews Sync',   icon: 'sync' },
 
 ];
@@ -79,6 +81,13 @@ export interface WindowAlertConfig {
   thresholdMinutes: number;
   /** Auto-pause heating when window is open */
   autoPauseHeating: boolean;
+}
+
+/** ── Smart Socket (over-power / overload) ── */
+export interface SmartSocketConfig {
+  enabled: boolean;
+  /** Alert when a socket's live power draw (W) reaches or exceeds this value */
+  powerMax: number;
 }
 
 /** ── Mews Sync ── */
@@ -175,6 +184,7 @@ export interface ControlPanelConfig {
   thermostat: ThermostatAutomationConfig;
   noise: NoiseThresholdConfig;
   window: WindowAlertConfig;
+  socket: SmartSocketConfig;
   mews: MewsSyncConfig;
   telegram: TelegramConfig;
   /** Which rooms the settings apply to */
@@ -230,6 +240,10 @@ export const DEFAULT_CONTROL_PANEL_CONFIG: ControlPanelConfig = {
     enabled: true,
     thresholdMinutes: 15,
     autoPauseHeating: true,
+  },
+  socket: {
+    enabled: true,
+    powerMax: 2500,
   },
   mews: {
     autoSync: true,

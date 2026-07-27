@@ -550,6 +550,16 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
       this.occupancyDisplay = res.checkDisplay === 'In' ? this.t.occupied : (res.checkDisplay === 'Wait' ? this.t.loading : (res.checkDisplay === 'Out' ? this.t.vacant : this.occupancyDisplay));
       this.statusSummary = res.statusSummary || '';
       this.checkoutRemaining = res.checkoutRemaining || '';
+    } else {
+      // No active reservation for this room — clear any reservation fields left
+      // over from a previously selected room (this panel instance is reused
+      // across room switches, not recreated).
+      this.guestName = '';
+      this.reservationState = '';
+      this.checkInDisplay = '';
+      this.checkOutDisplay = '';
+      this.statusSummary = '';
+      this.checkoutRemaining = '';
     }
 
     // Thermostats — in-place mutation to preserve UI state (_modeDropOpen, locks, etc.)
@@ -1060,6 +1070,22 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
             id: `window-${s.entityName}`,
             title: s.displayName,
             message: this.translationService.activeLangCode === 'RU' ? 'открыто' : 'open',
+            time: this.t.justNow || 'Just now',
+            severity: 'warning'
+          });
+        }
+      }
+    }
+
+    // Smart socket over-power / overload — WS523 has no built-in alarm telemetry,
+    // so we compare its live power draw against the configured maximum.
+    if (config.socket && config.socket.enabled) {
+      for (const socket of this.smartSockets) {
+        if (socket.power !== null && socket.power !== undefined && socket.power >= config.socket.powerMax) {
+          triggeredAlerts.push({
+            id: `socket-power-${socket.entityName}`,
+            title: socket.displayName || this.t.smartSocket || 'Smart Socket',
+            message: `${this.t.socketPowerHigh || 'Power draw high'}: ${Math.round(socket.power)} W (Max: ${config.socket.powerMax} W)`,
             time: this.t.justNow || 'Just now',
             severity: 'warning'
           });

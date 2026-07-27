@@ -69,4 +69,11 @@ export class SmartSocketsPanelComponent {
   trackByEntityName(index: number, item: any): string {
     return item.entityName;
   }
+
+  getEnergyKWh(socket: any): string {
+    if (socket.energyToday == null) return '0.00';
+    const val = parseFloat(socket.energyToday);
+    if (isNaN(val)) return '0.00';
+    return (val / 1000).toFixed(2);
+  }
 }

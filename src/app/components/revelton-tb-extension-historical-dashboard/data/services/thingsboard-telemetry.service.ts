@@ -84,6 +84,7 @@ export class ThingsBoardTelemetryService {
     endTs: number,
     interval: number,
     limit = 50_000,
+    agg: 'NONE' | 'AVG' | 'MIN' | 'MAX' | 'SUM' | 'COUNT' = 'NONE',
   ): Observable<TelemetryMap> {
     if (!keys || keys.length === 0) return of({});
     if (!this.attrs) {
@@ -96,7 +97,7 @@ export class ThingsBoardTelemetryService {
       startTs,
       endTs,
       limit,
-      'NONE' as any,
+      agg as any,
       interval,
       'ASC' as any,
     ).pipe(

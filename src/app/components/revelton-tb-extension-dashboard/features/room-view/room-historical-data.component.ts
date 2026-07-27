@@ -2,6 +2,35 @@ import { Component, Inject, Input, OnInit, OnChanges, SimpleChanges, ChangeDetec
 import { MatDialog, MAT_DIALOG_DATA, MatDialogRef } from "@angular/material/dialog";
 import { TranslationService } from "../../core/services/translation.service";
 
+const PRAGUE_DATETIME_FORMATTER = new Intl.DateTimeFormat("en-US", {
+  timeZone: "Europe/Prague",
+  year: "numeric", month: "2-digit", day: "2-digit",
+  hour: "2-digit", minute: "2-digit", hour12: false
+});
+
+const PRAGUE_SHORT_DATETIME_FORMATTER = new Intl.DateTimeFormat("en-US", {
+  timeZone: "Europe/Prague",
+  month: "short", day: "numeric",
+  hour: "2-digit", minute: "2-digit", hour12: false
+});
+
+const PRAGUE_TIME_FORMATTER = new Intl.DateTimeFormat("en-US", {
+  timeZone: "Europe/Prague",
+  hour: "2-digit", minute: "2-digit", hour12: false
+});
+
+const PRAGUE_DATE_FORMATTER = new Intl.DateTimeFormat("en-US", {
+  timeZone: "Europe/Prague",
+  day: "2-digit", month: "2-digit", year: "numeric"
+});
+
+function getPragueParts(ts: number | Date) {
+  const parts = PRAGUE_DATETIME_FORMATTER.formatToParts(ts);
+  const p: any = {};
+  for (const pt of parts) p[pt.type] = pt.value;
+  return p;
+}
+
 @Component({
   selector: "tb-room-historical-data",
   templateUrl: "./room-historical-data.component.html",
@@ -198,6 +227,43 @@ export class RoomHistoricalDataComponent implements OnInit, OnChanges {
     }
   }
 
+  /**
+   * Build an accumulated-energy series (kWh) from one or more sockets' cumulative
+   * Wh counters. Each socket is baselined to 0 at the start of the range, so the
+   * line shows energy consumed WITHIN the visible range (climbing from 0 to the
+   * range total) rather than the raw lifetime counter. Sockets are summed at each
+   * timestamp; a counter that drops (device/counter reset) contributes 0 for that
+   * step instead of a negative spike.
+   */
+  accumulateEnergySeries(seriesBySocket: Record<string, any[]>): { ts: number; value: number }[] {
+    const allPoints: { ts: number; value: number; id: string }[] = [];
+    for (const [id, points] of Object.entries(seriesBySocket || {})) {
+      for (const p of (points as any[]) || []) {
+        const v = parseFloat(p.value);
+        if (!isNaN(v)) allPoints.push({ ts: p.ts, value: v, id });
+      }
+    }
+    allPoints.sort((a, b) => a.ts - b.ts);
+
+    const lastRaw: Record<string, number> = {};
+    const consumed: Record<string, number> = {};
+    const out: { ts: number; value: number }[] = [];
+    for (const p of allPoints) {
+      if (lastRaw[p.id] === undefined) {
+        lastRaw[p.id] = p.value; // baseline — first reading counts as 0 consumed
+        consumed[p.id] = 0;
+      } else {
+        let delta = p.value - lastRaw[p.id];
+        if (delta < 0) delta = 0; // counter reset guard
+        consumed[p.id] += delta;
+        lastRaw[p.id] = p.value;
+      }
+      const total = Object.values(consumed).reduce((a, b) => a + b, 0);
+      out.push({ ts: p.ts, value: total / 1000 }); // Wh -> kWh
+    }
+    return out;
+  }
+
   private buildCard(
     key: string, label: string, unit: string, icon: string, color: string,
     thresholdWarn: number, thresholdCrit: number,
@@ -251,6 +317,8 @@ export class RoomHistoricalDataComponent implements OnInit, OnChanges {
 
     const vals = series.map(d => d[1]);
     if (!isBinary) {
+      // For energy the series is an accumulated (monotonic) line, so the last
+      // point already IS the range total; the generic "last value" is correct.
       current = vals.length ? vals[vals.length - 1] : 0;
     }
 
@@ -276,7 +344,7 @@ export class RoomHistoricalDataComponent implements OnInit, OnChanges {
     } else if (isBinary) {
       if (key === "window") {
         badgeText = current ? "OPEN" : "CLOSED";
-        badgeClass = current ? "normal" : "normal";
+        badgeClass = current ? "warning" : "normal";
       }
       if (key === "leak") {
         badgeText = current ? "LEAK" : "NORMAL";
@@ -299,7 +367,9 @@ export class RoomHistoricalDataComponent implements OnInit, OnChanges {
       }
     }
 
-    let displayVal: any = Math.round(current * 10) / 10;
+    const decimals = key === "energy" ? 3 : 1;
+    const mult = Math.pow(10, decimals);
+    let displayVal: any = Math.round(current * mult) / mult;
     if (key === "window" || key === "leak" || key === "presence") {
       displayVal = raw.filter(d => normalizeBinaryValue(key, d.value) === 1).length; // events count
       unit = "events";
@@ -311,9 +381,9 @@ export class RoomHistoricalDataComponent implements OnInit, OnChanges {
       data: [{ name: label, values: series }],
       hasData: hasData,
       current: displayVal,
-      min: Math.round(min * 10) / 10,
-      avg: Math.round(avg * 10) / 10,
-      max: Math.round(max * 10) / 10,
+      min: Math.round(min * mult) / mult,
+      avg: Math.round(avg * mult) / mult,
+      max: Math.round(max * mult) / mult,
       badgeText,
       badgeClass,
       isBinary,
@@ -456,17 +526,26 @@ export class RoomHistoricalDataComponent implements OnInit, OnChanges {
       const pressureDeviceId = findId(/pressure|baro/i) || aqDeviceId;
       const luxDeviceId = findId(/lux|illuminance|light/i) || aqDeviceId;
 
-      // Fetch telemetry
-      const keysToFetch = "temperature,humidity,co2,iaq,tvoc,pm25,pm2_5,data_pm25,data_pm2_5,pm10,data_pm10,pressure,data_pressure,lux,illuminance,data_illuminance,light,data_light,light_level,data_light_level,noise,laeq,lai,laimax,data_laeq,data_LAeq,data_lai,data_LAI,data_laimax,data_LAImax,contact,data_contact,status,state,waterLeak,leak,water_leak,data_leakage_status,occupancy,presence,data_occupancy,data_pir,pir,motion,data_motion,power,active_power,data_active_power,load_power,data_power_consumption,energy,temp,hum,data_temperature,data_humidity,data_co2,data_iaq,data_tvoc";
-      const safeFetch = async (id: string | null) => {
+      // Fetch telemetry — sensor keys (everything except socket power/energy)
+      const keysToFetch = "temperature,humidity,co2,iaq,tvoc,pm25,pm2_5,data_pm25,data_pm2_5,pm10,data_pm10,pressure,data_pressure,lux,illuminance,data_illuminance,light,data_light,light_level,data_light_level,noise,laeq,lai,laimax,data_laeq,data_LAeq,data_lai,data_LAI,data_laimax,data_LAImax,contact,data_contact,status,state,waterLeak,leak,water_leak,data_leakage_status,occupancy,presence,data_occupancy,data_pir,pir,motion,data_motion,temp,hum,data_temperature,data_humidity,data_co2,data_iaq,data_tvoc";
+      const safeFetch = async (id: string | null, keys?: string, fetchLimit?: number) => {
         if (!id) return null;
         try {
-          return await this.httpGet(http, `/api/plugins/telemetry/DEVICE/${id}/values/timeseries?keys=${keysToFetch}&startTs=${startTs}&endTs=${endTs}&limit=${limit}&orderBy=ASC`);
+          return await this.httpGet(http, `/api/plugins/telemetry/DEVICE/${id}/values/timeseries?keys=${keys || keysToFetch}&startTs=${startTs}&endTs=${endTs}&limit=${fetchLimit || limit}&orderBy=ASC`);
         } catch { return null; }
       };
 
-      const uniqueIds = [...new Set([aqDeviceId, tempDeviceId, humDeviceId, noiseDeviceId, windowDeviceId, leakDeviceId, occDeviceId, ...powerDeviceIds, co2DeviceId, tvocDeviceId, pmDeviceId, pressureDeviceId, luxDeviceId].filter(Boolean))];
+      // Exclude socket device IDs from the generic sensor fetch — they get
+      // their own dedicated request below with socket-only keys and a higher
+      // limit so ThingsBoard's per-request point cap doesn't drop data.
+      const powerIdSet = new Set(powerDeviceIds);
+      const uniqueIds = [...new Set([aqDeviceId, tempDeviceId, humDeviceId, noiseDeviceId, windowDeviceId, leakDeviceId, occDeviceId, co2DeviceId, tvocDeviceId, pmDeviceId, pressureDeviceId, luxDeviceId].filter(id => id && !powerIdSet.has(id)))];
       const results = await Promise.all(uniqueIds.map(id => safeFetch(id)));
+
+      // Dedicated socket fetch — only power/energy keys, higher limit
+      const socketKeys = "power,active_power,data_active_power,load_power,data_power_consumption,energy";
+      const socketLimit = 5000;
+      const socketResults = await Promise.all(powerDeviceIds.map(id => safeFetch(id, socketKeys, socketLimit)));
 
       // Process Data
       const normalized: Record<string, any[]> = { temperature: [], humidity: [], co2: [], noise: [], tvoc: [], pm25: [], pm10: [], pressure: [], lux: [], window: [], leak: [], presence: [], motion: [], power: [], energy: [] };
@@ -510,10 +589,14 @@ export class RoomHistoricalDataComponent implements OnInit, OnChanges {
            }
            normalized["motion"] = motionData || normalized["motion"];
         }
-        if (powerDeviceIds.includes(id)) {
-          powerDataBySocket[id] = data["power"] || data["active_power"] || data["data_active_power"] || data["load_power"] || [];
-          energyDataBySocket[id] = data["data_power_consumption"] || data["energy"] || [];
-        }
+      });
+
+      // Process socket results separately
+      powerDeviceIds.forEach((id, index) => {
+        const data = socketResults[index];
+        if (!data) return;
+        powerDataBySocket[id] = data["power"] || data["active_power"] || data["data_active_power"] || data["load_power"] || [];
+        energyDataBySocket[id] = data["data_power_consumption"] || data["energy"] || [];
       });
 
       if (normalized["window"].length === 0 && this.selectedWindowEntity && this.windowDevices?.[this.selectedWindowEntity] !== undefined) {
@@ -548,22 +631,7 @@ export class RoomHistoricalDataComponent implements OnInit, OnChanges {
       }
 
       if (Object.keys(energyDataBySocket).length > 0) {
-        const allEnergyPoints = [];
-        for (const [id, points] of Object.entries(energyDataBySocket)) {
-          for (const p of points as any[]) {
-            allEnergyPoints.push({ ts: p.ts, value: parseFloat(p.value) || 0, id });
-          }
-        }
-        allEnergyPoints.sort((a, b) => a.ts - b.ts);
-        
-        const latestEnergyById: Record<string, number> = {};
-        const summedEnergySeries = [];
-        for (const p of allEnergyPoints) {
-          latestEnergyById[p.id] = p.value;
-          const sum = Object.values(latestEnergyById).reduce((a, b) => a + b, 0);
-          summedEnergySeries.push({ ts: p.ts, value: sum / 1000 });
-        }
-        normalized["energy"] = summedEnergySeries;
+        normalized["energy"] = this.accumulateEnergySeries(energyDataBySocket);
       }
 
       // A newer fetch (e.g. the user clicked a different window chip or
@@ -586,7 +654,7 @@ export class RoomHistoricalDataComponent implements OnInit, OnChanges {
         this.buildCard("presence", "Presence Sensor", "", "person", "#60a5fa", 1, 1, normalized, startTs, endTs, true, true),
         this.buildCard("motion", "Motion Sensor", "", "person", "#a855f7", 1, 1, normalized, startTs, endTs, true, true),
         this.buildCard("power", "Socket Power", "W", "bolt", "#fbbf24", 2000, 3000, normalized, startTs, endTs),
-        this.buildCard("energy", "Socket Energy", "kWh", "bolt", "#10b981", 2, 5, normalized, startTs, endTs)
+        this.buildCard("energy", "Socket Energy", "kWh", "bolt", "#10b981", Infinity, Infinity, normalized, startTs, endTs)
       ];
 
       this.loading = false;
@@ -610,8 +678,11 @@ export class RoomHistoricalDataComponent implements OnInit, OnChanges {
     };
     const aqDeviceId = (this.aqSensors?.length > 0) ? (this.deviceEntityIdMap?.[this.aqSensors[0].entityName] ?? null) : findId(/^(aq|am|air)/i);
     
-    if (key === "temperature") return findId(/temp/i) || aqDeviceId || findId(/trv|thermostat/i);
-    if (key === "humidity") return findId(/hum/i) || aqDeviceId;
+    // Priority order below must match fetchData()'s — otherwise changing the
+    // date range in the expanded chart silently swaps to a different physical
+    // sensor than the one the small card's data came from.
+    if (key === "temperature") return aqDeviceId || findId(/temp/i) || findId(/trv|thermostat/i);
+    if (key === "humidity") return aqDeviceId || findId(/hum/i);
     if (key === "co2") return findId(/co2/i) || aqDeviceId;
     if (key === "tvoc") return findId(/tvoc|voc/i) || aqDeviceId;
     if (key === "pm25" || key === "pm10") return findId(/pm2|pm10|particulate/i) || aqDeviceId;
@@ -626,7 +697,7 @@ export class RoomHistoricalDataComponent implements OnInit, OnChanges {
         || findId(/leak|ws303|bathroom|water/i);
     }
     if (key === "presence") return findId(/occupancy|presence|motion|pir|ws301|vs370/i);
-    if (key === "motion") return findId(/motion|pir/i) || aqDeviceId;
+    if (key === "motion") return findId(/occupancy|presence|motion|pir|ws301|vs370/i) || aqDeviceId;
     if (key === "power" || key === "energy") {
       const plugNames = Object.keys(this.plugDevices || {});
       return (plugNames[0] && this.deviceEntityIdMap?.[plugNames[0]]) || findId(/socket|power|plug|switch/i);
@@ -766,7 +837,7 @@ export class RoomHistoricalDataComponent implements OnInit, OnChanges {
           style="flex: 1; min-height: 0;"
           [data]="data.card.data"
           [colors]="[data.card.color]"
-          [type]="(data.card.key === 'power' || (data.card.isBinary && !data.card.useLineChart)) ? 'bar' : 'line'"
+          [type]="(data.card.isBinary && !data.card.useLineChart) ? 'bar' : 'line'"
           [step]="data.card.useLineChart ? 'start' : false"
           [yAxisMin]="data.card.useLineChart ? 0 : undefined"
           [yAxisMax]="data.card.useLineChart ? 1 : undefined"
@@ -973,8 +1044,9 @@ export class ExpandedChartDialogComponent {
     return this.customStart !== this.appliedCustomStart || this.customEnd !== this.appliedCustomEnd;
   }
 
-  formatDatetimeLocal(d: Date): string {
-    return `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getDate().toString().padStart(2, '0')}T${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+  formatDatetimeLocal(d: Date | number): string {
+    const p = getPragueParts(d);
+    return `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}`;
   }
 
   formatNum(val: any, max: number): string {
@@ -987,8 +1059,38 @@ export class ExpandedChartDialogComponent {
 
   parseDatetimeLocal(str: string): number {
     if (!str) return 0;
-    const d = new Date(str);
-    return isNaN(d.getTime()) ? 0 : d.getTime();
+    // User string is "YYYY-MM-DDTHH:mm". We append the timezone offset to correctly
+    // parse it into a timestamp representing that time in Prague.
+    // Instead of computing offset dynamically which is hard with daylight savings,
+    // a quick hack is to parse it, get the ISO, format it back to Prague, find the
+    // offset diff, and adjust.
+    // But standard JS doesn't have an easy way. A simpler method:
+    // Append the offset manually. During summer Prague is UTC+2, winter UTC+1.
+    // A robust way to parse a string AS Prague time is:
+    const tempLocal = new Date(str);
+    if (isNaN(tempLocal.getTime())) return 0;
+    
+    // Create a string like "August 19, 1975 23:15:30 GMT+02:00"
+    // Since we don't have date-fns-tz, we do a binary search/heuristic or just assume
+    // the local parsing is close enough and shift it.
+    // For simplicity, let's just create a date in UTC, then find the Prague offset at that time.
+    const utcDate = new Date(Date.UTC(
+      parseInt(str.substring(0,4)),
+      parseInt(str.substring(5,7)) - 1,
+      parseInt(str.substring(8,10)),
+      parseInt(str.substring(11,13)),
+      parseInt(str.substring(14,16))
+    ));
+    
+    // Format utcDate in Prague
+    const pParts = getPragueParts(utcDate);
+    // Find difference between Prague hour and UTC hour
+    let diffHours = parseInt(pParts.hour) - utcDate.getUTCHours();
+    if (diffHours < -12) diffHours += 24; // day rollover
+    if (diffHours > 12) diffHours -= 24;
+    
+    // Now subtract the offset to get the real UTC timestamp for that Prague time
+    return utcDate.getTime() - (diffHours * 60 * 60 * 1000);
   }
 
   toggleCustomPicker() {
@@ -1008,12 +1110,11 @@ export class ExpandedChartDialogComponent {
     this.timeLabels = [];
     for (let i = 0; i <= count; i++) {
       const ts = startTs + ((endTs - startTs) * (i / count));
-      const d = new Date(ts);
       // If range is > 24 hours, show short month/day. Otherwise just time.
       if (endTs - startTs > 24 * 60 * 60 * 1000) {
-        this.timeLabels.push(`${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getFullYear()} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`);
+        this.timeLabels.push(`${PRAGUE_DATE_FORMATTER.format(ts)} ${PRAGUE_TIME_FORMATTER.format(ts)}`);
       } else {
-        this.timeLabels.push(`${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`);
+        this.timeLabels.push(PRAGUE_TIME_FORMATTER.format(ts));
       }
     }
   }
@@ -1106,7 +1207,9 @@ export class ExpandedChartDialogComponent {
 
     const parent = this.data.parent;
     const key = this.data.card.key;
-    const keysToFetch = "temperature,humidity,co2,iaq,tvoc,pm25,pm2_5,data_pm25,data_pm2_5,pm10,data_pm10,pressure,data_pressure,lux,illuminance,data_illuminance,light,data_light,light_level,data_light_level,noise,laeq,data_LAeq,data_LAI,data_LAImax,contact,data_contact,waterLeak,leak,water_leak,data_leakage_status,status,state,occupancy,presence,data_occupancy,data_pir,pir,motion,data_motion,power,active_power,data_active_power,load_power,data_power_consumption,energy,temp,hum,data_temperature,data_humidity,data_co2,data_iaq,data_tvoc";
+    const keysToFetch = "temperature,humidity,co2,iaq,tvoc,pm25,pm2_5,data_pm25,data_pm2_5,pm10,data_pm10,pressure,data_pressure,lux,illuminance,data_illuminance,light,data_light,light_level,data_light_level,noise,laeq,data_LAeq,data_LAI,data_LAImax,contact,data_contact,waterLeak,leak,water_leak,data_leakage_status,status,state,occupancy,presence,data_occupancy,data_pir,pir,motion,data_motion,temp,hum,data_temperature,data_humidity,data_co2,data_iaq,data_tvoc";
+    const socketKeys = "power,active_power,data_active_power,load_power,data_power_consumption,energy";
+    const socketLimit = 5000;
 
     try {
       if ((key === "power" || key === "energy") && !this.modalPowerEntity) {
@@ -1119,25 +1222,37 @@ export class ExpandedChartDialogComponent {
           .filter(Boolean);
 
         const results = await Promise.all(powerDeviceIds.map((id: string) =>
-          parent.httpGet(parent.ctx.http, `/api/plugins/telemetry/DEVICE/${id}/values/timeseries?keys=${keysToFetch}&startTs=${startTs}&endTs=${endTs}&limit=${limit}&orderBy=ASC`).catch(() => null)
+          parent.httpGet(parent.ctx.http, `/api/plugins/telemetry/DEVICE/${id}/values/timeseries?keys=${socketKeys}&startTs=${startTs}&endTs=${endTs}&limit=${socketLimit}&orderBy=ASC`).catch(() => null)
         ));
 
-        const allPowerPoints: { ts: number; value: number; idx: number }[] = [];
-        results.forEach((data: any, idx: number) => {
-          if (!data) return;
-          const points = key === "energy" ? (data["data_power_consumption"] || data["energy"] || []) : (data["power"] || data["active_power"] || data["data_active_power"] || data["load_power"] || []);
-          for (const p of points) {
-            allPowerPoints.push({ ts: p.ts, value: parseFloat(p.value) || 0, idx });
-          }
-        });
-        allPowerPoints.sort((a, b) => a.ts - b.ts);
+        let summedPowerSeries: any[] = [];
+        if (key === "energy") {
+          // Accumulated energy consumed within the range, summed across sockets
+          // (baselined to 0 at range start) — same as the small card.
+          const energyBySocket: Record<string, any[]> = {};
+          results.forEach((data: any, idx: number) => {
+            if (!data) return;
+            energyBySocket[String(idx)] = data["data_power_consumption"] || data["energy"] || [];
+          });
+          summedPowerSeries = parent.accumulateEnergySeries(energyBySocket);
+        } else {
+          // Power: instantaneous total = sum of each socket's latest reading.
+          const allPowerPoints: { ts: number; value: number; idx: number }[] = [];
+          results.forEach((data: any, idx: number) => {
+            if (!data) return;
+            const points = data["power"] || data["active_power"] || data["data_active_power"] || data["load_power"] || [];
+            for (const p of points) {
+              allPowerPoints.push({ ts: p.ts, value: parseFloat(p.value) || 0, idx });
+            }
+          });
+          allPowerPoints.sort((a, b) => a.ts - b.ts);
 
-        const latestPowerByIdx: Record<number, number> = {};
-        const summedPowerSeries: any[] = [];
-        for (const p of allPowerPoints) {
-          latestPowerByIdx[p.idx] = p.value;
-          const sum = Object.values(latestPowerByIdx).reduce((a, b) => a + b, 0);
-          summedPowerSeries.push({ ts: p.ts, value: key === "energy" ? (sum / 1000) : sum });
+          const latestPowerByIdx: Record<number, number> = {};
+          for (const p of allPowerPoints) {
+            latestPowerByIdx[p.idx] = p.value;
+            const sum = Object.values(latestPowerByIdx).reduce((a, b) => a + b, 0);
+            summedPowerSeries.push({ ts: p.ts, value: sum });
+          }
         }
 
         const rebuilt = parent.buildCard(
@@ -1163,7 +1278,12 @@ export class ExpandedChartDialogComponent {
           return;
         }
 
-        const res = await parent.httpGet(parent.ctx.http, `/api/plugins/telemetry/DEVICE/${deviceId}/values/timeseries?keys=${keysToFetch}&startTs=${startTs}&endTs=${endTs}&limit=${limit}&orderBy=ASC`);
+        // Use socket-specific keys and higher limit for power/energy to avoid
+        // ThingsBoard's limit cap dropping data points when all keys are fetched.
+        const useSocketKeys = (key === "power" || key === "energy");
+        const fetchKeys = useSocketKeys ? socketKeys : keysToFetch;
+        const fetchLimit = useSocketKeys ? socketLimit : limit;
+        const res = await parent.httpGet(parent.ctx.http, `/api/plugins/telemetry/DEVICE/${deviceId}/values/timeseries?keys=${fetchKeys}&startTs=${startTs}&endTs=${endTs}&limit=${fetchLimit}&orderBy=ASC`);
 
         let raw = [];
         if (key === "temperature") raw = res["temperature"] || res["temp"] || res["data_temperature"] || res["data_temp"] || [];
@@ -1196,7 +1316,9 @@ export class ExpandedChartDialogComponent {
         else if (key === "power") raw = res["power"] || res["active_power"] || res["data_active_power"] || res["load_power"] || [];
         else if (key === "energy") raw = res["data_power_consumption"] || res["energy"] || [];
 
-        const processedRaw = (key === "energy") ? raw.map((p: any) => ({ ...p, value: parseFloat(p.value) / 1000 })) : raw;
+        // Energy: accumulate consumption within the range (baselined to 0, Wh->kWh)
+        // instead of plotting the raw lifetime counter.
+        const processedRaw = (key === "energy") ? parent.accumulateEnergySeries({ single: raw }) : raw;
 
         let normObj: Record<string, any[]> = { [key]: processedRaw };
         if (key === "noise") {
@@ -1260,25 +1382,18 @@ export function getBlockColor(key: string, val: number, cardColor: string): stri
 }
 
 export function formatTimeRange(start: number, end: number): string {
-  const s = new Date(start);
-  const e = new Date(end);
-  const format = (d: Date) => {
-    const h = d.getHours().toString().padStart(2, '0');
-    const m = d.getMinutes().toString().padStart(2, '0');
-    const dateLabel = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-    return `${dateLabel}, ${h}:${m}`;
-  };
-  const sameDay = s.toDateString() === e.toDateString();
+  const pStart = getPragueParts(start);
+  const pEnd = getPragueParts(end);
+  
+  const sameDay = pStart.year === pEnd.year && pStart.month === pEnd.month && pStart.day === pEnd.day;
+  
   if (sameDay) {
-    const dateLabel = s.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-    const timeOnly = (d: Date) => {
-      const h = d.getHours().toString().padStart(2, '0');
-      const m = d.getMinutes().toString().padStart(2, '0');
-      return `${h}:${m}`;
-    };
-    return `${dateLabel}, ${timeOnly(s)} – ${timeOnly(e)}`;
+    // Get something like "Oct 24"
+    const dateLabel = new Intl.DateTimeFormat("en-US", { timeZone: "Europe/Prague", month: 'short', day: 'numeric' }).format(start);
+    return `${dateLabel}, ${pStart.hour}:${pStart.minute} – ${pEnd.hour}:${pEnd.minute}`;
   }
-  return `${format(s)} – ${format(e)}`;
+  
+  return `${PRAGUE_SHORT_DATETIME_FORMATTER.format(start)} – ${PRAGUE_SHORT_DATETIME_FORMATTER.format(end)}`;
 }
 
 export function formatDuration(ms: number): string {

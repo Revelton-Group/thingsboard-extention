@@ -1781,6 +1781,11 @@ export class HotelStateService implements OnDestroy {
         );
       },
       (err: any) => {
+        if (err?.status === 404) {
+          log(`[HotelState] 🗑️ Device [${entityName}] deleted (404 on keys). Removing.`);
+          this.removeDeletedDevice(locationName, entityId, entityName, isRoom);
+          return;
+        }
         warn(
           `HotelStateService: ⚠️ Failed to get keys for [${entityName}]:`,
           err?.status
@@ -1879,12 +1884,79 @@ export class HotelStateService implements OnDestroy {
         }
       },
       (err: any) => {
+        if (err?.status === 404) {
+          log(`[HotelState] 🗑️ Device [${entityName}] deleted (404 on telemetry). Removing.`);
+          this.removeDeletedDevice(locationName, entityId, entityName, isRoom);
+          return;
+        }
         warn(
           `HotelStateService: ⚠️ Failed to fetch telemetry for [${entityName}]:`,
           err?.status
         );
       }
     );
+  }
+
+  /**
+   * Removes a device that returned a 404 error (deleted from ThingsBoard).
+   */
+  private removeDeletedDevice(locationName: string, entityId: string, entityName: string, isRoom: boolean): void {
+    let changed = false;
+
+    // 1. Remove from topology cache
+    if (this.discoveredDevices.has(locationName)) {
+      const devices = this.discoveredDevices.get(locationName)!;
+      const filtered = devices.filter(d => d.deviceId !== entityId);
+      if (filtered.length !== devices.length) {
+        this.discoveredDevices.set(locationName, filtered);
+        changed = true;
+      }
+    }
+
+    // 2. Remove from active Room data
+    if (isRoom && this.roomMap.has(locationName)) {
+      const room = this.roomMap.get(locationName)!;
+      const data = room.roomData;
+      
+      const cleanMap = (map: any) => {
+        if (map && map[entityName] !== undefined) {
+          delete map[entityName];
+          changed = true;
+        }
+      };
+
+      cleanMap(data.deviceEntityIdMap);
+      cleanMap(data.activeDevices);
+      cleanMap(data.offlineDevices);
+      cleanMap(data.lastSeenDevices);
+      cleanMap(data.lastSeenRaw);
+      cleanMap(data.batteryDevices);
+      cleanMap(data.batteryLowDevices);
+      cleanMap(data.tempDevices);
+      cleanMap(data.humDevices);
+      cleanMap(data.airSensors);
+      cleanMap(data.plugDevices);
+      cleanMap(data.trvDevices);
+      cleanMap(data.windowDevices);
+      cleanMap(data.leakDevices);
+      cleanMap(data.noiseDevices);
+      cleanMap(data.occupancyDevices);
+    } 
+    // 3. Remove from Other Devices
+    else {
+      const otherDevices = this._otherDevices$.value || [];
+      const filteredOther = otherDevices.filter(d => d.id !== entityId && d.name !== entityName);
+      if (filteredOther.length !== otherDevices.length) {
+        this._otherDevices$.next(filteredOther);
+        changed = true;
+      }
+    }
+
+    // If we removed something, save topology and force re-calc of stats
+    if (changed) {
+      this._persistTopology$.next();
+      this.updateHotelStats(this._rooms$.value || [], this._hotelStats$.value || {});
+    }
   }
 
   /**
@@ -1947,6 +2019,11 @@ export class HotelStateService implements OnDestroy {
         }
       },
       (err: any) => {
+        if (err?.status === 404) {
+          log(`[HotelState] 🗑️ Device [${entityName}] deleted (404 on attributes). Removing.`);
+          this.removeDeletedDevice(locationName, entityId, entityName, isRoom);
+          return;
+        }
         // Silently ignore if a scope has no attributes or fails (404)
       }
     );

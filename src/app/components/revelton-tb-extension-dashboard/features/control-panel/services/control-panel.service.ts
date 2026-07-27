@@ -213,6 +213,10 @@ export class ControlPanelService {
       // ── Window ──
       window_thresholdMinutes: config.window.thresholdMinutes,
       window_autoPauseHeating: config.window.autoPauseHeating,
+
+      // ── Smart Socket (over-power / overload) ──
+      socket_enabled: config.socket.enabled,
+      socket_powerMax: config.socket.powerMax,
     };
   }
 
@@ -247,7 +251,16 @@ export class ControlPanelService {
       if (ds.entityType === 'DEVICE') {
         const entityName = ds.entityName || '';
         const lowerName = entityName.toLowerCase();
-        const isMews = lowerName.includes('mews') && !lowerName.includes('room');
+        const deviceType = ds.deviceType || (ds.entity as any)?.deviceProfileName || (ds.entity as any)?.type || ds.deviceProfileName || '';
+        const deviceTypeLower = (deviceType || '').toLowerCase();
+        // Mirrors HotelStateService's broadened Mews-bridge detection: match by
+        // profile/device-type, by name (excluding room devices), or by a
+        // "gateway"/"bridge" naming convention — not just a literal "mews" name.
+        const isMews =
+          deviceTypeLower.includes('mews') ||
+          (lowerName.includes('mews') && !lowerName.includes('room')) ||
+          lowerName.includes('gateway') ||
+          lowerName.includes('bridge');
         if (isMews) {
           const rawId = ds.entityId;
           return typeof rawId === 'string' ? rawId : rawId?.id;

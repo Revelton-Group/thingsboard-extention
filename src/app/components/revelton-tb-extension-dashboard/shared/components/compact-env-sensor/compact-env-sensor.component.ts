@@ -130,13 +130,13 @@ export class CompactEnvSensorComponent implements OnChanges {
   getBatteryClass(): string {
     const bat = this.battery;
     if (bat == null) return "ce-chip-gray";
-    if (bat <= 5 || this.batteryLow === true) return "ce-chip-orange";
+    if (bat <= 20 || this.batteryLow === true) return "ce-chip-orange";
     return "ce-chip-green";
   }
 
   getStatusColor(): string {
     if (this.isOffline) return "var(--text-muted, #94a3b8)";
-    if (this.batteryLow || (this.battery !== null && this.battery <= 5)) {
+    if (this.batteryLow || (this.battery !== null && this.battery <= 20)) {
       return "var(--warning, #f59e0b)";
     }
     return "var(--success, #10b981)"; // Green dot indicator
