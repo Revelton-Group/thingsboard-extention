@@ -1,0 +1,19 @@
+{
+  "schema": {
+    "type": "object",
+    "properties": {
+      "hotelName": {
+        "title": "Hotel Name",
+        "type": "string"
+      },
+      "hotelLocation": {
+        "title": "Hotel Location",
+        "type": "string"
+      }
+    }
+  },
+  "form": [
+    "hotelName",
+    "hotelLocation"
+  ]
+}

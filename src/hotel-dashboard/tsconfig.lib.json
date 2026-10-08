@@ -1,0 +1,16 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "rootDirs": [".", "../../node_modules/thingsboard/src"],
+    "outDir": "../../out-tsc/hotel-dashboard",
+    "declaration": true,
+    "declarationMap": true,
+    "inlineSources": true
+  },
+  "exclude": [
+    "**/*.spec.ts"
+  ],
+  "angularCompilerOptions": {
+    "compilationMode": "experimental-local"
+  }
+}

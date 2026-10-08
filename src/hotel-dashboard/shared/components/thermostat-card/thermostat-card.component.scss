@@ -1,0 +1,601 @@
+:host {
+  display: block;
+  height: 100%;
+}
+
+/* ═══ Card (compact: header line + ring and controls side by side) ═══ */
+.thermo-card {
+  width: 100%;
+  height: 100%;
+  background: var(--panel, #141b25);
+  border: 1px solid var(--border, #27313f);
+  border-radius: 14px;
+  padding: 10px 12px 11px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  position: relative;
+  box-sizing: border-box;
+}
+
+/* ═══ Header ═══ */
+.thermo-header {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.thermo-icon-box {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  i {
+    font-size: 18px;
+  }
+}
+
+.thermo-titles {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.thermo-model {
+  font: 500 10px 'IBM Plex Mono';
+  color: var(--t3, #5c6675);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.thermo-name {
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--tx, #e6ecf3);
+}
+
+.thermo-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+  flex: none;
+}
+
+.thermo-badges {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.thermo-badge {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  font: 700 10px Manrope;
+  letter-spacing: .3px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  white-space: nowrap;
+
+  i {
+    font-size: 12px;
+  }
+
+  &--icon {
+    padding: 2px 4px;
+  }
+}
+
+.thermo-time {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font: 600 9.5px Manrope;
+  color: var(--t3, #5c6675);
+  white-space: nowrap;
+
+  i {
+    font-size: 11px;
+  }
+}
+
+/* ═══ Body ═══ */
+.thermo-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.thermo-ring {
+  position: relative;
+  width: 92px;
+  height: 92px;
+  flex: none;
+
+  svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    transform: rotate(-90deg);
+  }
+}
+
+.thermo-ring-track,
+.thermo-ring-val {
+  fill: none;
+  stroke-width: 9;
+}
+
+.thermo-ring-track {
+  stroke: var(--border, #27313f);
+}
+
+.thermo-ring-val {
+  stroke-linecap: round;
+  transition: stroke-dasharray .4s ease;
+}
+
+.thermo-ring-num {
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font: 600 20px/1 'IBM Plex Mono', monospace;
+  color: var(--tx, #e6ecf3);
+}
+
+.thermo-ring-lbl {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 21px;
+  text-align: center;
+  font: 700 8.5px Manrope;
+  letter-spacing: 1px;
+  color: var(--t3, #5c6675);
+}
+
+.thermo-side {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.thermo-status-line {
+  display: flex;
+  align-items: center;
+  min-height: 16px;
+  min-width: 0;
+}
+
+.thermo-run-state {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  font: 700 11.5px Manrope;
+  white-space: nowrap;
+}
+
+.thermo-valve {
+  color: var(--t2, #8b97a8);
+  font-weight: 600;
+}
+
+.thermo-synced {
+  font-size: 13px;
+  color: var(--ok, #34d399);
+}
+
+.state-dot {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+
+/* ═══ Target ═══ */
+.thermo-target {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  padding: 3px;
+  background: var(--inner, #1e2733);
+  border-radius: 12px;
+}
+
+.thermo-panel-label {
+  font: 700 8.5px Manrope;
+  letter-spacing: 1px;
+  color: var(--t3, #5c6675);
+}
+
+.thermo-step-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--panel2, #1a2230);
+  border: 1px solid var(--border, #27313f);
+  color: var(--tx, #e6ecf3);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all .15s;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+
+  i {
+    font-size: 20px;
+  }
+
+  &:hover:not(:disabled) {
+    color: var(--accent, #5c7cfa);
+    border-color: var(--accent, #5c7cfa);
+  }
+
+  &:disabled {
+    opacity: .35;
+    cursor: not-allowed;
+  }
+}
+
+.thermo-setpoint-value {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+}
+
+.thermo-setpoint-num {
+  font: 600 20px/1.05 'IBM Plex Mono';
+  color: var(--accent, #5c7cfa);
+  position: relative;
+}
+
+.thermo-setpoint-deg {
+  font-size: 11px;
+  vertical-align: super;
+  margin-left: 1px;
+}
+
+/* ═══ Sync state (under target) ═══ */
+.thermo-sync {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+  font: 700 10.5px Manrope;
+  color: var(--ok, #34d399);
+  white-space: nowrap;
+
+  i {
+    font-size: 13px;
+  }
+
+  max-width: 100%;
+
+  span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &--pending {
+    color: var(--warn, #f5b54a);
+
+    i {
+      animation: thermo-spin 1.4s linear infinite;
+    }
+  }
+
+  &--failed {
+    color: var(--alert, #f87171);
+  }
+}
+
+@keyframes thermo-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ═══ Mode segmented control: Auto | Manual | Off ═══ */
+.thermo-mode-seg {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 3px;
+  padding: 3px;
+  background: var(--panel2, #1a2230);
+  border: 1px solid var(--border, #27313f);
+  border-radius: 12px;
+}
+
+.thermo-mode-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 31px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 9px;
+  color: var(--t2, #8b97a8);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background .15s, color .15s;
+
+  i {
+    font-size: 18px;
+  }
+
+  &:hover {
+    color: var(--tx, #e6ecf3);
+  }
+
+  &--active {
+    background: var(--accent-soft, rgba(92,124,250,.16));
+    color: var(--accent, #5c7cfa);
+  }
+
+  &--off.thermo-mode-btn--active {
+    background: var(--inner, #1e2733);
+    color: var(--t2, #8b97a8);
+  }
+}
+
+/* ═══ Header gear ═══ */
+.thermo-gear {
+  align-self: flex-start;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--t3, #5c6675);
+  cursor: pointer;
+  position: relative;
+  -webkit-tap-highlight-color: transparent;
+
+  i {
+    font-size: 15px;
+  }
+
+  &:hover {
+    color: var(--tx, #e6ecf3);
+    background: var(--inner, #1e2733);
+  }
+
+  &--pending::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--warn, #f5b54a);
+  }
+
+  &--failed::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--alert, #f87171);
+  }
+}
+
+/* ═══ Device alert (replaces the running state) ═══ */
+.thermo-alert {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin-top: 4px;
+  font: 700 10.5px Manrope;
+  color: var(--warn, #f5b54a);
+  white-space: nowrap;
+
+  i {
+    font-size: 13px;
+  }
+}
+
+/* ═══ Settings overlay ═══ */
+.thermo-settings {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  background: var(--panel, #141b25);
+  border-radius: 14px;
+  overflow-y: auto;
+}
+
+.thermo-settings-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+
+  span {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font: 700 12.5px Manrope;
+    color: var(--tx, #e6ecf3);
+
+    i {
+      font-size: 16px;
+      color: var(--t2, #8b97a8);
+    }
+  }
+}
+
+.thermo-set-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-height: 0;
+  padding: 0 10px;
+  background: var(--panel2, #1a2230);
+  border-radius: 9px;
+}
+
+.thermo-set-icon {
+  font-size: 15px;
+  color: var(--t2, #8b97a8);
+}
+
+.thermo-set-label {
+  flex: 1;
+  min-width: 0;
+  font: 600 11.5px Manrope;
+  color: var(--tx, #e6ecf3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.thermo-set-status {
+  font-size: 13px;
+
+  &--confirmed {
+    color: var(--ok, #34d399);
+  }
+
+  &--pending {
+    color: var(--warn, #f5b54a);
+    animation: thermo-spin 1.4s linear infinite;
+  }
+
+  &--failed {
+    color: var(--alert, #f87171);
+  }
+}
+
+.thermo-text-btn {
+  padding: 3px 8px;
+  flex-shrink: 0;
+  border: 1px solid var(--border, #27313f);
+  border-radius: 6px;
+  background: var(--inner, #1e2733);
+  color: var(--t2, #8b97a8);
+  font: 700 11px Manrope;
+  cursor: pointer;
+
+  &--primary {
+    background: var(--accent, #5c7cfa);
+    border-color: var(--accent, #5c7cfa);
+    color: #fff;
+  }
+}
+
+.thermo-switch {
+  width: 32px;
+  height: 18px;
+  padding: 2px;
+  flex-shrink: 0;
+  border: none;
+  border-radius: 9px;
+  background: var(--border, #27313f);
+  cursor: pointer;
+  transition: background .15s;
+  -webkit-tap-highlight-color: transparent;
+
+  span {
+    display: block;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--t2, #8b97a8);
+    transition: transform .15s, background .15s;
+  }
+
+  &--on {
+    background: var(--accent, #5c7cfa);
+
+    span {
+      background: #fff;
+      transform: translateX(14px);
+    }
+  }
+
+  &--unknown {
+    opacity: .5;
+  }
+}
+
+.thermo-range {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+
+  &--unset .thermo-range-val {
+    opacity: .5;
+  }
+}
+
+.thermo-mini-btn {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid var(--border, #27313f);
+  border-radius: 6px;
+  background: var(--inner, #1e2733);
+  color: var(--t2, #8b97a8);
+  font: 700 12px Manrope;
+  line-height: 1;
+  cursor: pointer;
+
+  &:hover {
+    color: var(--accent, #5c7cfa);
+    border-color: var(--accent, #5c7cfa);
+  }
+}
+
+.thermo-range-val {
+  min-width: 20px;
+  text-align: center;
+  font: 700 11.5px 'IBM Plex Mono';
+  color: var(--tx, #e6ecf3);
+}
+
+.thermo-range-sep {
+  color: var(--t3, #5c6675);
+  font-size: 11px;
+}

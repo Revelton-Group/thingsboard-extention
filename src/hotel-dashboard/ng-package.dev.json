@@ -1,0 +1,8 @@
+{
+  "$schema": "../../node_modules/ng-packagr/ng-package.schema.json",
+  "dest": "../../dist/hotel-dashboard-dev",
+  "lib": {
+    "entryFile": "public-api.ts",
+    "flatModuleFile": "hotel-dashboard-widgets-dev"
+  }
+}

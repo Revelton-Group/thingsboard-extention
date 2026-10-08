@@ -1,0 +1,39 @@
+<div class="room-card" [ngClass]="'status-' + frame">
+    <div class="rc-head">
+        <span class="rc-num">{{ room.sensorData.roomNumber }}</span>
+        <div class="rc-id">
+            <span class="rc-name">{{ name }}</span>
+        </div>
+        <div class="rc-chips">
+            <span class="rc-chip chip-warn" *ngIf="room.hasBatteryLow">
+                <i class="material-icons" aria-hidden="true">battery_alert</i>
+            </span>
+            <span class="rc-chip" [ngClass]="'chip-' + bellTone">
+                <i class="material-icons" aria-hidden="true">{{ room.alarmCount > 0 ? 'notifications_active' : 'notifications' }}</i>
+                <span class="rc-count" *ngIf="room.alarmCount > 0">{{ room.alarmCount }}</span>
+            </span>
+        </div>
+    </div>
+
+    <div class="rc-hero">
+        <div class="rc-reading" *ngFor="let c of hero; trackBy: trackByKey" [ngClass]="'tone-' + c.tone" [class.is-text]="c.text">
+            <div class="rc-reading-head">
+                <i class="material-icons" [ngClass]="c.iconClass" aria-hidden="true">{{ c.icon }}</i>
+                <span>{{ c.label }}</span>
+            </div>
+            <span class="rc-reading-value">{{ c.value }}</span>
+        </div>
+    </div>
+
+    <div class="rc-stats">
+        <div class="rc-stat" *ngFor="let c of stats; trackBy: trackByKey" [ngClass]="'tone-' + c.tone">
+            <span class="rc-stat-icon">
+                <i class="material-icons" [ngClass]="c.iconClass" aria-hidden="true">{{ c.icon }}</i>
+            </span>
+            <span class="rc-stat-text">
+                <span class="rc-stat-label">{{ c.label }}</span>
+                <span class="rc-stat-value">{{ c.value }}</span>
+            </span>
+        </div>
+    </div>
+</div>

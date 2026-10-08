@@ -1,0 +1,140 @@
+<div class="thermo-card" *ngIf="trv">
+    <!-- ═══ Header ═══ -->
+    <div class="thermo-header">
+        <div class="thermo-icon-box" [style.background]="getTrvColor() + '15'">
+            <i class="material-icons" [style.color]="getTrvColor()">local_fire_department</i>
+        </div>
+        <div class="thermo-titles">
+            <span class="thermo-name">{{ trv.displayName || trv.entityName }}</span>
+            <span class="thermo-model">{{ trv.model }}</span>
+        </div>
+        <div class="thermo-meta">
+            <div class="thermo-badges">
+                <span class="thermo-badge"
+                    [style.background]="getBatteryBg(trv)"
+                    [style.color]="getBatteryColor(trv)">
+                    <i class="material-icons">{{ getBatteryIcon(trv) }}</i>
+                    {{ getBatteryLabel(trv) }}
+                </span>
+                <span class="thermo-badge thermo-badge--icon"
+                    [style.background]="getSignalBg(trv.linkquality)"
+                    [style.color]="getSignalColor(trv.linkquality)"
+                    [title]="trv.offline ? t.cpOff : getLinkQualityText(trv.linkquality)">
+                    <i class="material-icons">{{ trv.offline ? 'wifi_off' : 'wifi' }}</i>
+                </span>
+            </div>
+            <span class="thermo-time" *ngIf="trv.lastSeen">
+                <i class="material-icons">schedule</i>{{ trv.lastSeen }}
+            </span>
+        </div>
+        <button *ngIf="settingsButton" type="button" class="thermo-gear" [class.thermo-gear--pending]="settingsSync === 'pending'" [class.thermo-gear--failed]="settingsSync === 'failed'"
+            [title]="t.settings" [attr.aria-label]="t.settings" (click)="settingsOpen = !settingsOpen">
+            <i class="material-icons">settings</i>
+        </button>
+    </div>
+
+    <div class="thermo-main">
+        <!-- ═══ Ring: room temperature, valve opening ═══ -->
+        <div class="thermo-ring">
+            <svg viewBox="0 0 100 100" aria-hidden="true">
+                <circle class="thermo-ring-track" cx="50" cy="50" r="42"></circle>
+                <circle class="thermo-ring-val" cx="50" cy="50" r="42" [style.stroke]="getTrvColor()" [attr.stroke-dasharray]="ringDash"></circle>
+            </svg>
+            <span class="thermo-ring-num">{{ trv.currentTemp != null ? (trv.currentTemp | number:'1.1-1') : '--' }}°</span>
+            <span class="thermo-ring-lbl">{{ t.room | uppercase }}</span>
+        </div>
+
+        <div class="thermo-side">
+            <!-- One status line: alert, sync problem, or running state -->
+            <div class="thermo-status-line">
+                <div class="thermo-alert" *ngIf="trv.alert">
+                    <i class="material-icons">{{ trv.alert.icon }}</i>{{ trv.alert.label }}
+                </div>
+                <div class="thermo-sync" *ngIf="!trv.alert && trv.sync && trv.sync !== 'confirmed'"
+                    [class.thermo-sync--pending]="trv.sync === 'pending'"
+                    [class.thermo-sync--failed]="trv.sync === 'failed'"
+                    [title]="trv.sync === 'failed' ? trv.syncError + ' (' + trv.syncFields + ')' : trv.syncFields">
+                    <i class="material-icons">{{ syncIcon(trv.sync) }}</i>
+                    <span>{{ trv.sync === 'pending' ? t.wtSending : (trv.syncError || t.wtFailed) }}</span>
+                </div>
+                <div class="thermo-run-state" *ngIf="!trv.alert && trv.sync === 'confirmed' || !trv.alert && !trv.sync" [style.color]="getTrvColor()">
+                    <span class="state-dot" [style.background]="getTrvColor()"></span>
+                    {{ runLabel }}
+                    <span class="thermo-valve" *ngIf="trv.valveOpening != null">· {{ trv.valveOpening }}%</span>
+                    <i class="material-icons thermo-synced" *ngIf="trv.sync === 'confirmed'" [title]="t.synced">check_circle</i>
+                </div>
+            </div>
+
+            <!-- Target temperature -->
+            <div class="thermo-target">
+                <button class="thermo-step-btn" (click)="decrementTemp()" [disabled]="trv.systemMode === 'off'" [attr.aria-label]="t.targetL">
+                    <i class="material-icons">remove</i>
+                </button>
+                <div class="thermo-setpoint-value">
+                    <span class="thermo-panel-label">{{ t.targetL | uppercase }}</span>
+                    <span class="thermo-setpoint-num">{{ trv.targetTemp != null ? (trv.targetTemp | number:'1.0-0') : '--' }}<span class="thermo-setpoint-deg">°</span></span>
+                </div>
+                <button class="thermo-step-btn" (click)="incrementTemp()" [disabled]="trv.systemMode === 'off'" [attr.aria-label]="t.targetL">
+                    <i class="material-icons">add</i>
+                </button>
+            </div>
+
+            <!-- Mode: Auto | Manual | Off -->
+            <div class="thermo-mode-seg">
+                <button type="button" class="thermo-mode-btn"
+                    *ngFor="let m of modeOptions; trackBy: trackById"
+                    [class.thermo-mode-btn--active]="trv.systemMode === m.id"
+                    [class.thermo-mode-btn--off]="m.id === 'off'"
+                    [title]="m.label" [attr.aria-label]="m.label"
+                    (click)="selectMode(m.id)">
+                    <i class="material-icons">{{ m.icon }}</i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ Settings overlay (same card size) ═══ -->
+    <div class="thermo-settings" *ngIf="settingsOpen">
+        <div class="thermo-settings-head">
+            <span><i class="material-icons">settings</i>{{ t.settings }}</span>
+            <button type="button" class="thermo-gear" (click)="settingsOpen = false; copyPrompt = false"><i class="material-icons">close</i></button>
+        </div>
+        <div class="thermo-set-row" *ngIf="(trv.linkedCount || 1) >= 2">
+            <ng-container *ngIf="!copyPrompt">
+                <i class="material-icons thermo-set-icon">link</i>
+                <span class="thermo-set-label" [title]="t.wtLinkAll">{{ t.wtLinkAll }}</span>
+                <button type="button" class="thermo-switch" [class.thermo-switch--on]="trv.linked" (click)="toggleLinked()"><span></span></button>
+            </ng-container>
+            <ng-container *ngIf="copyPrompt">
+                <span class="thermo-set-label" [title]="t.wtCopyAsk">{{ t.wtCopyAsk }}</span>
+                <button type="button" class="thermo-text-btn thermo-text-btn--primary" (click)="answerCopy(true)">{{ t.yesL }}</button>
+                <button type="button" class="thermo-text-btn" (click)="answerCopy(false)">{{ t.noL }}</button>
+            </ng-container>
+        </div>
+        <div class="thermo-set-row" *ngFor="let s of toggleSettings; trackBy: trackByKey">
+            <i class="material-icons thermo-set-icon">{{ s.icon }}</i>
+            <span class="thermo-set-label">{{ s.label }}</span>
+            <i class="material-icons thermo-set-status" *ngIf="setting(s.key)?.sync as sy"
+                [ngClass]="'thermo-set-status--' + sy" [title]="sy === 'failed' ? trv.syncError : ''">{{ syncIcon(sy) }}</i>
+            <button type="button" class="thermo-switch"
+                [class.thermo-switch--on]="setting(s.key)?.value === true"
+                [class.thermo-switch--unknown]="setting(s.key)?.value == null"
+                (click)="toggleSetting(s.key)"><span></span></button>
+        </div>
+        <div class="thermo-set-row">
+            <i class="material-icons thermo-set-icon">thermostat</i>
+            <span class="thermo-set-label">{{ t.tempRange }}</span>
+            <i class="material-icons thermo-set-status" *ngIf="setting('wt_temp_range_min')?.sync as sy"
+                [ngClass]="'thermo-set-status--' + sy" [title]="sy === 'failed' ? trv.syncError : ''">{{ syncIcon(sy) }}</i>
+            <div class="thermo-range" [class.thermo-range--unset]="setting('wt_temp_range_min')?.value == null">
+                <button type="button" class="thermo-mini-btn" (click)="stepRange('min', -1)">−</button>
+                <span class="thermo-range-val">{{ tempMin }}</span>
+                <button type="button" class="thermo-mini-btn" (click)="stepRange('min', 1)">+</button>
+                <span class="thermo-range-sep">–</span>
+                <button type="button" class="thermo-mini-btn" (click)="stepRange('max', -1)">−</button>
+                <span class="thermo-range-val">{{ tempMax }}°</span>
+                <button type="button" class="thermo-mini-btn" (click)="stepRange('max', 1)">+</button>
+            </div>
+        </div>
+    </div>
+</div>
