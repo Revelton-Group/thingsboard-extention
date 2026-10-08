@@ -224,8 +224,8 @@
                             {{ s.isOccupied ? (t.occupied || 'Occupied') : (t.vacant || 'Vacant') | titlecase }}
                         </div>
                         <div class="presence-badges">
-                            <span class="presence-dim-badge">
-                                <i class="material-icons">dark_mode</i>{{ t.dim }}
+                            <span class="presence-dim-badge" *ngIf="s.illuminance === 'dim' || s.illuminance === 'bright'">
+                                <i class="material-icons">{{ s.illuminance === 'dim' ? 'dark_mode' : 'light_mode' }}</i>{{ s.illuminance === 'dim' ? t.dim : t.bright }}
                             </span>
                             <span class="presence-dim-badge" *ngIf="aqSensors.length > 0">
                                 <i class="material-icons" [style.color]="isMotionActive(aqSensors[0].pir) ? '#34d399' : 'var(--t2, #8b97a8)'">{{ isMotionActive(aqSensors[0].pir) ? 'person' : 'person_off' }}</i>{{ isMotionActive(aqSensors[0].pir) ? t.lblMotion : t.idle }}
@@ -288,8 +288,8 @@
 
             <!-- Empty state -->
             <div class="empty-state" *ngIf="thermostats.length === 0 && aqSensors.length === 0 && allRawSensors.length === 0 && smartSockets.length === 0">
-                {{ t.loading || 'Loading devices...' }}
-                </div>
+                {{ t.noDevices }}
+            </div>
           </div>
 
           <tb-alerts-panel class="devices-alerts"
@@ -363,69 +363,9 @@
                 [leakDevices]="data?.leakDevices || {}"
                 [noiseDevices]="data?.noiseDevices || {}"
                 [plugDevices]="data?.plugDevices || {}"
-                [checkedIn]="data?.sensorData?.checkedIn || false"
-                [timeRangeHours]="histTimeRange">
+                [checkedIn]="data?.sensorData?.checkedIn || false">
             </tb-room-historical-data>
         </div>
 
-    </div>
-</div>
-
-<!-- ═══ Vital Chart Expand Modal ═══ -->
-<div class="vital-expand-overlay" *ngIf="expandedVitalKey" (click)="closeExpandedVital()">
-    <div class="vital-expand-modal" (click)="$event.stopPropagation()">
-        <div class="vital-expand-header">
-            <div class="vital-expand-icon-box" [style.background]="expandedVitalTint" [style.color]="expandedVitalColor">
-                <i class="material-icons">{{ expandedVitalIcon }}</i>
-            </div>
-            <div class="vital-expand-title-area">
-                <div class="vital-expand-title">{{ expandedVitalLabel }}</div>
-                <div class="vital-expand-current">
-                    <span class="vital-expand-val" [style.color]="expandedVitalColor">{{ expandedVitalValue }}<span class="vital-expand-deg">{{ expandedVitalDeg }}</span></span>
-                    <span class="vital-expand-unit">{{ expandedVitalUnit }}</span>
-                </div>
-            </div>
-            <span class="vital-expand-badge" [style.background]="expandedVitalScBg" [style.color]="expandedVitalSc">{{ expandedVitalStat }}</span>
-            <div class="vital-expand-toggles">
-                <button [class.active]="vitalsTimeRange === 24" (click)="setVitalsTimeRange(24)">24H</button>
-                <button [class.active]="vitalsTimeRange === 168" (click)="setVitalsTimeRange(168)">7D</button>
-                <button [class.active]="vitalsTimeRange === 720" (click)="setVitalsTimeRange(720)">30D</button>
-            </div>
-            <button class="vital-expand-close" (click)="closeExpandedVital()">
-                <i class="material-icons">close</i>
-            </button>
-        </div>
-        <div class="vital-expand-body">
-            <div class="vital-expand-chart-area">
-                <tb-room-historical-data
-                    [ctx]="data?.ctx"
-                    [deviceEntityIdMap]="deviceEntityIdMap"
-                    [thermostats]="thermostats"
-                    [aqSensors]="aqSensors"
-                    [tempDevices]="data?.tempDevices || {}"
-                    [humDevices]="data?.humDevices || {}"
-                    [windowDevices]="data?.windowDevices || {}"
-                    [leakDevices]="data?.leakDevices || {}"
-                    [noiseDevices]="data?.noiseDevices || {}"
-                    [plugDevices]="data?.plugDevices || {}"
-                    [checkedIn]="data?.sensorData?.checkedIn || false"
-                    [timeRangeHours]="vitalsTimeRange">
-                </tb-room-historical-data>
-            </div>
-            <div class="vital-expand-summary">
-                <div class="vital-expand-stat">
-                    <div class="ves-label">MIN</div>
-                    <div class="ves-value">{{ expandedVitalMin }}</div>
-                </div>
-                <div class="vital-expand-stat">
-                    <div class="ves-label">AVG</div>
-                    <div class="ves-value" [style.color]="expandedVitalColor">{{ expandedVitalAvg }}</div>
-                </div>
-                <div class="vital-expand-stat">
-                    <div class="ves-label">MAX</div>
-                    <div class="ves-value">{{ expandedVitalMax }}</div>
-                </div>
-            </div>
-        </div>
     </div>
 </div>

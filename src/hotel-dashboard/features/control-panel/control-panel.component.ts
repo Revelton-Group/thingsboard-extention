@@ -353,7 +353,7 @@ import {
                 <div class="cp-card cp-card--row" style="position: relative; padding: 10px 14px; gap: 10px; flex-wrap: nowrap;">
 
                   <!-- Icon -->
-                  <div style="width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: var(--accentSoft, rgba(92,124,250,0.14)); border: 1px solid rgba(92,124,250,0.25);">
+                  <div style="width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: var(--accent-soft, rgba(92,124,250,0.14)); border: 1px solid rgba(92,124,250,0.25);">
                     <i class="material-icons" style="font-size: 16px; color: var(--accent, #5c7cfa);">event_available</i>
                   </div>
 
@@ -1113,7 +1113,7 @@ export class ControlPanelComponent implements OnInit, OnDestroy {
     const current = this.getLiveValue(metric);
     const status = this.getMetricStatus(current, maxLimit, warnGap, meta.hasMin ? minLimit : undefined);
     const statusColor = status === 'alert' ? 'var(--alert,#f87171)' : status === 'warning' ? 'var(--warn,#f5b54a)' : 'var(--ok,#34d399)';
-    const statusBg = status === 'alert' ? 'var(--alertSoft,rgba(248,113,113,.13))' : status === 'warning' ? 'var(--warnSoft,rgba(245,181,74,.13))' : 'var(--okSoft,rgba(52,211,153,.13))';
+    const statusBg = status === 'alert' ? 'var(--alert-soft,rgba(248,113,113,.13))' : status === 'warning' ? 'var(--warn-soft,rgba(245,181,74,.13))' : 'var(--ok-soft,rgba(52,211,153,.13))';
     const statusLabel = status === 'alert' ? (this.t.alertC || 'EXCEEDED') : status === 'warning' ? (this.t.warningC || 'WARNING') : (this.t.normalC || 'NORMAL');
     const percent = Math.min(100, Math.round((current / maxLimit) * 100));
     return {
@@ -1197,7 +1197,7 @@ export class ControlPanelComponent implements OnInit, OnDestroy {
     const noiseWarnGap = Math.round(limit * 0.2);
     const status = this.getMetricStatus(current, limit, noiseWarnGap);
     const statusColor = status === 'alert' ? 'var(--alert,#f87171)' : status === 'warning' ? 'var(--warn,#f5b54a)' : 'var(--ok,#34d399)';
-    const statusBg = status === 'alert' ? 'var(--alertSoft,rgba(248,113,113,.13))' : status === 'warning' ? 'var(--warnSoft,rgba(245,181,74,.13))' : 'var(--okSoft,rgba(52,211,153,.13))';
+    const statusBg = status === 'alert' ? 'var(--alert-soft,rgba(248,113,113,.13))' : status === 'warning' ? 'var(--warn-soft,rgba(245,181,74,.13))' : 'var(--ok-soft,rgba(52,211,153,.13))';
     const statusLabel = status === 'alert' ? (this.t.alertC || 'EXCEEDED') : status === 'warning' ? (this.t.warningC || 'WARNING') : (this.t.normalC || 'NORMAL');
     const percent = Math.min(100, Math.round((current / limit) * 100));
     return {

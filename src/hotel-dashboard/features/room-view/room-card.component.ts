@@ -164,6 +164,7 @@ export class RoomCardComponent implements OnInit, OnDestroy {
   }
 
   private onPeriodicRefresh(): void {
+    if (typeof document !== "undefined" && document.hidden) return;
     if (this.ctx.detectChanges) this.ctx.detectChanges();
     if (this.activeDialogRef?.componentInstance) {
       this.activeDialogRef.componentInstance.updateData();

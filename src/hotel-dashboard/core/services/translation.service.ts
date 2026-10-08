@@ -54,6 +54,8 @@ export interface TranslationSet {
   syncWaiting: string;
   wtSending: string;
   wtFailed: string;
+  wtWriteFailed: string;
+  wtNotConfirmed: string;
   wtLinkAll: string;
   wtCopyAsk: string;
   yesL: string;
@@ -235,6 +237,8 @@ export interface TranslationSet {
   presenceSensor: string;
   humanPresenceRadar: string;
   dim: string;
+  bright: string;
+  noDevices: string;
   windowSensorsT: string;
   waterLeakSensorsT: string;
   noiseSensor: string;
@@ -368,6 +372,8 @@ export class TranslationService {
       syncWaiting: "Device:",
       wtSending: "Sending… ≤10 min",
       wtFailed: "Not delivered",
+      wtWriteFailed: "Not saved",
+      wtNotConfirmed: "Not confirmed",
       wtLinkAll: "Control all",
       wtCopyAsk: "Copy these settings to the others?",
       yesL: "Yes",
@@ -544,6 +550,8 @@ export class TranslationService {
       presenceSensor: "Presence Sensor",
       humanPresenceRadar: "HUMAN PRESENCE RADAR",
       dim: "Dim",
+      bright: "Bright",
+      noDevices: "No devices linked to this room",
       windowSensorsT: "Window Sensors",
       waterLeakSensorsT: "Water Leak Sensors",
       noiseSensor: "Noise Sensor",
@@ -666,6 +674,8 @@ export class TranslationService {
       syncWaiting: "Устройство:",
       wtSending: "Отправка… ≤10 мин",
       wtFailed: "Не доставлено",
+      wtWriteFailed: "Не сохранено",
+      wtNotConfirmed: "Не подтверждено",
       wtLinkAll: "Управлять всеми",
       wtCopyAsk: "Скопировать эти настройки на другие?",
       yesL: "Да",
@@ -842,6 +852,8 @@ export class TranslationService {
       presenceSensor: "Датчик присутствия",
       humanPresenceRadar: "РАДАР ПРИСУТСТВИЯ",
       dim: "Тускло",
+      bright: "Светло",
+      noDevices: "К этой комнате не привязаны устройства",
       windowSensorsT: "Датчики окон",
       waterLeakSensorsT: "Датчики протечки",
       noiseSensor: "Датчик шума",
@@ -920,7 +932,12 @@ export class TranslationService {
   activeLangCode$ = this.activeLangCodeSubject.asObservable();
 
   constructor() {
-    const savedLang = localStorage.getItem("revelton_lang");
+    let savedLang: string | null = null;
+    try {
+      savedLang = localStorage.getItem("revelton_lang");
+    } catch {
+      // Storage blocked (privacy mode, kiosk policy): stay on the default language
+    }
     if (savedLang && this.translations[savedLang]) {
       this.activeLangCodeSubject.next(savedLang);
     }
@@ -941,7 +958,11 @@ export class TranslationService {
   setLanguage(code: string): void {
     if (this.translations[code]) {
       this.activeLangCodeSubject.next(code);
-      localStorage.setItem("revelton_lang", code);
+      try {
+        localStorage.setItem("revelton_lang", code);
+      } catch {
+        // Not persisted; the choice still applies to this page
+      }
     }
   }
 }

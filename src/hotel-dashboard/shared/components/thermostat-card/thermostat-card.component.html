@@ -72,7 +72,7 @@
                 </button>
                 <div class="thermo-setpoint-value">
                     <span class="thermo-panel-label">{{ t.targetL | uppercase }}</span>
-                    <span class="thermo-setpoint-num">{{ trv.targetTemp != null ? (trv.targetTemp | number:'1.0-0') : '--' }}<span class="thermo-setpoint-deg">°</span></span>
+                    <span class="thermo-setpoint-num">{{ shownTarget != null ? (shownTarget | number:'1.0-0') : '--' }}<span class="thermo-setpoint-deg">°</span></span>
                 </div>
                 <button class="thermo-step-btn" (click)="incrementTemp()" [disabled]="trv.systemMode === 'off'" [attr.aria-label]="t.targetL">
                     <i class="material-icons">add</i>

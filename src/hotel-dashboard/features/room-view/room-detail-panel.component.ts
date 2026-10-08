@@ -49,28 +49,6 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
   @Input() data: any;
   @Output() closed = new EventEmitter<void>();
 
-  // Sparkline data
-  tempSparkData: number[] = [];
-  humSparkData: number[] = [];
-  co2SparkData: number[] = [];
-  aqiSparkData: number[] = [];
-
-  tempMin: number | null = null;
-  tempAvg: number | null = null;
-  tempMax: number | null = null;
-
-  humMin: number | null = null;
-  humAvg: number | null = null;
-  humMax: number | null = null;
-
-  co2Min: number | null = null;
-  co2Avg: number | null = null;
-  co2Max: number | null = null;
-
-  aqiMin: number | null = null;
-  aqiAvg: number | null = null;
-  aqiMax: number | null = null;
-
   // Computed status/color for vitals
   tempStatus = 'normal';
   humStatus = 'normal';
@@ -78,32 +56,6 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
   co2Status = 'normal';
   co2Value: number | null = null;
   aqiScore: number | null = null;
-
-  get tempColor(): string {
-    if (this.tempStatus === 'danger') return 'var(--alert, #f87171)';
-    if (this.tempStatus === 'warning') return 'var(--warn, #f5b54a)';
-    return 'var(--accent, #5c7cfa)';
-  }
-
-  get co2Color(): string {
-    if (this.co2Status === 'danger') return 'var(--alert, #f87171)';
-    if (this.co2Status === 'warning') return 'var(--warn, #f5b54a)';
-    return 'var(--ok, #34d399)';
-  }
-
-  get aqiColor(): string {
-    if (this.airStatus === 'danger') return 'var(--alert, #f87171)';
-    if (this.airStatus === 'warning') return 'var(--warn, #f5b54a)';
-    return 'var(--ok, #34d399)';
-  }
-
-  get aqiColorBg(): string {
-    if (this.airStatus === 'danger') return 'var(--alert-soft, rgba(248,113,113,.13))';
-    if (this.airStatus === 'warning') return 'var(--warn-soft, rgba(245,181,74,.13))';
-    return 'var(--ok-soft, rgba(52,211,153,.13))';
-  }
-
-  private lastFetchedRoom = '';
 
   private fmt(template: string, vars: Record<string, string | number>): string {
     return template.replace(/\{(\w+)\}/g, (_m, k) => String(vars[k] ?? ''));
@@ -167,24 +119,17 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
   // RPC: entityName → entityId (UUID) lookup map
   deviceEntityIdMap: { [entityName: string]: string } = {};
 
-  private refreshInterval: any;
   private wtPoll: any;
+  private wtRefetch: any;
+  private destroyed = false;
   private wtStarted = false;
   private wtState: Record<string, WtDeviceState> = {};
   private wtWriteAt: Record<string, number> = {};
+  /** Fields whose last write was rejected (HTTP error), per thermostat */
+  private wtWriteError: Record<string, string> = {};
   private roomAssetId: string | null = null;
   private wtLinked = true;
   private configSub: any;
-
-  // ── Vitals Time Range ──────────────────────────────────────────
-  /** Time range for vitals sparklines and expand modal: 24 | 168 | 720 hours */
-  vitalsTimeRange = 24;
-
-  setVitalsTimeRange(hours: number): void {
-    this.vitalsTimeRange = hours;
-    this.fetchHistoricalVitals();
-    this.cdr.detectChanges();
-  }
 
   // ── Inline Historical Telemetry State ──────────────────────────────
   /** Time range for inline historical section: 24 | 168 | 720 hours or 'custom' */
@@ -306,126 +251,6 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
     }
   }
 
-  // ── Vital Expand Modal State ────────────────────────────────────
-  expandedVitalKey: string | null = null;
-  expandedVitalTint = '';
-  expandedVitalColor = '';
-  expandedVitalIcon = '';
-  expandedVitalLabel = '';
-  expandedVitalValue = '';
-  expandedVitalDeg = '';
-  expandedVitalUnit = '';
-  expandedVitalStat = '';
-  expandedVitalScBg = '';
-  expandedVitalSc = '';
-  expandedVitalMin = '';
-  expandedVitalAvg = '';
-  expandedVitalMax = '';
-
-  // NOTE: nothing calls expandVital() currently — the vital-expand modal
-  // (template "Vital Chart Expand Modal") is orphaned. Re-wire a click
-  // handler on the vital cards or remove the whole cluster (fields above,
-  // getVitalConfig, template block). Tracked in docs/AUDIT_REPORT.md.
-  expandVital(key: string): void {
-    this.expandedVitalKey = key;
-    const cfg = this.getVitalConfig(key);
-    this.expandedVitalTint = cfg.tint;
-    this.expandedVitalColor = cfg.color;
-    this.expandedVitalIcon = cfg.icon;
-    this.expandedVitalLabel = cfg.label;
-    this.expandedVitalValue = cfg.value;
-    this.expandedVitalDeg = cfg.deg;
-    this.expandedVitalUnit = cfg.unit;
-    this.expandedVitalStat = cfg.stat;
-    this.expandedVitalScBg = cfg.scBg;
-    this.expandedVitalSc = cfg.sc;
-    this.expandedVitalMin = cfg.min;
-    this.expandedVitalAvg = cfg.avg;
-    this.expandedVitalMax = cfg.max;
-    this.cdr.detectChanges();
-  }
-
-  closeExpandedVital(): void {
-    this.expandedVitalKey = null;
-    this.cdr.detectChanges();
-  }
-
-  private getVitalConfig(key: string): any {
-    const def = { tint: '', color: '', icon: '', label: key, value: '--', deg: '', unit: '', stat: this.t.normalC, scBg: 'var(--ok-soft)', sc: 'var(--ok)', min: '--', avg: '--', max: '--' };
-    switch (key) {
-      case 'temperature':
-        return {
-          ...def,
-          tint: 'rgba(245,181,74,.13)',
-          color: this.tempColor,
-          icon: 'device_thermostat',
-          label: this.t.temperature || 'Temperature',
-          value: this.avgTemp !== null ? this.avgTemp.toFixed(1) : '--',
-          deg: '°',
-          unit: 'C',
-          stat: this.tempStatus === 'danger' ? this.t.statCritical : (this.tempStatus === 'warning' ? this.t.warningC : this.t.normalC),
-          scBg: this.tempStatus === 'danger' ? 'var(--alert-soft)' : (this.tempStatus === 'warning' ? 'var(--warn-soft)' : 'var(--ok-soft)'),
-          sc: this.tempStatus === 'danger' ? 'var(--alert)' : (this.tempStatus === 'warning' ? 'var(--warn)' : 'var(--ok)'),
-          min: this.tempMin !== null ? this.tempMin.toFixed(1) : '--',
-          avg: this.tempAvg !== null ? this.tempAvg.toFixed(1) : '--',
-          max: this.tempMax !== null ? this.tempMax.toFixed(1) : '--'
-        };
-      case 'humidity':
-        return {
-          ...def,
-          tint: 'rgba(92,124,250,.14)',
-          color: 'var(--accent, #5c7cfa)',
-          icon: 'water_drop',
-          label: this.t.humidity || 'Humidity',
-          value: this.avgHum !== null ? this.avgHum.toFixed(0) : '--',
-          deg: '',
-          unit: '%',
-          stat: this.humStatus === 'danger' ? this.t.statCritical : (this.humStatus === 'warning' ? this.t.warningC : this.t.normalC),
-          scBg: this.humStatus === 'danger' ? 'var(--alert-soft)' : (this.humStatus === 'warning' ? 'var(--warn-soft)' : 'var(--ok-soft)'),
-          sc: this.humStatus === 'danger' ? 'var(--alert)' : (this.humStatus === 'warning' ? 'var(--warn)' : 'var(--ok)'),
-          min: this.humMin !== null ? this.humMin.toFixed(0) : '--',
-          avg: this.humAvg !== null ? this.humAvg.toFixed(0) : '--',
-          max: this.humMax !== null ? this.humMax.toFixed(0) : '--'
-        };
-      case 'co2':
-        return {
-          ...def,
-          tint: 'rgba(52,211,153,.13)',
-          color: this.co2Color,
-          icon: 'co2',
-          label: 'CO₂',
-          value: this.co2Value !== null ? this.co2Value.toFixed(0) : '--',
-          deg: '',
-          unit: 'ppm',
-          stat: this.co2Status === 'danger' ? this.t.statCritical : (this.co2Status === 'warning' ? this.t.warningC : this.t.normalC),
-          scBg: this.co2Status === 'danger' ? 'var(--alert-soft)' : (this.co2Status === 'warning' ? 'var(--warn-soft)' : 'var(--ok-soft)'),
-          sc: this.co2Status === 'danger' ? 'var(--alert)' : (this.co2Status === 'warning' ? 'var(--warn)' : 'var(--ok)'),
-          min: this.co2Min !== null ? this.co2Min.toFixed(0) : '--',
-          avg: this.co2Avg !== null ? this.co2Avg.toFixed(0) : '--',
-          max: this.co2Max !== null ? this.co2Max.toFixed(0) : '--'
-        };
-      case 'aqi':
-        return {
-          ...def,
-          tint: this.aqiColorBg,
-          color: this.aqiColor,
-          icon: 'air',
-          label: this.t.airQuality || 'Air Quality',
-          value: this.aqiScore !== null ? String(this.aqiScore) : '--',
-          deg: '',
-          unit: 'AQI',
-          stat: this.airStatus === 'danger' ? this.t.statCritical : (this.airStatus === 'warning' ? this.t.warningC : this.t.normalC),
-          scBg: this.aqiColorBg,
-          sc: this.aqiColor,
-          min: this.aqiMin !== null ? String(this.aqiMin) : '--',
-          avg: this.aqiAvg !== null ? String(this.aqiAvg) : '--',
-          max: this.aqiMax !== null ? String(this.aqiMax) : '--'
-        };
-      default:
-        return def;
-    }
-  }
-
   constructor(
     @Optional() @Inject(MAT_DIALOG_DATA) public dialogData: any,
     @Optional() private dialogRef: MatDialogRef<RoomDetailPanelComponent>,
@@ -449,11 +274,9 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
     if (this.dialogData) {
       this.data = this.dialogData;
     }
+    // No own refresh timer: the opener (hotel grid or tb-room-card) calls updateData()
+    // on every telemetry update and on its 10 s refresh tick.
     this.initializeData();
-
-    this.refreshInterval = setInterval(() => {
-      this.updateData();
-    }, 10000);
 
     this.configSub = this.controlPanelService.config$.subscribe(() => {
       this.updateData();
@@ -470,14 +293,14 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
     if (!this.data) return;
     this.deviceEntityIdMap = { ...this.data.deviceEntityIdMap };
     this.buildFromPassedData();
-    this.fetchHistoricalVitals();
     this.cdr.detectChanges();
   }
 
   ngOnDestroy(): void {
+    this.destroyed = true;
     this.detachTheme?.();
-    if (this.refreshInterval) clearInterval(this.refreshInterval);
     if (this.wtPoll) clearInterval(this.wtPoll);
+    if (this.wtRefetch) clearTimeout(this.wtRefetch);
     if (this.configSub) this.configSub.unsubscribe();
   }
 
@@ -486,10 +309,6 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
       Object.assign(this.deviceEntityIdMap, this.data.deviceEntityIdMap);
     }
     this.buildFromPassedData();
-    const cacheKey = `${this.roomNumber}_${this.vitalsTimeRange}`;
-    if (cacheKey !== this.lastFetchedRoom) {
-      this.fetchHistoricalVitals();
-    }
     if (!this.wtStarted && this.thermostats.length > 0) {
       this.wtStarted = true;
       this.startWt();
@@ -501,7 +320,11 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
   private async startWt(): Promise<void> {
     await this.resolveRoomAsset();
     await this.fetchWtStates();
-    this.wtPoll = setInterval(() => this.fetchWtStates(), 10000);
+    // The dialog may have closed while the requests above were in flight
+    if (this.destroyed) return;
+    this.wtPoll = setInterval(() => {
+      if (!document.hidden) this.fetchWtStates();
+    }, 10000);
   }
 
   /** wt_linked is kept on the room asset — the asset that Contains the room's WT101s */
@@ -541,8 +364,10 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
         const prev = this.wtState[name];
         // A value written a moment ago may not read back yet — keep the local copy briefly
         const recentWrite = Date.now() - (this.wtWriteAt[name] || 0) < 5000;
+        const sharedTs = Object.fromEntries((shared || []).map((r: any) => [r.key, r.lastUpdateTs ?? 0]));
         this.wtState[name] = {
           shared: recentWrite && prev ? prev.shared : toMap(shared),
+          sharedTs: recentWrite && prev?.sharedTs ? prev.sharedTs : sharedTs,
           server: toMap(server),
           error: (telemetry as any)?.wt_downlink_error?.[0]?.value ?? '',
         };
@@ -550,6 +375,7 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
         console.error('[RoomDetail] Failed to fetch WT101 state for', name, err);
       }
     }));
+    if (this.destroyed) return;
     this.buildFromPassedData();
     this.cdr.detectChanges();
   }
@@ -561,13 +387,8 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
     this.closed.emit();
   }
 
-  private testAlertCount(): number {
-    try { return Math.min(50, parseInt(localStorage.getItem('revelton_test_alerts') || '0', 10) || 0); } catch { return 0; }
-  }
-
   private isTampered(name: string): boolean {
-    if (this.data.tamperDevices?.[name]) return true;
-    try { return localStorage.getItem('revelton_test_tamper') === '1'; } catch { return false; }
+    return !!this.data.tamperDevices?.[name];
   }
 
   private isDeviceOffline(name: string): boolean {
@@ -652,7 +473,8 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
       const st = this.wtState[name] || { shared: {}, server: {}, error: '' };
       const s = st.shared;
       const mode = WT_MODES.includes(s.wt_mode) ? s.wt_mode : 'auto';
-      const sync = deviceSync(st);
+      const writeError = this.wtWriteError[name];
+      const sync = writeError ? 'failed' : deviceSync(st);
 
       const freshData = {
         entityName: name,
@@ -663,8 +485,8 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
         systemMode: mode,
         settings: this.buildTrvSettings(st),
         sync,
-        syncError: sync === 'failed' ? st.error : '',
-        syncFields: unconfirmedFields(st).join(', '),
+        syncError: writeError ? this.t.wtWriteFailed : (sync === 'failed' ? (st.error || this.t.wtNotConfirmed) : ''),
+        syncFields: writeError || unconfirmedFields(st).join(', '),
         alert: this.getTrvAlert(name, data),
         runningState: mode === 'off' ? 'off' : (data.status || (data.calibrationFailed ? 'idle' : this.deriveTrvState(mode, this.data.tempDevices?.[name], data.setPoint))),
         valveOpening: data.valveOpening ?? null,
@@ -859,7 +681,7 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
         displayName: displayName,
         occupancy: rawOccupancy,
         isOccupied: isOccupied,
-        illuminance: data.illuminance || null,
+        illuminance: data.illuminance ? String(data.illuminance).toLowerCase() : null,
         statusLabel: isOccupied ? this.t.occupied : this.t.vacant,
         statusColor: isOccupied ? '#3B82F6' : '#34C759',
         icon: 'radar',
@@ -1009,11 +831,6 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
       else this.co2Status = 'normal';
     }
     this.aqiScore = this.aqSensors.length > 0 ? (this.aqSensors[0].aqiScore ?? null) : null;
-    if (this.aqiScore !== null) {
-      this.aqiMin = this.aqiMin ?? this.aqiScore;
-      this.aqiMax = this.aqiMax ?? this.aqiScore;
-      this.aqiAvg = this.aqiScore;
-    }
 
     // Populate alerts dynamically based on custom thresholds from Control Config
     const previousAlerts = [...this.alerts];
@@ -1206,16 +1023,6 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
           });
         }
       }
-    }
-
-    for (let i = 1; i <= this.testAlertCount(); i++) {
-      triggeredAlerts.push({
-        id: `test-alert-${i}`,
-        title: i % 3 === 0 ? this.t.waterLeak : this.t.temperature,
-        message: `Test alert ${i} - 28°C (Max: 25°C)`,
-        time: this.t.justNow || 'Just now',
-        severity: i % 3 === 0 ? 'critical' : 'warning'
-      });
     }
 
     // Sync acknowledgedAlertIds: remove those that are no longer triggered (returned to normal)
@@ -1551,15 +1358,29 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
       const st = this.wtState[name] ??= { shared: {}, server: {}, error: '' };
       const body = completeChange(change, st.shared, this.data.trvDevices?.[name]?.setPoint ?? null);
       if (!body) continue;
+      const before = st.shared;
       st.shared = { ...st.shared, ...body };
+      st.sharedTs = { ...st.sharedTs, ...Object.fromEntries(Object.keys(body).map(k => [k, Date.now()])) };
       this.wtWriteAt[name] = Date.now();
+      delete this.wtWriteError[name];
       http.post(`/api/plugins/telemetry/DEVICE/${id}/SHARED_SCOPE`, body, { ignoreErrors: true, ignoreLoading: true }).subscribe({
-        error: (err: any) => console.error(`[RoomDetail] Failed to write ${Object.keys(body).join(',')} to "${name}"`, err)
+        error: (err: any) => {
+          console.error(`[RoomDetail] Failed to write ${Object.keys(body).join(',')} to "${name}"`, err);
+          // Undo the optimistic value and say so on the card instead of reverting silently later
+          st.shared = before;
+          this.wtWriteAt[name] = 0;
+          this.wtWriteError[name] = Object.keys(body).join(', ');
+          if (this.destroyed) return;
+          this.buildFromPassedData();
+          this.cdr.detectChanges();
+        }
       });
     }
+    if (this.destroyed) return;
     this.buildFromPassedData();
     this.cdr.detectChanges();
-    setTimeout(() => this.fetchWtStates(), 6000);
+    if (this.wtRefetch) clearTimeout(this.wtRefetch);
+    this.wtRefetch = setTimeout(() => this.fetchWtStates(), 6000);
   }
 
   private getTrvAlert(name: string, data: any): { icon: string; label: string } | null {
@@ -1775,113 +1596,6 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
 
   trackByEntityName(index: number, item: any): string {
     return item.entityName;
-  }
-
-  fetchHistoricalVitals(): void {
-    const ctx = this.data?.ctx;
-    const http = ctx?.http;
-    if (!http || !this.deviceEntityIdMap || this.roomNumber === '--') {
-      return;
-    }
-    // Re-fetch when room or time range changes
-    const cacheKey = `${this.roomNumber}_${this.vitalsTimeRange}`;
-    if (cacheKey === this.lastFetchedRoom) return;
-    this.lastFetchedRoom = cacheKey;
-
-    const endTs = Date.now();
-    const startTs = endTs - (this.vitalsTimeRange * 60 * 60 * 1000);
-    const limit = this.vitalsTimeRange <= 24 ? 300 : (this.vitalsTimeRange <= 168 ? 1000 : 2000);
-
-    // Identify AQ, Temp, Hum device IDs
-    let aqDeviceId: string | null = null;
-    let tempDeviceId: string | null = null;
-    let humDeviceId: string | null = null;
-
-    if (this.aqSensors?.length > 0) {
-      aqDeviceId = this.deviceEntityIdMap[this.aqSensors[0].entityName] ?? null;
-    } else {
-      const aqKey = Object.keys(this.deviceEntityIdMap).find(name => /^(aq|am|air)/i.test(name));
-      if (aqKey) aqDeviceId = this.deviceEntityIdMap[aqKey];
-    }
-
-    const tempKeys = Object.keys(this.data.tempDevices || {}).filter(k => !/trv/i.test(k) && !/thermostat/i.test(k));
-    if (tempKeys.length > 0) tempDeviceId = this.deviceEntityIdMap[tempKeys[0]] ?? null;
-
-    const humKeys = Object.keys(this.data.humDevices || {});
-    if (humKeys.length > 0) humDeviceId = this.deviceEntityIdMap[humKeys[0]] ?? null;
-
-    const keysToFetch = 'temperature,humidity,co2,temp,hum,data_temperature,data_humidity,data_co2';
-    const safeFetch = (id: string | null): Promise<any> => {
-      if (!id) return Promise.resolve(null);
-      return firstValueFrom(http.get(`/api/plugins/telemetry/DEVICE/${id}/values/timeseries?keys=${keysToFetch}&startTs=${startTs}&endTs=${endTs}&limit=${limit}&orderBy=ASC`, { ignoreErrors: true, ignoreLoading: true })).catch(() => null);
-    };
-
-    const uniqueIds = [...new Set([aqDeviceId, tempDeviceId, humDeviceId].filter(Boolean))];
-    Promise.all(uniqueIds.map(id => safeFetch(id))).then((results) => {
-      let tempPoints: any[] = [];
-      let humPoints: any[] = [];
-      let co2Points: any[] = [];
-
-      uniqueIds.forEach((id, index) => {
-        const resData = results[index];
-        if (!resData) return;
-
-        if (id === tempDeviceId || (!tempDeviceId && id === aqDeviceId)) {
-          tempPoints = resData['temperature'] || resData['temp'] || resData['data_temperature'] || [];
-        }
-        if (id === humDeviceId || (!humDeviceId && id === aqDeviceId)) {
-          humPoints = resData['humidity'] || resData['hum'] || resData['data_humidity'] || [];
-        }
-        if (id === aqDeviceId) {
-          co2Points = resData['co2'] || resData['data_co2'] || [];
-        }
-      });
-
-      // Extract values as number arrays
-      this.tempSparkData = tempPoints.map(p => Number(p.value)).filter(v => !isNaN(v));
-      this.humSparkData = humPoints.map(p => Number(p.value)).filter(v => !isNaN(v));
-      this.co2SparkData = co2Points.map(p => Number(p.value)).filter(v => !isNaN(v));
-
-      // Calculate Min, Avg, Max
-      if (this.tempSparkData.length > 0) {
-        this.tempMin = Math.min(...this.tempSparkData);
-        this.tempMax = Math.max(...this.tempSparkData);
-        this.tempAvg = this.tempSparkData.reduce((a, b) => a + b, 0) / this.tempSparkData.length;
-      } else if (this.avgTemp !== null) {
-        // Fallback simulation if timeseries is empty
-        this.tempMin = this.avgTemp - 0.6;
-        this.tempMax = this.avgTemp + 0.8;
-        this.tempAvg = this.avgTemp;
-        this.tempSparkData = [this.avgTemp - 0.5, this.avgTemp - 0.2, this.avgTemp + 0.1, this.avgTemp - 0.3, this.avgTemp + 0.4, this.avgTemp];
-      }
-
-      if (this.humSparkData.length > 0) {
-        this.humMin = Math.min(...this.humSparkData);
-        this.humMax = Math.max(...this.humSparkData);
-        this.humAvg = this.humSparkData.reduce((a, b) => a + b, 0) / this.humSparkData.length;
-      } else if (this.avgHum !== null) {
-        // Fallback simulation if timeseries is empty
-        this.humMin = Math.max(0, this.avgHum - 3);
-        this.humMax = Math.min(100, this.avgHum + 4);
-        this.humAvg = this.avgHum;
-        this.humSparkData = [this.avgHum - 2, this.avgHum + 1, this.avgHum - 1, this.avgHum + 3, this.avgHum - 2, this.avgHum];
-      }
-
-      const co2Val = this.aqSensors?.length > 0 ? this.aqSensors[0].co2 : null;
-      if (this.co2SparkData.length > 0) {
-        this.co2Min = Math.min(...this.co2SparkData);
-        this.co2Max = Math.max(...this.co2SparkData);
-        this.co2Avg = this.co2SparkData.reduce((a, b) => a + b, 0) / this.co2SparkData.length;
-      } else if (co2Val !== null && co2Val !== undefined) {
-        const val = Number(co2Val);
-        this.co2Min = Math.max(300, val - 80);
-        this.co2Max = val + 120;
-        this.co2Avg = val;
-        this.co2SparkData = [val - 50, val + 80, val - 30, val + 100, val - 20, val];
-      }
-
-      this.cdr.detectChanges();
-    });
   }
 
   isMotionActive(val: any): boolean {

@@ -460,7 +460,7 @@
 
     button {
         margin-left: auto;
-        background: var(--accentStrong, #4f6bd7);
+        background: var(--accent, #4f6bd7);
         border: none;
         color: #fff;
         padding: 8px 16px;
@@ -491,7 +491,6 @@
 }
 
 .cp-content--dark {
-    --tx: #e6ecf3;
     background: var(--bg, #090d16) !important;
     transition: background 0.3s ease;
     padding: 20px 28px !important;
@@ -501,7 +500,6 @@
 }
 
 .cp-content:not(.cp-content--dark) {
-    --tx: #1e293b;
     background: var(--bg, #f8fafc);
     transition: background 0.3s ease;
     padding: 20px 28px;
@@ -539,18 +537,18 @@
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    box-shadow: 0 0 16px var(--accentSoft, rgba(99, 102, 241, 0.18));
+    box-shadow: 0 0 16px var(--accent-soft, rgba(99, 102, 241, 0.18));
 
     .material-icons { font-size: 20px; }
 
     &.cp-section-icon--accent {
-        background: var(--accentSoft, rgba(92, 124, 250, 0.14));
+        background: var(--accent-soft, rgba(92, 124, 250, 0.14));
         border: 1px solid var(--accent, rgba(99, 102, 241, 0.3));
         .material-icons { color: var(--accent, #5c7cfa); }
     }
 
     &.cp-section-icon--warn {
-        background: var(--warnSoft, rgba(245, 181, 74, 0.13));
+        background: var(--warn-soft, rgba(245, 181, 74, 0.13));
         border: 1px solid var(--warn, rgba(245, 181, 74, 0.3));
         .material-icons { color: var(--warn, #f5b54a); }
     }
@@ -591,17 +589,17 @@
     }
 
     &.cp-badge--ok {
-        background: var(--okSoft, rgba(52, 211, 153, 0.13));
+        background: var(--ok-soft, rgba(52, 211, 153, 0.13));
         color: var(--ok, #34d399);
     }
 
     &.cp-badge--warn {
-        background: var(--warnSoft, rgba(245, 181, 74, 0.13));
+        background: var(--warn-soft, rgba(245, 181, 74, 0.13));
         color: var(--warn, #f5b54a);
     }
 
     &.cp-badge--alert {
-        background: var(--alertSoft, rgba(248, 113, 113, 0.13));
+        background: var(--alert-soft, rgba(248, 113, 113, 0.13));
         color: var(--alert, #f87171);
     }
 }
@@ -1121,7 +1119,7 @@
     transition: background 0.2s, border-color 0.2s;
 
     &.cp-toggle-row--on {
-        background: var(--okSoft, rgba(52, 211, 153, 0.13));
+        background: var(--ok-soft, rgba(52, 211, 153, 0.13));
         border-color: var(--ok, #34d399);
     }
 }
@@ -1429,7 +1427,7 @@
     justify-content: center;
     gap: 7px;
     width: 100%;
-    background: var(--accentSoft, rgba(92, 124, 250, 0.14));
+    background: var(--accent-soft, rgba(92, 124, 250, 0.14));
     border: 1px dashed var(--accent, #5c7cfa);
     color: var(--accent, #5c7cfa);
     border-radius: 11px;
@@ -1605,7 +1603,7 @@
     }
 
     &.cp-status-box--ok {
-        background: var(--okSoft, rgba(52, 211, 153, 0.13));
+        background: var(--ok-soft, rgba(52, 211, 153, 0.13));
         border: 1px solid var(--ok, #34d399);
         color: var(--ok, #34d399);
     }
@@ -1634,7 +1632,7 @@
     display: flex;
     align-items: center;
     gap: 7px;
-    background: var(--accentSoft, rgba(92, 124, 250, 0.14));
+    background: var(--accent-soft, rgba(92, 124, 250, 0.14));
     border: 1px solid var(--accent, #5c7cfa);
     color: var(--accent, #5c7cfa);
     padding: 9px 15px;
@@ -1764,7 +1762,7 @@
     .material-icons { font-size: 17px; }
 
     &.cp-btn--primary {
-        background: var(--accentStrong, #4f6bd7);
+        background: var(--accent, #4f6bd7);
         color: #fff;
         margin-left: auto;
 

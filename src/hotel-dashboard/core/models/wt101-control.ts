@@ -11,7 +11,12 @@ export interface WtDeviceState {
   shared: Record<string, any>;
   server: Record<string, any>;
   error: string;
+  /** lastUpdateTs of the SHARED wt_* keys */
+  sharedTs?: Record<string, number>;
 }
+
+/** A field still unconfirmed this long after it was written, with the chain idle, is reported as failed */
+export const WT_STALE_MS = 15 * 60 * 1000;
 
 export const WT_FIELDS: WtField[] = ['target', 'mode', 'range', 'lock', 'window', 'freeze'];
 export const WT_SHARED_KEYS = [
@@ -85,10 +90,20 @@ export function fieldSync(f: WtField, state: WtDeviceState): WtSync | null {
   if (want == null) return null;
   const sent = parseSent(state.server.wt_sent);
   const inLastCmd = lastCmdFields(state.server.wt_last_cmd).includes(f);
+  const busy = state.server.wt_state === 'queued' || state.server.wt_state === 'sent';
   if (state.server.wt_state === 'failed' && inLastCmd) return 'failed';
-  if (sent[f] !== want) return 'pending';
-  if ((state.server.wt_state === 'queued' || state.server.wt_state === 'sent') && inLastCmd) return 'pending';
+  if (sent[f] !== want) return !busy && isStale(f, state) ? 'failed' : 'pending';
+  if (busy && inLastCmd) return 'pending';
   return 'confirmed';
+}
+
+/** The chain is not working on it and the value was written long ago: it will not be confirmed by waiting */
+function isStale(f: WtField, state: WtDeviceState): boolean {
+  const ts = Object.keys(WT_KEY_FIELD)
+    .filter(k => WT_KEY_FIELD[k] === f)
+    .map(k => state.sharedTs?.[k] ?? 0);
+  const writtenAt = Math.max(0, ...ts);
+  return writtenAt > 0 && Date.now() - writtenAt > WT_STALE_MS;
 }
 
 /** Fields that are not confirmed yet, for the status tooltip */
