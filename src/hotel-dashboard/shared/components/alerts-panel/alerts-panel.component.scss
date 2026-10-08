@@ -1,0 +1,297 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+
+.alerts {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--panel, #141b25);
+  border: 1px solid var(--border, #27313f);
+  border-radius: 16px;
+  overflow: hidden;
+  font-family: 'Manrope', 'Roboto', sans-serif;
+}
+
+.alerts-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 14px;
+  background: none;
+  border: none;
+  color: var(--tx, #e6ecf3);
+  font: inherit;
+  text-align: left;
+  cursor: default;
+  pointer-events: none;
+}
+
+.alerts-bell {
+  font-size: 22px;
+  color: var(--warn, #f5b54a);
+
+  &.is-critical {
+    color: var(--alert, #f87171);
+  }
+
+  &.is-ok {
+    color: var(--ok, #34d399);
+  }
+}
+
+.alerts-title {
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.alerts-count {
+  font: 600 12px 'IBM Plex Mono', monospace;
+  padding: 2px 8px;
+  border-radius: 9px;
+  background: var(--inner, #1e2733);
+  color: var(--t2, #8b97a8);
+}
+
+.alerts-chevron {
+  display: none;
+  margin-left: auto;
+  font-size: 22px;
+  color: var(--t2, #8b97a8);
+  transition: transform .2s;
+}
+
+.alerts-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+}
+
+.alerts-empty {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px 14px;
+  color: var(--ok, #34d399);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.alerts-group {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 14px 4px;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 1.1px;
+  text-transform: uppercase;
+  color: var(--warn, #f5b54a);
+
+  &.sev-critical {
+    color: var(--alert, #f87171);
+  }
+}
+
+.alerts-group-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.alerts-group-n {
+  font: 600 10.5px 'IBM Plex Mono', monospace;
+  color: var(--t3, #5c6675);
+}
+
+.alert-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px 5px 14px;
+  border-top: 1px solid var(--border, #27313f);
+  --sev: var(--warn, #f5b54a);
+  --sev-soft: var(--warn-soft, rgba(245, 181, 74, .13));
+
+  &.sev-critical {
+    --sev: var(--alert, #f87171);
+    --sev-soft: var(--alert-soft, rgba(248, 113, 113, .13));
+  }
+
+  &.is-focus {
+    background: var(--accent-soft, rgba(92, 124, 250, .12));
+  }
+}
+
+.alert-main {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 4px 0;
+  background: none;
+  border: none;
+  color: var(--tx, #e6ecf3);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.alert-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: var(--sev-soft);
+  color: var(--sev);
+
+  i {
+    font-size: 19px;
+  }
+}
+
+.alert-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.alert-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.alert-limit {
+  color: var(--t2, #8b97a8);
+  font-weight: 600;
+}
+
+.alert-sub {
+  font-size: 11.5px;
+  color: var(--t2, #8b97a8);
+  overflow-wrap: anywhere;
+}
+
+.alert-ack {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex: none;
+  height: 40px;
+  padding: 0 10px;
+  border-radius: 11px;
+  border: 1px solid var(--border, #27313f);
+  background: var(--inner, #1e2733);
+  color: var(--tx, #e6ecf3);
+  font: 700 12.5px Manrope;
+  cursor: pointer;
+
+  i {
+    font-size: 18px;
+  }
+
+  &:hover {
+    border-color: var(--accent, #5c7cfa);
+    color: var(--accent, #5c7cfa);
+  }
+}
+
+.alerts-foot {
+  position: sticky;
+  bottom: 0;
+  background: var(--panel, #141b25);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: auto;
+  padding: 10px 14px;
+  border-top: 1px solid var(--border, #27313f);
+}
+
+.alerts-ack-all {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  height: 40px;
+  border-radius: 11px;
+  border: 1px solid var(--border, #27313f);
+  background: var(--inner, #1e2733);
+  color: var(--tx, #e6ecf3);
+  font: 700 13px Manrope;
+  cursor: pointer;
+
+  i {
+    font-size: 19px;
+  }
+
+  &:hover {
+    border-color: var(--accent, #5c7cfa);
+    color: var(--accent, #5c7cfa);
+  }
+}
+
+.alerts-hint {
+  font-size: 12px;
+  color: var(--t3, #5c6675);
+}
+
+/* Wide dialogs: the panel takes the height of the devices column and its list scrolls */
+@container rd (min-width: 1000px) {
+  :host {
+    position: relative;
+    min-height: 240px;
+  }
+
+  .alerts {
+    position: absolute;
+    inset: 0;
+    height: auto;
+  }
+
+  .alerts-body {
+    min-height: 0;
+    overflow-y: auto;
+  }
+}
+
+/* Dialogs narrower than 1000px: the list folds behind the "Alerts (n)" header */
+@container rd (max-width: 999px) {
+  .alerts-head {
+    cursor: pointer;
+    pointer-events: auto;
+  }
+
+  .alerts-chevron {
+    display: block;
+  }
+
+  .alerts:not(.open) .alerts-body {
+    display: none;
+  }
+
+  .alerts.open .alerts-body {
+    max-height: 280px;
+    overflow-y: auto;
+  }
+
+  .alerts.open .alerts-chevron {
+    transform: rotate(180deg);
+  }
+
+  .alerts-hint {
+    display: none;
+  }
+}

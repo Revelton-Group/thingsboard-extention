@@ -1,0 +1,40 @@
+<div class="alerts" [class.open]="open">
+    <button type="button" class="alerts-head" (click)="open = !open" [attr.aria-expanded]="open">
+        <i class="material-icons alerts-bell" [class.is-critical]="hasCritical" [class.is-ok]="alerts.length === 0">notifications_active</i>
+        <span class="alerts-title">{{ t.alertsActive }}</span>
+        <span class="alerts-count">{{ alerts.length }}</span>
+        <i class="material-icons alerts-chevron">expand_more</i>
+    </button>
+
+    <div class="alerts-body">
+        <div class="alerts-empty" *ngIf="alerts.length === 0">
+            <i class="material-icons">check_circle</i>
+            <span>{{ t.alertsNone }}</span>
+        </div>
+
+        <ng-container *ngFor="let g of groups; trackBy: trackByKey">
+            <div class="alerts-group" [ngClass]="'sev-' + g.key">
+                <span class="alerts-group-dot"></span>{{ g.key === 'critical' ? t.sevCritical : t.sevWarnings }}<span class="alerts-group-n">{{ g.items.length }}</span>
+            </div>
+            <div class="alert-row" *ngFor="let v of g.items; trackBy: trackByAlert" [ngClass]="'sev-' + g.key" [class.is-focus]="v.alert.id === focusId">
+                <button type="button" class="alert-main" (click)="toggleFocus(v.alert)">
+                    <span class="alert-icon"><i class="material-icons">{{ g.key === 'critical' ? 'error' : 'warning' }}</i></span>
+                    <span class="alert-text">
+                        <span class="alert-title">{{ v.title }}<span class="alert-limit" *ngIf="v.limitText"> · {{ v.limitText }}</span></span>
+                        <span class="alert-sub">{{ v.message }} · {{ v.alert.time }}</span>
+                    </span>
+                </button>
+                <button type="button" class="alert-ack" [attr.aria-label]="t.ackLabel" (click)="acknowledge.emit(v.alert)">
+                    <i class="material-icons">check</i>{{ t.ackBtn }}
+                </button>
+            </div>
+        </ng-container>
+
+        <div class="alerts-foot" *ngIf="alerts.length > 0">
+            <button type="button" class="alerts-ack-all" (click)="acknowledgeAll.emit()">
+                <i class="material-icons">done_all</i>{{ t.ackAll }}
+            </button>
+            <span class="alerts-hint">{{ t.alertsHint }}</span>
+        </div>
+    </div>
+</div>

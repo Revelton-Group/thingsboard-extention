@@ -3,10 +3,10 @@
   "version": 1,
   "newProjectRoot": "projects",
   "projects": {
-    "widget-extension": {
+    "hotel-dashboard": {
       "projectType": "library",
-      "root": "src",
-      "sourceRoot": "src/app",
+      "root": "src/hotel-dashboard",
+      "sourceRoot": "src/hotel-dashboard",
       "prefix": "tb",
       "schematics": {
         "@schematics/angular:component": {
@@ -17,34 +17,65 @@
         "build": {
           "builder": "@angular-devkit/build-angular:ng-packagr",
           "options": {
-            "tsConfig": "src/tsconfig.lib.json",
-            "project": "src/ng-package.json"
+            "tsConfig": "src/hotel-dashboard/tsconfig.lib.json",
+            "project": "src/hotel-dashboard/ng-package.json"
           },
           "configurations": {
             "production": {
-              "tsConfig": "src/tsconfig.lib.prod.json"
+              "tsConfig": "src/hotel-dashboard/tsconfig.lib.json"
             },
             "development": {
-              "tsConfig": "src/tsconfig.lib.json"
+              "tsConfig": "src/hotel-dashboard/tsconfig.lib.json",
+              "project": "src/hotel-dashboard/ng-package.dev.json"
             }
           },
           "defaultConfiguration": "production"
-        },
-        "serve": {
-          "builder": "@tb/custom-builder:static-serve",
-          "options": {
-            "port": 5000,
-            "tsConfig": "src/tsconfig.lib.json",
-            "project": "src/ng-package.json",
-            "staticServeConfig": "static.serve.conf.js"
-          }
         },
         "lint": {
           "builder": "@angular-eslint/builder:lint",
           "options": {
             "lintFilePatterns": [
-              "src/**/*.ts",
-              "src/**/*.html"
+              "src/hotel-dashboard/**/*.ts",
+              "src/hotel-dashboard/**/*.html"
+            ]
+          }
+        }
+      }
+    },
+    "utility-dashboard": {
+      "projectType": "library",
+      "root": "src/utility-dashboard",
+      "sourceRoot": "src/utility-dashboard",
+      "prefix": "tb",
+      "schematics": {
+        "@schematics/angular:component": {
+          "style": "scss"
+        }
+      },
+      "architect": {
+        "build": {
+          "builder": "@angular-devkit/build-angular:ng-packagr",
+          "options": {
+            "tsConfig": "src/utility-dashboard/tsconfig.lib.json",
+            "project": "src/utility-dashboard/ng-package.json"
+          },
+          "configurations": {
+            "production": {
+              "tsConfig": "src/utility-dashboard/tsconfig.lib.json"
+            },
+            "development": {
+              "tsConfig": "src/utility-dashboard/tsconfig.lib.json",
+              "project": "src/utility-dashboard/ng-package.dev.json"
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "lint": {
+          "builder": "@angular-eslint/builder:lint",
+          "options": {
+            "lintFilePatterns": [
+              "src/utility-dashboard/**/*.ts",
+              "src/utility-dashboard/**/*.html"
             ]
           }
         }

@@ -1,0 +1,417 @@
+:host {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  container-type: inline-size;
+  container-name: rc;
+}
+
+.room-card {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  height: 100%;
+  padding: 10px;
+  background: var(--panel2, #1a2230);
+  border: 1.5px solid var(--border, #27313f);
+  border-radius: 16px;
+  font-family: 'Manrope', 'Roboto', system-ui, sans-serif;
+  cursor: pointer;
+  position: relative;
+  transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.25s;
+
+  * {
+    pointer-events: none;
+  }
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.28);
+  }
+
+  &.status-normal:hover {
+    border-color: var(--accent, #5c7cfa);
+  }
+
+  &.status-warning {
+    border-color: var(--warn, #f5b54a);
+    box-shadow: 0 0 0 1px var(--warn, #f5b54a), 0 6px 18px rgba(245, 181, 74, 0.14);
+  }
+
+  &.status-danger {
+    border-color: var(--alert, #f87171);
+    box-shadow: 0 0 0 1px var(--alert, #f87171), 0 6px 18px rgba(248, 113, 113, 0.16);
+
+    &::after {
+      content: '';
+      position: absolute;
+      inset: -1px;
+      border-radius: inherit;
+      box-shadow: 0 0 14px 3px rgba(248, 113, 113, 0.3);
+      opacity: 0;
+      pointer-events: none;
+      animation: rc-pulse 2s ease-in-out infinite;
+    }
+  }
+}
+
+/* ===== Header ===== */
+.rc-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex-shrink: 0;
+}
+
+.rc-num {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  height: 38px;
+  min-width: 38px;
+  padding: 0 6px;
+  border-radius: 11px;
+  font: 800 17px/1 'Manrope', system-ui, sans-serif;
+  color: var(--ok, #34d399);
+  background: var(--ok-soft, rgba(52, 211, 153, 0.13));
+}
+
+.status-warning .rc-num {
+  color: var(--warn, #f5b54a);
+  background: var(--warn-soft, rgba(245, 181, 74, 0.13));
+}
+
+.status-danger .rc-num {
+  color: var(--alert, #f87171);
+  background: var(--alert-soft, rgba(248, 113, 113, 0.13));
+}
+
+.rc-id {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.rc-name {
+  font: 800 13px/1.15 'Manrope', system-ui, sans-serif;
+  color: var(--tx, #e6ecf3);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+
+.rc-chips {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+}
+
+.rc-chip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  box-sizing: border-box;
+  height: 26px;
+  min-width: 26px;
+  padding: 0 6px;
+  border-radius: 13px;
+  background: var(--inner, #1e2733);
+  color: var(--t2, #8b97a8);
+
+  .material-icons {
+    font-size: 16px;
+    line-height: 1;
+  }
+
+  &.chip-ok {
+    background: var(--ok-soft, rgba(52, 211, 153, 0.13));
+    color: var(--ok, #34d399);
+  }
+
+  &.chip-warn {
+    background: var(--warn-soft, rgba(245, 181, 74, 0.13));
+    color: var(--warn, #f5b54a);
+  }
+
+  &.chip-alert {
+    background: var(--alert-soft, rgba(248, 113, 113, 0.13));
+    color: var(--alert, #f87171);
+    animation: rc-shake 0.5s ease-in-out infinite;
+  }
+}
+
+.rc-count {
+  font: 600 11px/1 'IBM Plex Mono', monospace;
+}
+
+/* ===== Hero readings ===== */
+.rc-hero {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  flex-shrink: 0;
+  overflow: hidden;
+  background: var(--border, #27313f);
+  border: 1px solid var(--border, #27313f);
+  border-radius: 12px;
+}
+
+.rc-reading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  padding: 9px 4px 8px;
+  background: var(--panel, #141b25);
+
+  &.tone-warn {
+    background: linear-gradient(var(--warn-soft, rgba(245, 181, 74, 0.13)), var(--warn-soft, rgba(245, 181, 74, 0.13))), var(--panel, #141b25);
+  }
+
+  &.tone-alert {
+    background: linear-gradient(var(--alert-soft, rgba(248, 113, 113, 0.13)), var(--alert-soft, rgba(248, 113, 113, 0.13))), var(--panel, #141b25);
+  }
+}
+
+.rc-reading-head {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+
+  .material-icons {
+    font-size: 14px;
+    line-height: 1;
+    flex: none;
+  }
+
+  span {
+    font: 700 8.5px/1 'Manrope', system-ui, sans-serif;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--t2, #8b97a8);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.rc-reading-value {
+  max-width: 100%;
+  font: 600 clamp(16px, 6.5cqi, 20px)/1.1 'IBM Plex Mono', monospace;
+  color: var(--tx, #e6ecf3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rc-reading.is-text .rc-reading-value {
+  font-size: clamp(12px, 4.2cqi, 15px);
+}
+
+/* ===== Status chips ===== */
+.rc-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-rows: minmax(34px, 1fr);
+  gap: 5px;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.rc-stat {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  grid-template-areas: 'icon label' 'icon value';
+  align-items: center;
+  column-gap: 8px;
+  row-gap: 2px;
+  box-sizing: border-box;
+  min-width: 0;
+  padding: 5px 8px 5px 6px;
+  border-radius: 10px;
+  background: var(--inner, #1e2733);
+  border: 1px solid var(--border, #27313f);
+
+  &.tone-warn {
+    border-color: var(--warn, #f5b54a);
+  }
+
+  &.tone-alert {
+    border-color: var(--alert, #f87171);
+  }
+}
+
+.rc-stat-icon {
+  grid-area: icon;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(128, 138, 152, 0.14);
+
+  .material-icons {
+    font-size: 14px;
+    line-height: 1;
+  }
+}
+
+.tone-warn .rc-stat-icon {
+  background: var(--warn-soft, rgba(245, 181, 74, 0.13));
+}
+
+.tone-alert .rc-stat-icon {
+  background: var(--alert-soft, rgba(248, 113, 113, 0.13));
+}
+
+.rc-stat-text {
+  display: contents;
+}
+
+.rc-stat-label {
+  grid-area: label;
+  align-self: end;
+  font: 700 8px/1 'Manrope', system-ui, sans-serif;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--t2, #8b97a8);
+}
+
+.rc-stat-value {
+  grid-area: value;
+  align-self: start;
+  font: 600 11.5px/1.15 'IBM Plex Mono', monospace;
+  color: var(--tx, #e6ecf3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ===== Tone colors (values) ===== */
+.tone-ok .rc-reading-value,
+.tone-ok .rc-stat-value {
+  color: var(--ok, #34d399);
+}
+
+.tone-warn .rc-reading-value,
+.tone-warn .rc-stat-value {
+  color: var(--warn, #f5b54a);
+}
+
+.tone-alert .rc-reading-value,
+.tone-alert .rc-stat-value {
+  color: var(--alert, #f87171);
+  font-weight: 700;
+}
+
+.tone-off .rc-reading-value,
+.tone-off .rc-stat-value {
+  color: var(--t3, #5c6675);
+}
+
+/* ===== Icon colors ===== */
+.icon-orange { color: var(--warn, #f5b54a); }
+.icon-blue   { color: var(--accent, #5c7cfa); }
+.icon-green  { color: var(--ok, #34d399); }
+.icon-red    { color: var(--alert, #f87171); }
+.icon-teal   { color: var(--ok, #34d399); }
+.icon-purple { color: #ab47bc; }
+.icon-cyan   { color: #26c6da; }
+.icon-gray   { color: var(--t3, #5c6675); }
+
+/* ===== Narrow widget ===== */
+@container rc (max-width: 290px) {
+  .rc-stats {
+    grid-auto-rows: minmax(40px, 1fr);
+  }
+
+  .rc-stat {
+    grid-template-columns: 14px minmax(0, 1fr);
+    grid-template-areas: 'icon label' 'value value';
+    column-gap: 6px;
+    padding: 6px 8px;
+  }
+
+  .rc-stat .rc-stat-icon {
+    width: 14px;
+    height: 14px;
+    background: none;
+  }
+
+  .rc-stat-label {
+    align-self: center;
+  }
+}
+
+@container rc (max-width: 235px) {
+  .rc-reading-head {
+    gap: 3px;
+
+    .material-icons {
+      font-size: 12px;
+    }
+
+    span {
+      font-size: 8px;
+      letter-spacing: 0.4px;
+    }
+  }
+
+  .rc-reading .rc-reading-value {
+    font-size: 14px;
+  }
+
+  .rc-reading.is-text .rc-reading-value {
+    font-size: 11px;
+  }
+}
+
+@keyframes rc-pulse {
+  0%,
+  100% {
+    opacity: 0;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes rc-shake {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+
+  25% {
+    transform: rotate(-8deg);
+  }
+
+  75% {
+    transform: rotate(8deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .room-card,
+  .room-card::after,
+  .rc-chip {
+    animation: none;
+    transition: none;
+  }
+}

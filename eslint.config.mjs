@@ -1,7 +1,6 @@
 import eslintJS from "@eslint/js";
 import tsEslint from "typescript-eslint";
 import angular from "angular-eslint";
-import tailwind from "eslint-plugin-tailwindcss";
 import { defineConfig } from "eslint/config";
 
 export default defineConfig([
@@ -61,20 +60,31 @@ export default defineConfig([
       "@typescript-eslint/array-type": "off",
       "@typescript-eslint/no-explicit-any": "off",
       "@angular-eslint/prefer-standalone": "off",
-      "@angular-eslint/prefer-inject": "off"
+      "@angular-eslint/prefer-inject": "off",
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        {
+          argsIgnorePattern: "^_"
+        }
+      ]
     },
   },
   {
     files: ["**/*.html"],
     extends: [
       ...angular.configs.templateRecommended,
-      ...angular.configs.templateAccessibility,
-      ...tailwind.configs["flat/recommended"]
+      ...angular.configs.templateAccessibility
     ],
     rules: {
-      "tailwindcss/no-custom-classname": "off",
-      "tailwindcss/migration-from-tailwind-2": "off",
-      "tailwindcss/enforces-negative-arbitrary-values": "off"
+      "@angular-eslint/template/eqeqeq": [
+        "error",
+        {
+          allowNullOrUndefined: true
+        }
+      ],
+      "@angular-eslint/template/click-events-have-key-events": "warn",
+      "@angular-eslint/template/interactive-supports-focus": "warn",
+      "@angular-eslint/template/label-has-associated-control": "warn"
     }
   }
 ]);

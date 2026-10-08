@@ -11,43 +11,43 @@ This repository contains the **Revelton IoT Dashboard**, a specialized ThingsBoa
 
 ## 1. Development Mode (Local Testing)
 
-During development, you can serve the extension from your local machine to see changes in real-time without uploading files to ThingsBoard.
+Dev bundles have their own file name (`*-dev.js`) and never touch `target/`, so they cannot be mixed up with a release.
 
-### Step A: Start the Dev Server
+### Step A: Build and Serve
 ```bash
 yarn install
-yarn start
+yarn build:hotel:dev   # or build:utility:dev
+yarn serve
 ```
-The server will start on port 5000. The extension bundle is available at:
-`http://localhost:5000/static/widgets/thingsboard-extension-widgets.js`
+The server starts on port 5000. Dev bundle URLs:
+- `http://localhost:5000/static/widgets/hotel-dashboard-widgets-dev.js`
+- `http://localhost:5000/static/widgets/utility-dashboard-widgets-dev.js`
 
-### Step B: Configure ThingsBoard Widget Resources
-1. Open your widget in the ThingsBoard **Widgets Library**.
-2. Navigate to the **Resources** tab.
-3. Add a new resource URL: `http://localhost:5000/static/widgets/thingsboard-extension-widgets.js`.
-4. **Crucial**: Ensure the **"Is extension"** checkbox is checked for this resource.
+### Step B: Configure a Dedicated Dev Widget
+1. Create a separate widget type for development (not the one production dashboards use).
+2. In its **Resources** tab add the `-dev.js` URL and check **"Is extension"**.
+3. Never list both the dev URL and the uploaded release library in one widget: selectors are identical in both builds.
+4. Unassign the dev dashboard from edge devices; `localhost` only works on your own machine.
 
 ---
 
-## 2. Production Mode (Deployment)
-
-When you are ready to deploy your changes to a live ThingsBoard environment.
+## 2. Release (Deployment)
 
 ### Step A: Build the Project
 ```bash
-yarn build
+yarn build:hotel   # or build:utility, build:all
 ```
-The optimized production bundle will be generated at:
-`target/generated-resources/thingsboard-extension-widgets.js`
+The bundle is written to `target/generated-resources/<bundle>-<version>.js`, for example `hotel-dashboard-widgets-1.0.0.js`. The version is read from `src/<project>/package.json`: bump it before each release. A different build for an already-built version is refused (`--force` overrides).
 
 ### Step B: Upload to ThingsBoard
 1. In the ThingsBoard UI, go to **Resources** > **JavaScript library**.
 2. Click the **"+"** button and select **Extension** from the "JavaScript type" dropdown.
-3. Upload the compiled `thingsboard-extension-widgets.js` file from your `target/` directory.
+3. Upload the versioned file as a **new** resource. Do not replace the previous one.
 
-### Step C: Update Widget Resources
-1. In your widget's **Resources** tab, remove the `localhost` URL.
-2. Click **Add**, check **"Is extension"**, and select your uploaded library from the dropdown.
+### Step C: Switch the Widget
+1. In the widget's **Resources** tab, select the new resource (check **"Is extension"**).
+2. If something breaks, switch the widget back to the previous version.
+3. Delete old versions once one or two newer releases have been stable.
 
 ---
 
@@ -68,11 +68,6 @@ Insert the component tag. Use the appropriate selector for your widget:
 <tb-room-card [ctx]="ctx"></tb-room-card>
 ```
 
-**For the Historical Dashboard:**
-```html
-<revelton-tb-extension-historical-dashboard [ctx]="ctx"></revelton-tb-extension-historical-dashboard>
-```
-
 **For the Utility Dashboard (EV Chargers):**
 ```html
 <revelton-utility-dashboard [ctx]="ctx"></revelton-utility-dashboard>
@@ -87,7 +82,6 @@ self.onInit = function() {
     // Supports all dashboard types
     const component = self.ctx.$scope.reveltonHotelComponent
         || self.ctx.$scope.roomCardComponent
-        || self.ctx.$scope.reveltonTbExtensionHistoricalDashboardComponent
         || self.ctx.$scope.reveltonUtilityDashboardComponent;
     
     if (component) {
@@ -102,7 +96,6 @@ self.onDataUpdated = function() {
     // Notify the component when telemetry or attribute data changes
     const component = self.ctx.$scope.reveltonHotelComponent
         || self.ctx.$scope.roomCardComponent
-        || self.ctx.$scope.reveltonTbExtensionHistoricalDashboardComponent
         || self.ctx.$scope.reveltonUtilityDashboardComponent;
     
     if (component && typeof component.onDataUpdated === 'function') {
@@ -115,17 +108,13 @@ self.onDataUpdated = function() {
 
 ## Project Structure
 
-- **Hotel Dashboard (`src/app/components/revelton-tb-extension-dashboard/`)**:
+- **Hotel Dashboard (`src/hotel-dashboard/`)**:
   - `features/hotel-dashboard`: Main high-level overview (`<tb-revelton-dashboard>`).
   - `features/room-view`: Individual room status cards (`<tb-room-card>`) and detail panels.
   - `features/other-devices-panel`: Management for auxiliary devices (lights, plugs, etc.).
   - `features/control-panel`: Centralized device control.
   - `shared/components/`: Thermostat controls, environmental sensors (AQI, noise, humidity), and UI elements like activity logs and alerts panels.
-- **Historical Dashboard (`src/app/components/revelton-tb-extension-historical-dashboard/`)**:
-  - Timeseries data visualization with filterable time ranges.
-  - Feature panels: Thermostat, Air Quality, Acoustics, Window, Water Leak, Occupancy.
-  - Shared components: Summary cards, filter bar, charts.
-- **Utility Dashboard (`src/app/components/revelton-tb-extension-utility-dashboard/`)**:
+- **Utility Dashboard (`src/utility-dashboard/`)**:
   - Real-time EV charger monitoring (`<revelton-utility-dashboard>`).
   - Charging status cards with power, energy, and session duration per charger.
 
@@ -135,7 +124,7 @@ The `gateway-export.json` file is provided for the **ThingsBoard IoT Gateway**. 
 - **Sensors**: Standardized mapping for temperature, humidity, and contact sensors.
 
 ## Technical Notes
-- **Tailwind CSS**: Leveraged for styling. Ensure `yarn start` or `yarn build` is used to compile styles.
+- **Styling**: component SCSS only; no global stylesheet is injected into the ThingsBoard page. Build with `yarn build:<hotel|historical|utility>`.
 - **Theme Support**: Integrated with a `ThemeService` to support seamless light/dark mode switching.
 
 ## License
