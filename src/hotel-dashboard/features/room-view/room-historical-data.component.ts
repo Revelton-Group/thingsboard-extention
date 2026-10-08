@@ -679,6 +679,26 @@ export class RoomHistoricalDataComponent implements OnInit, OnChanges {
       // rendered — discard this stale response instead of overwriting it.
       if (requestId !== this.fetchSeq) return;
 
+      // A chart is shown only when the room has a device that can report it
+      const noiseDeviceOwn = findId(/noise|ws302/i) || Object.keys(this.noiseDevices || {}).find(n => this.deviceEntityIdMap?.[n]);
+      const hasDevice: Record<string, boolean> = {
+        temperature: !!tempDeviceId,
+        humidity: !!humDeviceId,
+        co2: !!co2DeviceId,
+        noise: !!noiseDeviceOwn,
+        tvoc: !!tvocDeviceId,
+        pm25: !!pmDeviceId,
+        pm10: !!pmDeviceId,
+        pressure: !!pressureDeviceId,
+        lux: !!luxDeviceId,
+        window: windowEntities.length > 0 || !!windowDeviceId,
+        leak: leakEntities.length > 0 || !!leakDeviceId,
+        presence: !!occDeviceId,
+        motion: !!occDeviceId || !!aqDeviceId,
+        power: powerEntities.length > 0,
+        energy: powerEntities.length > 0,
+      };
+
       this.metricCards = [
         this.buildCard("temperature", this.t.histTemp || "Temperature", "°C", "device_thermostat", "#f87171", 28, 32, normalized, startTs, endTs),
         this.buildCard("humidity", this.t.histHumidity || "Humidity", "%", "water_drop", "#34d399", 60, 75, normalized, startTs, endTs),
@@ -695,7 +715,7 @@ export class RoomHistoricalDataComponent implements OnInit, OnChanges {
         this.buildCard("motion", this.t.lblMotionSensor, "", "person", "#a855f7", 1, 1, normalized, startTs, endTs, true, true),
         this.buildCard("power", this.t.lblSocketPower, "W", "bolt", "#fbbf24", 2000, 3000, normalized, startTs, endTs),
         this.buildCard("energy", this.t.lblSocketEnergy, "kWh", "bolt", "#10b981", Infinity, Infinity, normalized, startTs, endTs)
-      ];
+      ].filter(card => hasDevice[card.key] !== false);
 
       this.loading = false;
       this.cdr.detectChanges();

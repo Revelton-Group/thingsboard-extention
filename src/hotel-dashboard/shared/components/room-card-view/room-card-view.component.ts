@@ -77,7 +77,9 @@ export class RoomCardViewComponent implements DoCheck {
 
     this.name = this.title || `${t.room} ${s.roomNumber}`;
     this.frame = r.roomStatus === 'danger' ? 'danger' : r.roomStatus === 'warning' ? 'warning' : 'normal';
-    this.bellTone = r.alarmCount > 0 ? ((r.sensorAlarmCount || 0) > 0 ? 'alert' : 'warn') : 'ok';    const [temp, humid, air] = this.hero;
+    this.bellTone = r.alarmCount > 0 ? ((r.sensorAlarmCount || 0) > 0 ? 'alert' : 'warn') : 'ok';
+
+    const [temp, humid, air] = this.hero;
     temp.label = t.tileTemp;
     humid.label = t.tileHumid;
     air.label = t.tileAir;
@@ -113,7 +115,7 @@ export class RoomCardViewComponent implements DoCheck {
     const wa = r.winAgg;
     win.value = wa.total > 0 ? wa.display : '--';
     win.tone = wa.total === 0 ? 'off' : wa.anyOpen ? 'warn' : 'ok';
-    win.iconClass = wa.total > 0 ? 'icon-green' : 'icon-gray';
+    win.iconClass = wa.total === 0 ? 'icon-gray' : wa.anyOpen ? 'icon-orange' : 'icon-green';
 
     check.value = res.checkDisplay === 'In' ? t.chkIn : res.checkDisplay === 'Out' ? t.chkOut : res.checkDisplay === 'Wait' ? t.chkWait : res.checkDisplay;
     check.tone = PILL_TONE[res.checkPillClass] || 'plain';

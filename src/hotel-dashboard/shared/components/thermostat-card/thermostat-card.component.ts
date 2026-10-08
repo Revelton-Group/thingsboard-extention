@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, ChangeDetectorRef } from '@angular/core';
+import { Component, Input, Output, EventEmitter, ChangeDetectorRef, OnDestroy } from '@angular/core';
 import { ThermostatDevice } from '../../../core/models/room-card.models';
 import { TranslationService } from '../../../core/services/translation.service';
 
@@ -8,7 +8,7 @@ import { TranslationService } from '../../../core/services/translation.service';
   styleUrls: ['./thermostat-card.component.scss'],
   standalone: false
 })
-export class ThermostatCardComponent {
+export class ThermostatCardComponent implements OnDestroy {
   @Input() trv!: ThermostatDevice;
   @Input() index = 1;
   /** The per-card settings panel is kept for the room-level settings; its button is off for now */
@@ -144,22 +144,46 @@ export class ThermostatCardComponent {
     return this.setting('wt_temp_range_max')?.value ?? 35;
   }
 
+  /** Target shown while +/- clicks are being collected; only the last value is sent */
+  pendingTemp: number | null = null;
+  private tempTimer: any;
+
+  get shownTarget(): number | null {
+    return this.pendingTemp ?? this.trv?.targetTemp ?? null;
+  }
+
   incrementTemp(): void {
-    if (!this.trv || this.trv.systemMode === 'off') return;
-    const cur = Number(this.trv.targetTemp ?? 20);
-    const next = Math.min(this.tempMax, Math.round(cur + 1));
-    this.trv.targetTemp = next;
-    this.cdr.detectChanges();
-    this.tempChange.emit(next);
+    this.stepTemp(1);
   }
 
   decrementTemp(): void {
+    this.stepTemp(-1);
+  }
+
+  /** Every write is a LoRaWAN downlink, so a burst of clicks becomes one write 1 s after the last click */
+  private stepTemp(delta: number): void {
     if (!this.trv || this.trv.systemMode === 'off') return;
-    const cur = Number(this.trv.targetTemp ?? 20);
-    const next = Math.max(this.tempMin, Math.round(cur - 1));
-    this.trv.targetTemp = next;
+    const cur = Number(this.shownTarget ?? 20);
+    this.pendingTemp = Math.min(this.tempMax, Math.max(this.tempMin, Math.round(cur + delta)));
     this.cdr.detectChanges();
+    clearTimeout(this.tempTimer);
+    this.tempTimer = setTimeout(() => this.flushTemp(), 1000);
+  }
+
+  private flushTemp(): void {
+    const next = this.pendingTemp;
+    this.pendingTemp = null;
+    if (next == null || !this.trv) return;
+    this.trv.targetTemp = next;
     this.tempChange.emit(next);
+  }
+
+  ngOnDestroy(): void {
+    // Closing the dialog right after a click still sends the chosen target
+    if (this.pendingTemp != null) {
+      clearTimeout(this.tempTimer);
+      this.flushTemp();
+    }
   }
 
   // ── Mode (WT101: temperature control auto / manual, or disabled) ──
