@@ -127,13 +127,6 @@ export class CompactEnvSensorComponent {
     return "ce-chip-gray";
   }
 
-  getBatteryClass(): string {
-    const bat = this.battery;
-    if (bat == null) return "ce-chip-gray";
-    if (bat <= 20 || this.batteryLow === true) return "ce-chip-orange";
-    return "ce-chip-green";
-  }
-
   getStatusColor(): string {
     if (this.isOffline) return "var(--text-muted, #94a3b8)";
     if (this.batteryLow || (this.battery !== null && this.battery <= 20)) {

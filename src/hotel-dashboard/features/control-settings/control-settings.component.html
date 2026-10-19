@@ -1,0 +1,387 @@
+<ng-template #numT let-key>
+  <span class="num" [class.bad]="errors[key]" [class.changed]="isChanged(key)">
+    <input type="number" [id]="'cs-' + key" [value]="cur(key) ?? ''" [placeholder]="t.csNotSet"
+           [attr.min]="F[key].min" [attr.max]="F[key].max" [attr.step]="F[key].step" [attr.aria-label]="label(key)"
+           [disabled]="!editable" (input)="setNum(key, $any($event.target).value)">
+    <span class="unit">{{ unit(key) }}</span>
+  </span>
+</ng-template>
+
+<ng-template #swT let-key>
+  <label class="sw">
+    <input type="checkbox" [id]="'cs-' + key" [checked]="isOn(key)" [attr.aria-label]="label(key)"
+           [disabled]="!editable" (change)="setValue(key, $any($event.target).checked)">
+    <span></span>
+  </label>
+</ng-template>
+
+<ng-template #errT let-key>
+  <small class="cs-err" *ngIf="errors[key]">{{ errText(errors[key]) }}</small>
+</ng-template>
+
+<div class="cs-overlay" *ngIf="open" role="dialog" aria-modal="true" [attr.aria-label]="t.csTitle">
+  <header class="cs-head">
+    <div class="cs-title">
+      <span class="ic"><i class="material-icons">tune</i></span>
+      <div>
+        <h2>{{ t.csTitle }}</h2>
+        <small *ngIf="hotelName">{{ t.csHotel }}: {{ hotelName }}</small>
+      </div>
+    </div>
+    <span class="grow"></span>
+    <span class="pill" [class.warn]="state.status === 'error' || state.status === 'idle'" [class.plain]="state.status === 'loading'">
+      <i class="material-icons">{{ state.status === 'ready' ? 'cloud_done' : (state.status === 'loading' ? 'sync' : 'cloud_off') }}</i>
+      <span *ngIf="state.status === 'ready'">{{ t.csHotel }}</span>
+      <span *ngIf="state.status === 'loading'">{{ t.loading }}</span>
+      <span *ngIf="state.status === 'error'">{{ t.csLoadFailed }}</span>
+      <span *ngIf="state.status === 'idle'">{{ t.csNotReady }}</span>
+    </span>
+    <button class="x" type="button" (click)="close()" [attr.aria-label]="t.close" [title]="t.close">
+      <i class="material-icons">close</i>
+    </button>
+  </header>
+
+  <div class="cs-body">
+    <nav class="nav" [attr.aria-label]="t.csTitle">
+      <button type="button" *ngFor="let s of sections; trackBy: trackId" [attr.aria-current]="s.id === activeId ? 'true' : null"
+              (click)="pick(s.id)">
+        <i class="material-icons">{{ s.icon }}</i>
+        <span>{{ text(s.labelKey) }}</span>
+        <span class="dot" *ngIf="sectionDirty(s.id)"></span>
+      </button>
+    </nav>
+
+    <section class="content" [ngSwitch]="activeId">
+      <div class="sec-intro">
+        <div class="sec-t">
+          <h3>{{ text(section.labelKey) }}</h3>
+          <span class="chip accent" *ngIf="section.roomOverride">{{ t.csRoomsOverride }}</span>
+        </div>
+        <p>{{ text(section.subKey) }}</p>
+      </div>
+
+      <!-- General -->
+      <ng-container *ngSwitchCase="'general'">
+        <div class="card">
+          <div class="row" [class.changed]="isChanged('report_language')">
+            <div><div class="lbl">{{ label('report_language') }}</div><div class="hint">{{ t.csReportLanguageHint }}</div></div>
+            <div class="ctl">
+              <select id="cs-report_language" [disabled]="!editable" [attr.aria-label]="label('report_language')"
+                      (change)="setValue('report_language', $any($event.target).value)">
+                <option value="en" [selected]="cur('report_language') === 'en'">English</option>
+                <option value="ru" [selected]="cur('report_language') === 'ru'">Русский</option>
+              </select>
+            </div>
+          </div>
+          <div class="row" [class.changed]="isChanged('heat_timezone')" [class.err]="errors['heat_timezone']">
+            <div><div class="lbl">{{ label('heat_timezone') }}</div><div class="hint">{{ t.csTimezoneHint }}</div></div>
+            <div class="ctl">
+              <span class="num wide" [class.bad]="errors['heat_timezone']">
+                <input type="text" id="cs-heat_timezone" [value]="cur('heat_timezone') ?? ''" [disabled]="!editable"
+                       [attr.aria-label]="label('heat_timezone')" (input)="setValue('heat_timezone', $any($event.target).value)">
+              </span>
+              <ng-container *ngTemplateOutlet="errT; context: { $implicit: 'heat_timezone' }"></ng-container>
+            </div>
+          </div>
+        </div>
+      </ng-container>
+
+      <!-- Heating -->
+      <ng-container *ngSwitchCase="'heating'">
+        <div class="card pad stack">
+          <div class="lbl strong">{{ t.csModeTitle }}</div>
+          <div class="modes" role="group" [attr.aria-label]="t.csModeTitle">
+            <button type="button" class="mode" *ngFor="let m of modes; trackBy: trackId" [disabled]="!editable"
+                    [attr.aria-pressed]="cur('heat_mode') === m.id" (click)="setValue('heat_mode', m.id)">
+              <b>{{ text(m.labelKey) }}</b>
+              <span>{{ text(m.helpKey) }}</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="card pad stack">
+          <div class="lbl strong">{{ t.csTargetTemps }} <span class="chip">{{ t.csTargetTempsHint }}</span></div>
+          <div class="temps">
+            <div class="temp" *ngFor="let tp of temps; trackBy: trackKey" [class.changed]="isChanged(tp.key)" [class.bad]="errors[tp.key]">
+              <span class="t"><i class="material-icons">{{ tp.icon }}</i>{{ label(tp.key) }}</span>
+              <div class="stepper">
+                <button type="button" [disabled]="!editable" (click)="stepTemp(tp.key, -1)" [attr.aria-label]="label(tp.key) + ' −'">−</button>
+                <input type="number" step="0.5" [id]="'cs-' + tp.key" [value]="cur(tp.key) ?? ''" [disabled]="!editable"
+                       [attr.aria-label]="label(tp.key)" (input)="setNum(tp.key, $any($event.target).value)">
+                <button type="button" [disabled]="!editable" (click)="stepTemp(tp.key, 1)" [attr.aria-label]="label(tp.key) + ' +'">+</button>
+              </div>
+              <small>{{ text(tp.hintKey) }}</small>
+              <small class="cs-err" *ngIf="errors[tp.key]">{{ errText(errors[tp.key]) }}</small>
+            </div>
+          </div>
+        </div>
+
+        <div class="card pad stack">
+          <div class="lbl strong">{{ t.csBulkTitle }}</div>
+          <div class="hint">{{ t.csBulkHint }}</div>
+          <div class="btn-row">
+            <button class="btn" type="button" [disabled]="!editable || bulkState !== 'idle'" (click)="bulk('auto')">
+              <i class="material-icons">autorenew</i>{{ t.csBulkAuto }}
+            </button>
+            <button class="btn" type="button" [disabled]="!editable || bulkState !== 'idle'" (click)="bulk('manual')">
+              <i class="material-icons">back_hand</i>{{ t.csBulkManual }}
+            </button>
+            <span class="chip ok" *ngIf="bulkState === 'sent'">{{ t.csBulkSent }}</span>
+            <span class="chip warn" *ngIf="bulkState === 'failed'">{{ t.csBulkFailed }}</span>
+          </div>
+        </div>
+
+        <button class="link" type="button" (click)="toggleAdvanced()" [attr.aria-expanded]="showAdvanced">
+          <i class="material-icons">{{ showAdvanced ? 'expand_less' : 'expand_more' }}</i>
+          {{ showAdvanced ? t.csHideAdvanced : t.csAdvanced }}
+        </button>
+
+        <div class="card" *ngIf="showAdvanced">
+          <ng-container *ngFor="let g of advanced">
+            <div class="card-h">{{ text(g.titleKey) }}</div>
+            <div class="row" *ngFor="let r of g.rows; trackBy: trackKey" [class.changed]="isChanged(r.key)" [class.err]="errors[r.key]">
+              <div>
+                <div class="lbl">{{ label(r.key) }}</div>
+                <div class="hint" *ngIf="r.hintKey">{{ text(r.hintKey) }}</div>
+              </div>
+              <div class="ctl">
+                <ng-container *ngIf="F[r.key].kind === 'number'">
+                  <ng-container *ngTemplateOutlet="numT; context: { $implicit: r.key }"></ng-container>
+                </ng-container>
+                <span class="num" *ngIf="F[r.key].kind === 'date'" [class.bad]="errors[r.key]">
+                  <input type="text" inputmode="numeric" placeholder="MM-DD" [id]="'cs-' + r.key" [value]="cur(r.key) ?? ''"
+                         [disabled]="!editable" [attr.aria-label]="label(r.key)" (input)="setValue(r.key, $any($event.target).value)">
+                </span>
+                <ng-container *ngTemplateOutlet="errT; context: { $implicit: r.key }"></ng-container>
+              </div>
+            </div>
+          </ng-container>
+        </div>
+      </ng-container>
+
+      <!-- Mews -->
+      <ng-container *ngSwitchCase="'mews'">
+        <div class="card">
+          <div class="row" [class.changed]="isChanged('syncIntervalMinutes')" [class.err]="errors['syncIntervalMinutes']">
+            <div><div class="lbl">{{ label('syncIntervalMinutes') }}</div><div class="hint">{{ t.csMewsHint }}</div></div>
+            <div class="ctl">
+              <ng-container *ngTemplateOutlet="numT; context: { $implicit: 'syncIntervalMinutes' }"></ng-container>
+              <ng-container *ngTemplateOutlet="errT; context: { $implicit: 'syncIntervalMinutes' }"></ng-container>
+            </div>
+          </div>
+        </div>
+        <span class="chip warn self-start" *ngIf="!hasBridge">{{ t.csNoBridge }}</span>
+      </ng-container>
+
+      <!-- Air quality -->
+      <ng-container *ngSwitchCase="'air'">
+        <div class="card">
+          <div class="row" [class.changed]="isChanged('airQuality_enabled')">
+            <div><div class="lbl">{{ t.csEnabled }}</div><div class="hint">{{ t.csEnabledHint }}</div></div>
+            <div class="ctl"><ng-container *ngTemplateOutlet="swT; context: { $implicit: 'airQuality_enabled' }"></ng-container></div>
+          </div>
+        </div>
+        <div class="card" [class.is-off]="!isOn('airQuality_enabled')">
+          <div class="dim">
+            <div class="row" [class.changed]="isChanged('tempMin') || isChanged('tempMax')" [class.err]="errors['tempMin'] || errors['tempMax']">
+              <div><div class="lbl">{{ t.csTempRange }}</div><div class="hint" *ngIf="errors['tempMin']">{{ errText(errors['tempMin']) }}</div></div>
+              <div class="ctl">
+                <ng-container *ngTemplateOutlet="numT; context: { $implicit: 'tempMin' }"></ng-container>
+                <span class="dash">{{ t.csTo }}</span>
+                <ng-container *ngTemplateOutlet="numT; context: { $implicit: 'tempMax' }"></ng-container>
+              </div>
+            </div>
+            <div class="row" [class.changed]="isChanged('humMin') || isChanged('humMax')" [class.err]="errors['humMin'] || errors['humMax']">
+              <div><div class="lbl">{{ t.csHumRange }}</div><div class="hint" *ngIf="errors['humMin']">{{ errText(errors['humMin']) }}</div></div>
+              <div class="ctl">
+                <ng-container *ngTemplateOutlet="numT; context: { $implicit: 'humMin' }"></ng-container>
+                <span class="dash">{{ t.csTo }}</span>
+                <ng-container *ngTemplateOutlet="numT; context: { $implicit: 'humMax' }"></ng-container>
+              </div>
+            </div>
+            <div class="row" *ngFor="let k of ['co2Max', 'tvocMax', 'pm25Max', 'pm10Max']"
+                 [class.changed]="isChanged(k)" [class.err]="errors[k]">
+              <div>
+                <div class="lbl">{{ label(k) }}</div>
+                <div class="hint" *ngIf="k === 'tvocMax'">{{ t.csTvocHint }}</div>
+                <div class="hint" *ngIf="errors[k]">{{ errText(errors[k]) }}</div>
+              </div>
+              <div class="ctl"><ng-container *ngTemplateOutlet="numT; context: { $implicit: k }"></ng-container></div>
+            </div>
+          </div>
+        </div>
+      </ng-container>
+
+      <!-- Noise -->
+      <ng-container *ngSwitchCase="'noise'">
+        <div class="card">
+          <div class="row" [class.changed]="isChanged('noise_enabled')">
+            <div><div class="lbl">{{ t.csEnabled }}</div><div class="hint">{{ t.csEnabledHint }}</div></div>
+            <div class="ctl"><ng-container *ngTemplateOutlet="swT; context: { $implicit: 'noise_enabled' }"></ng-container></div>
+          </div>
+        </div>
+        <div class="card" [class.is-off]="!isOn('noise_enabled')">
+          <div class="dim">
+            <div class="row" [class.changed]="isChanged('noise_dayPeriod_start') || isChanged('noise_dayPeriod_end')"
+                 [class.err]="errors['noise_dayPeriod_start'] || errors['noise_dayPeriod_end']">
+              <div>
+                <div class="lbl">{{ t.csDayPeriod }}</div>
+                <div class="hint">{{ t.csDayPeriodHint }} {{ cur('noise_dayPeriod_end') }} {{ t.csTo }} {{ cur('noise_dayPeriod_start') }}.</div>
+              </div>
+              <div class="ctl tmr">
+                <input type="time" id="cs-noise_dayPeriod_start" [value]="cur('noise_dayPeriod_start') ?? ''" [disabled]="!editable"
+                       [attr.aria-label]="t.csDayStart" (input)="setValue('noise_dayPeriod_start', $any($event.target).value)">
+                <span class="dash">{{ t.csTo }}</span>
+                <input type="time" id="cs-noise_dayPeriod_end" [value]="cur('noise_dayPeriod_end') ?? ''" [disabled]="!editable"
+                       [attr.aria-label]="t.csDayEnd" (input)="setValue('noise_dayPeriod_end', $any($event.target).value)">
+              </div>
+            </div>
+            <div class="mgrid">
+              <div class="mrow">
+                <div class="mname"><i class="material-icons">wb_sunny</i><span><b>{{ t.csDay }}</b><small>{{ t.csLimitsDb }}</small></span></div>
+                <div class="mcells">
+                  <div class="mc" *ngFor="let k of ['noise_day_laeq', 'noise_day_lai', 'noise_day_laimax']">
+                    <span class="mh">{{ k === 'noise_day_laeq' ? 'LAeq' : (k === 'noise_day_lai' ? 'LAI' : 'LAImax') }}</span>
+                    <ng-container *ngTemplateOutlet="numT; context: { $implicit: k }"></ng-container>
+                  </div>
+                </div>
+              </div>
+              <div class="mrow">
+                <div class="mname"><i class="material-icons">nights_stay</i><span><b>{{ t.csNight }}</b><small>{{ t.csLimitsDb }}</small></span></div>
+                <div class="mcells">
+                  <div class="mc" *ngFor="let k of ['noise_night_laeq', 'noise_night_lai', 'noise_night_laimax']">
+                    <span class="mh">{{ k === 'noise_night_laeq' ? 'LAeq' : (k === 'noise_night_lai' ? 'LAI' : 'LAImax') }}</span>
+                    <ng-container *ngTemplateOutlet="numT; context: { $implicit: k }"></ng-container>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="hint foot">{{ t.csNoiseLegend }}</div>
+          </div>
+        </div>
+      </ng-container>
+
+      <!-- Windows -->
+      <ng-container *ngSwitchCase="'window'">
+        <div class="card">
+          <div class="row" [class.changed]="isChanged('window_enabled')">
+            <div><div class="lbl">{{ t.csEnabled }}</div><div class="hint">{{ t.csEnabledHint }}</div></div>
+            <div class="ctl"><ng-container *ngTemplateOutlet="swT; context: { $implicit: 'window_enabled' }"></ng-container></div>
+          </div>
+        </div>
+        <div class="card" [class.is-off]="!isOn('window_enabled')">
+          <div class="dim">
+            <div class="row" [class.changed]="isChanged('window_open_max_min')" [class.err]="errors['window_open_max_min']">
+              <div><div class="lbl">{{ label('window_open_max_min') }}</div><div class="hint">{{ t.csWindowHint }}</div></div>
+              <div class="ctl">
+                <ng-container *ngTemplateOutlet="numT; context: { $implicit: 'window_open_max_min' }"></ng-container>
+                <ng-container *ngTemplateOutlet="errT; context: { $implicit: 'window_open_max_min' }"></ng-container>
+              </div>
+            </div>
+          </div>
+        </div>
+        <span class="chip warn self-start" *ngIf="isOn('window_enabled') && noWindowLimit">{{ t.csWindowNoLimit }}</span>
+      </ng-container>
+
+      <!-- Sockets -->
+      <ng-container *ngSwitchCase="'socket'">
+        <div class="card">
+          <div class="row" [class.changed]="isChanged('socket_enabled')">
+            <div><div class="lbl">{{ t.csEnabled }}</div><div class="hint">{{ t.csEnabledHint }}</div></div>
+            <div class="ctl"><ng-container *ngTemplateOutlet="swT; context: { $implicit: 'socket_enabled' }"></ng-container></div>
+          </div>
+        </div>
+        <div class="card" [class.is-off]="!isOn('socket_enabled')">
+          <div class="dim">
+            <div class="row" [class.changed]="isChanged('socket_powerMax')" [class.err]="errors['socket_powerMax']">
+              <div><div class="lbl">{{ label('socket_powerMax') }}</div><div class="hint">{{ t.csPowerHint }}</div></div>
+              <div class="ctl">
+                <ng-container *ngTemplateOutlet="numT; context: { $implicit: 'socket_powerMax' }"></ng-container>
+                <ng-container *ngTemplateOutlet="errT; context: { $implicit: 'socket_powerMax' }"></ng-container>
+              </div>
+            </div>
+          </div>
+        </div>
+      </ng-container>
+
+      <!-- Battery -->
+      <ng-container *ngSwitchCase="'battery'">
+        <div class="card">
+          <div class="row" [class.changed]="isChanged('batteryMin')" [class.err]="errors['batteryMin']">
+            <div><div class="lbl">{{ label('batteryMin') }}</div><div class="hint">{{ t.csBatteryHint }}</div></div>
+            <div class="ctl">
+              <ng-container *ngTemplateOutlet="numT; context: { $implicit: 'batteryMin' }"></ng-container>
+              <ng-container *ngTemplateOutlet="errT; context: { $implicit: 'batteryMin' }"></ng-container>
+            </div>
+          </div>
+        </div>
+      </ng-container>
+
+      <!-- Offline -->
+      <ng-container *ngSwitchCase="'offline'">
+        <div class="card pad">
+          <div class="tbl-wrap">
+            <table class="tbl">
+              <thead>
+                <tr><th>{{ t.csOffDevice }}</th><th class="hide-s">{{ t.csOffNormal }}</th><th>{{ t.csOffAfter }}</th></tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let r of offlineRows; trackBy: trackKey" [class.changed]="isChanged(r.key)">
+                  <td><span class="model">{{ label(r.key) }}</span></td>
+                  <td class="hide-s muted">{{ text(r.rateKey) }}</td>
+                  <td>
+                    <ng-container *ngTemplateOutlet="numT; context: { $implicit: r.key }"></ng-container>
+                    <div class="cs-err" *ngIf="errors[r.key]">{{ errText(errors[r.key]) }}</div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <p class="note">{{ t.csOffNote }}</p>
+      </ng-container>
+
+      <!-- Telegram -->
+      <ng-container *ngSwitchCase="'telegram'">
+        <div class="card">
+          <div class="card-h">{{ t.csTgTypes }}</div>
+          <div class="row" *ngFor="let r of telegramRows; trackBy: trackKey" [class.changed]="isChanged(r.key)">
+            <div>
+              <div class="lbl">{{ label(r.key) }}</div>
+              <div class="hint" *ngIf="r.hintKey">{{ text(r.hintKey) }}</div>
+            </div>
+            <div class="ctl"><ng-container *ngTemplateOutlet="swT; context: { $implicit: r.key }"></ng-container></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-h">{{ t.csTgTiming }}</div>
+          <div class="row" [class.changed]="isChanged('noise_alert_after_min')" [class.err]="errors['noise_alert_after_min']">
+            <div><div class="lbl">{{ label('noise_alert_after_min') }}</div><div class="hint">{{ t.csNoiseAfterHint }}</div></div>
+            <div class="ctl">
+              <ng-container *ngTemplateOutlet="numT; context: { $implicit: 'noise_alert_after_min' }"></ng-container>
+              <ng-container *ngTemplateOutlet="errT; context: { $implicit: 'noise_alert_after_min' }"></ng-container>
+            </div>
+          </div>
+          <div class="row" [class.changed]="isChanged('air_alert_after_min')" [class.err]="errors['air_alert_after_min']">
+            <div><div class="lbl">{{ label('air_alert_after_min') }}</div></div>
+            <div class="ctl">
+              <ng-container *ngTemplateOutlet="numT; context: { $implicit: 'air_alert_after_min' }"></ng-container>
+              <ng-container *ngTemplateOutlet="errT; context: { $implicit: 'air_alert_after_min' }"></ng-container>
+            </div>
+          </div>
+        </div>
+        <p class="note">{{ t.csTgServerNote }}</p>
+      </ng-container>
+    </section>
+  </div>
+
+  <footer class="bar" *ngIf="changeCount">
+    <span class="info"><b>{{ changeCount }} {{ t.csChanges }}</b> · {{ hasErrors ? t.csFixToSave : t.csChangesHint }}</span>
+    <button class="btn" type="button" (click)="cancel()">{{ t.csCancel }}</button>
+    <button class="btn primary" type="button" [disabled]="hasErrors || state.saving || !editable" (click)="save()">
+      <i class="material-icons">check</i>{{ t.csSave }}
+    </button>
+  </footer>
+
+  <div class="toast" *ngIf="toast" role="status">{{ toast }}</div>
+</div>

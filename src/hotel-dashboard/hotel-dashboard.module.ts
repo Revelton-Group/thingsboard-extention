@@ -7,6 +7,8 @@ import {
   HomeComponentsModule,
   WidgetConfigComponentsModule,
 } from "@home/components/public-api";
+import { ControlSettingsComponent } from "./features/control-settings/control-settings.component";
+import { RoomOverridesComponent } from "./features/control-settings/room-overrides.component";
 import { HistoricalChartComponent } from "./shared/components/historical-chart/historical-chart.component";
 
 import { RoomCardComponent } from "./features/room-view/room-card.component";
@@ -23,7 +25,6 @@ import { ReveltonDashboardComponent } from "./features/hotel-dashboard/revelton-
 import { OtherDevicesPanelComponent } from "./features/other-devices-panel/other-devices-panel.component";
 import { CompactThermostatComponent } from "./shared/components/compact-thermostat/compact-thermostat.component";
 import { CompactEnvSensorComponent } from "./shared/components/compact-env-sensor/compact-env-sensor.component";
-import { ControlPanelComponent } from "./features/control-panel/control-panel.component";
 
 const HOTEL_COMPONENTS = [
   RoomCardComponent,
@@ -38,8 +39,9 @@ const HOTEL_COMPONENTS = [
   OtherDevicesPanelComponent,
   CompactThermostatComponent,
   CompactEnvSensorComponent,
-  ControlPanelComponent,
   HistoricalChartComponent,
+  ControlSettingsComponent,
+  RoomOverridesComponent,
 ];
 
 @NgModule({

@@ -16,7 +16,6 @@ export * from "./features/room-view/room-historical-data.component";
 
 // Feature Panels
 export * from "./features/other-devices-panel/other-devices-panel.component";
-export * from "./features/control-panel/control-panel.component";
 
 // Shared Components
 export * from "./shared/components/thermostat-card/thermostat-card.component";
@@ -31,6 +30,10 @@ export * from "./shared/components/historical-chart/historical-chart.component";
 export * from "./core/services/hotel-state.service";
 export * from "./core/services/theme.service";
 export * from "./core/services/translation.service";
-export * from "./features/control-panel/services/control-panel.service";
+export * from "./core/settings/control-settings.service";
+export * from "./core/settings/control-settings.schema";
+export * from "./core/settings/control-settings.core";
+export * from "./features/control-settings/control-settings.component";
+export * from "./features/control-settings/room-overrides.component";
 export * from "./core/models/room-card.models";
 export * from "./core/models/theme.constants";

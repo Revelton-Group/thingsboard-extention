@@ -1,0 +1,44 @@
+<div class="fold" *ngIf="ready" [class.open]="expanded">
+  <button type="button" class="fold-head" (click)="toggle()" [attr.aria-expanded]="expanded">
+    <i class="material-icons lead">tune</i>
+    <span class="title">{{ t.csRoomSettings }}</span>
+    <span class="chip" [class.accent]="ownCount > 0">
+      {{ ownCount > 0 ? ownCount + ' ' + t.csRoomOwn : t.csRoomFollows }}
+    </span>
+    <i class="material-icons chev">expand_more</i>
+  </button>
+
+  <div class="fold-body" *ngIf="expanded">
+    <div class="rrow">
+      <div class="lbl">{{ t.csRoomHeating }}</div>
+      <span class="hv" *ngIf="own('heat_enabled') !== null"><span class="chip accent">{{ t.csRoomValue }}</span></span>
+      <label class="sw">
+        <input type="checkbox" [checked]="heatOn()" [disabled]="busy" [attr.aria-label]="t.csRoomHeating"
+               (change)="setHeating($any($event.target).checked)">
+        <span></span>
+      </label>
+    </div>
+
+    <div class="rrow" *ngFor="let key of rows; trackBy: trackKey" [class.err]="fieldError[key]">
+      <div class="lbl">
+        {{ label(key) }}
+        <span class="chip accent" *ngIf="own(key) !== null">{{ t.csRoomValue }}</span>
+      </div>
+      <span class="hv">{{ t.csHotelValue }} {{ hotel(key) ?? t.csNotSet }} {{ hotel(key) !== null ? unit(key) : '' }}</span>
+      <span class="ctl">
+        <span class="num" [class.bad]="fieldError[key]">
+          <input type="number" [attr.step]="F[key].step" [attr.min]="F[key].min" [attr.max]="F[key].max"
+                 [value]="own(key) ?? ''" [placeholder]="hotel(key) ?? t.csNotSet" [disabled]="busy"
+                 [attr.aria-label]="label(key)" (change)="commit(key, $any($event.target).value)">
+          <span class="unit">{{ unit(key) }}</span>
+        </span>
+        <button type="button" class="link" *ngIf="own(key) !== null" [disabled]="busy" (click)="reset(key)">
+          {{ t.csBackToHotel }}
+        </button>
+      </span>
+      <small class="cs-err" *ngIf="fieldError[key]">{{ errText(fieldError[key]) }}</small>
+    </div>
+
+    <small class="cs-err" *ngIf="error">{{ error }}</small>
+  </div>
+</div>

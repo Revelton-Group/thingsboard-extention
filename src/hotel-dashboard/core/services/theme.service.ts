@@ -61,29 +61,9 @@ export class ThemeService {
     }
   }
 
-  /** Get the currently active theme name */
-  get activeThemeName(): string {
-    return this._theme$.value.name;
-  }
-
   /** Get the currently active mode */
   get activeMode(): ThemeMode {
     return this._mode$.value;
-  }
-
-  /** Get the active theme's swatch color */
-  get activeSwatch(): string {
-    return this._theme$.value.swatch;
-  }
-
-  /** Switch to a named theme (e.g. 'Revelton', 'Midnight') */
-  setTheme(themeName: string): void {
-    const found = THEMES.find((t) => t.name === themeName);
-    if (found) {
-      this._theme$.next(found);
-      this.save(THEME_KEY, themeName);
-      this.applyTheme();
-    }
   }
 
   /** Switch between 'light' and 'dark' */

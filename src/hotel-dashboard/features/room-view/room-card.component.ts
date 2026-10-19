@@ -16,14 +16,14 @@ import {
 import { TranslationService } from "../../core/services/translation.service";
 import { ThemeService } from "../../core/services/theme.service";
 import { HotelStateService } from "../../core/services/hotel-state.service";
-import { ControlPanelService } from "../control-panel/services/control-panel.service";
+import { ControlSettingsService } from "../../core/settings/control-settings.service";
 import { Subscription } from "rxjs";
 
 @Component({
   selector: "tb-room-card",
   templateUrl: "./room-card.component.html",
   styleUrls: ["./room-card.component.scss"],
-  providers: [ControlPanelService, RoomDataService, HotelStateService],
+  providers: [ControlSettingsService, RoomDataService, HotelStateService],
   standalone: false,
 })
 export class RoomCardComponent implements OnInit, OnDestroy {
@@ -111,7 +111,7 @@ export class RoomCardComponent implements OnInit, OnDestroy {
     private roomDataService: RoomDataService,
     private translationService: TranslationService,
     private themeService: ThemeService,
-    private controlPanelService: ControlPanelService,
+    private settings: ControlSettingsService,
     private viewContainerRef: ViewContainerRef,
     private el: ElementRef
   ) {}
@@ -150,8 +150,11 @@ export class RoomCardComponent implements OnInit, OnDestroy {
 
       this.ctx.$scope.roomCardComponent = this;
 
-      this.controlPanelService.setCtx(this.ctx);
-      this.controlPanelService.loadFromThingsBoard();
+      this.settings.setCtx(this.ctx);
+      const roomAsset: any = (this.ctx.datasources || []).find((d: any) => d.entityType === "ASSET");
+      const rawAssetId: any = roomAsset?.entityId;
+      const roomAssetId: string | undefined = typeof rawAssetId === "string" ? rawAssetId : rawAssetId?.id;
+      if (roomAssetId) void this.settings.resolveHotelFrom(roomAssetId);
 
       if (this.ctx.defaultSubscription) {
         this.onDataUpdated();

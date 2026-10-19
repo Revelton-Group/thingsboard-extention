@@ -1,0 +1,153 @@
+:host {
+  display: block;
+  container-type: inline-size;
+  container-name: ro;
+}
+
+.fold {
+  margin-top: 10px;
+  border: 1px solid var(--border, #27313f);
+  border-radius: 12px;
+  background: var(--panel, #141b25);
+  font-family: 'Manrope', 'Roboto', system-ui, sans-serif;
+  color: var(--tx, #e6ecf3);
+
+  * { box-sizing: border-box; }
+  button, input { font: inherit; color: inherit; }
+  .material-icons { font-size: 18px; line-height: 1; vertical-align: middle; }
+}
+
+.fold-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 14px;
+  border: 0;
+  background: transparent;
+  font-size: 13px;
+  font-weight: 800;
+  text-align: left;
+  cursor: pointer;
+
+  .lead { color: var(--accent, #5c7cfa); }
+  .chev { margin-left: auto; color: var(--t2, #8b97a8); transition: transform .15s; }
+}
+
+.fold.open .chev { transform: rotate(180deg); }
+
+.fold-body { padding: 0 14px 6px; }
+
+.rrow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 6px 12px;
+  padding: 7px 0;
+  border-top: 1px solid var(--border, #27313f);
+
+  .lbl { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13px; font-weight: 700; }
+  .hv { color: var(--t2, #8b97a8); font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12px; }
+  .ctl { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .cs-err { grid-column: 1 / -1; }
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--inner, #1e2733);
+  color: var(--t2, #8b97a8);
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+
+  &.accent { background: var(--accent-soft, rgba(92, 124, 250, .14)); color: var(--accent, #5c7cfa); }
+}
+
+.num {
+  display: inline-flex;
+  align-items: center;
+  overflow: hidden;
+  border: 1px solid var(--border, #27313f);
+  border-radius: 8px;
+  background: var(--inner, #1e2733);
+
+  &:focus-within { border-color: var(--accent, #5c7cfa); }
+  &.bad { border-color: var(--alert, #f87171); }
+
+  input {
+    width: 64px;
+    padding: 5px 8px;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    text-align: right;
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 13px;
+    font-weight: 600;
+
+    &::placeholder { color: var(--t3, #5c6675); }
+  }
+
+  .unit { padding: 0 8px 0 2px; color: var(--t3, #5c6675); font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12px; }
+}
+
+.link {
+  padding: 4px 0;
+  border: 0;
+  background: transparent;
+  color: var(--accent, #5c7cfa);
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+
+  &:disabled { opacity: .5; cursor: default; }
+}
+
+.cs-err { color: var(--alert, #f87171); font-size: 11.5px; font-weight: 600; }
+
+.sw {
+  position: relative;
+  display: inline-block;
+  width: 38px;
+  height: 22px;
+
+  input { position: absolute; inset: 0; margin: 0; opacity: 0; cursor: pointer; }
+
+  span {
+    position: absolute;
+    inset: 0;
+    border-radius: 999px;
+    border: 1px solid var(--border, #27313f);
+    background: var(--inner, #1e2733);
+
+    &::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--t3, #5c6675);
+      transition: transform .15s, background .15s;
+    }
+  }
+
+  input:checked + span { background: var(--accent, #5c7cfa); border-color: var(--accent, #5c7cfa); }
+  input:checked + span::after { transform: translateX(16px); background: #fff; }
+  input:focus-visible + span { outline: 2px solid var(--accent, #5c7cfa); outline-offset: 2px; }
+}
+
+@container ro (max-width: 560px) {
+  .rrow { grid-template-columns: minmax(0, 1fr) auto; }
+  .rrow .lbl { grid-column: 1; grid-row: 1; }
+  .rrow .hv { grid-column: 2; grid-row: 1; text-align: right; }
+  .rrow .ctl, .rrow > .sw { grid-column: 1 / -1; grid-row: 2; justify-self: start; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fold-head .chev, .sw span::after { transition: none; }
+}

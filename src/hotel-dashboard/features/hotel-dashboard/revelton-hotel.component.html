@@ -43,11 +43,10 @@
         </div>
 
 
-        <button class="revelton-control-config-btn" (click)="openControlPanel()" [title]="t.controlConfig">
-          <i class="material-icons">settings</i>
-          <span class="config-name">{{ t.controlConfig }}</span>
+        <button class="revelton-settings-btn" type="button" (click)="openSettings()" [title]="t.csTitle" [attr.aria-label]="t.csTitle">
+          <i class="material-icons">tune</i>
+          <span class="config-name">{{ t.csTitle }}</span>
         </button>
-
 
         <div class="theme-selector" (click)="toggleThemeMode($event)">
           <i class="material-icons palette-icon">{{ activeTheme.mode === 'Dark' ? 'light_mode' : 'dark_mode' }}</i>
@@ -431,7 +430,6 @@
     </div>
   </div>
 
-  <!-- Control Panel Modal (self-contained, listens to ControlPanelService) -->
-  <tb-control-panel></tb-control-panel>
+  <tb-control-settings [open]="settingsOpen" [hotelName]="hotelDisplayName" (closed)="closeSettings()"></tb-control-settings>
 
 </div>

@@ -4,7 +4,8 @@ import { RoomDataService } from '../../core/services/room-data.service';
 import { TranslationService } from '../../core/services/translation.service';
 import { ThemeService } from '../../core/services/theme.service';
 import { HotelStateService } from '../../core/services/hotel-state.service';
-import { ControlPanelService } from '../control-panel/services/control-panel.service';
+import { ControlSettingsService } from '../../core/settings/control-settings.service';
+import { Attrs } from '../../core/settings/control-settings.core';
 import { firstValueFrom, noop } from 'rxjs';
 import { HOTEL_TIMEZONE } from '../../core/models/dashboard.config';
 import {
@@ -63,7 +64,6 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
 
   // Header
   roomNumber = '--';
-  floorLabel = '';
   avgTemp: number | null = null;
   avgHum: number | null = null;
   aqOverall = '--';
@@ -76,10 +76,9 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
   checkInDisplay = '';
   checkOutDisplay = '';
   reservationState = '';
-  statusSummary = '';
-  checkoutRemaining = '';
   /** Share of the stay that has passed (0-100), null without a full check-in/out pair */
   stayPct: number | null = null;
+  stayOver = false;
 
   // Readings strip and alert focus
   readonly readings: Reading[] = [
@@ -127,7 +126,9 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
   private wtWriteAt: Record<string, number> = {};
   /** Fields whose last write was rejected (HTTP error), per thermostat */
   private wtWriteError: Record<string, string> = {};
-  private roomAssetId: string | null = null;
+  roomAssetId: string | null = null;
+  roomOverrides: Attrs = {};
+  private roomAssetStarted = false;
   private wtLinked = true;
   private configSub: any;
 
@@ -258,7 +259,7 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
     private roomDataService: RoomDataService,
     private translationService: TranslationService,
     private hotelStateService: HotelStateService,
-    private controlPanelService: ControlPanelService,
+    private settings: ControlSettingsService,
     private themeService: ThemeService,
     private el: ElementRef<HTMLElement>
   ) {}
@@ -278,7 +279,7 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
     // on every telemetry update and on its 10 s refresh tick.
     this.initializeData();
 
-    this.configSub = this.controlPanelService.config$.subscribe(() => {
+    this.configSub = this.settings.hotel$.subscribe(() => {
       this.updateData();
     });
   }
@@ -311,7 +312,11 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
     this.buildFromPassedData();
     if (!this.wtStarted && this.thermostats.length > 0) {
       this.wtStarted = true;
+      this.roomAssetStarted = true;
       this.startWt();
+    } else if (!this.roomAssetStarted && Object.keys(this.deviceEntityIdMap).length > 0) {
+      this.roomAssetStarted = true;
+      void this.resolveRoomAsset();
     }
     this.cdr.detectChanges();
   }
@@ -327,20 +332,36 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
     }, 10000);
   }
 
+  onOverridesChange(next: Attrs): void {
+    this.roomOverrides = next;
+    this.updateData();
+  }
+
   /** wt_linked is kept on the room asset — the asset that Contains the room's WT101s */
   private async resolveRoomAsset(): Promise<void> {
     const http = this.data?.ctx?.http;
-    const deviceId = this.deviceEntityIdMap[this.thermostats[0]?.entityName];
-    if (!http || !deviceId) return;
+    if (!http) return;
     const opts = { ignoreErrors: true, ignoreLoading: true };
+    const idOf = (ds: any): string | undefined =>
+      typeof ds?.entityId === 'string' ? ds.entityId : ds?.entityId?.id;
+    const datasources: any[] = this.data?.ctx?.datasources || [];
     try {
-      const rels: any[] = await firstValueFrom(http.get(`/api/relations/info?toId=${deviceId}&toType=DEVICE`, opts));
-      const rel = (rels || []).find(r => r.type === 'Contains' && r.from?.entityType === 'ASSET');
-      this.roomAssetId = rel?.from?.id ?? null;
+      this.roomAssetId = idOf(datasources.find(d => d?.entityType === 'ASSET')) ?? null;
+      if (!this.roomAssetId) {
+        const devices = datasources.filter(d => d?.entityType === 'DEVICE');
+        const ds = devices.find(d => d.entityName === this.thermostats[0]?.entityName) ?? devices[0];
+        const deviceId = idOf(ds);
+        if (!deviceId) return;
+        const rels: any[] = await firstValueFrom(http.get(`/api/relations/info?toId=${deviceId}&toType=DEVICE`, opts));
+        const rel = (rels || []).find(r => r.type === 'Contains' && r.from?.entityType === 'ASSET');
+        this.roomAssetId = rel?.from?.id ?? null;
+      }
       if (!this.roomAssetId) return;
       const attrs: any[] = await firstValueFrom(http.get(`/api/plugins/telemetry/ASSET/${this.roomAssetId}/values/attributes/SERVER_SCOPE?keys=wt_linked`, opts));
       const linked = (attrs || []).find(a => a.key === 'wt_linked')?.value;
       this.wtLinked = linked == null || String(linked) !== 'false';
+      this.roomOverrides = await this.settings.loadRoom(this.roomAssetId).catch(() => ({}));
+      this.updateData();
     } catch (err) {
       console.error('[RoomDetail] Failed to resolve the room asset', err);
     }
@@ -447,10 +468,9 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
       this.stayPct = isFinite(stayStart) && isFinite(stayEnd) && stayEnd > stayStart
         ? Math.min(100, Math.max(0, ((Date.now() - stayStart) / (stayEnd - stayStart)) * 100))
         : null;
+      this.stayOver = (res.reservationState || '').toLowerCase() === 'started' && isFinite(stayEnd) && Date.now() > stayEnd;
       this.bookingDisplay = res.bookDisplay || this.bookingDisplay;
       this.occupancyDisplay = res.checkDisplay === 'In' ? this.t.occupied : (res.checkDisplay === 'Wait' ? this.t.loading : (res.checkDisplay === 'Out' ? this.t.vacant : this.occupancyDisplay));
-      this.statusSummary = res.statusSummary || '';
-      this.checkoutRemaining = res.checkoutRemaining || '';
     } else {
       // No active reservation for this room — clear any reservation fields left
       // over from a previously selected room (this panel instance is reused
@@ -459,9 +479,8 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
       this.reservationState = '';
       this.checkInDisplay = '';
       this.checkOutDisplay = '';
-      this.statusSummary = '';
-      this.checkoutRemaining = '';
       this.stayPct = null;
+      this.stayOver = false;
     }
 
     // Thermostats — in-place mutation keeps each card's object identity
@@ -609,15 +628,12 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
       }
 
       const currentLevel = data.level ?? data.laeq ?? data.lai ?? 0;
-      const config = this.controlPanelService?.config;
+      const noiseLimits = this.settings.noiseLimits(Date.now(), this.roomOverrides);
       let isLoud = false;
-      if (config && config.noise && config.noise.enabled) {
-        const laeq = data.laeq ?? 0;
-        const lai = data.lai ?? 0;
-        const laimax = data.laimax ?? 0;
-        isLoud = (data.laeq != null && laeq >= config.noise.laeqMax) ||
-                 (data.lai != null && lai >= config.noise.laiMax) ||
-                 (data.laimax != null && laimax >= config.noise.laimaxMax);
+      if (noiseLimits.enabled && (noiseLimits.laeq !== null || noiseLimits.lai !== null || noiseLimits.laimax !== null)) {
+        isLoud = (data.laeq != null && noiseLimits.laeq !== null && data.laeq >= noiseLimits.laeq) ||
+                 (data.lai != null && noiseLimits.lai !== null && data.lai >= noiseLimits.lai) ||
+                 (data.laimax != null && noiseLimits.laimax !== null && data.laimax >= noiseLimits.laimax);
       } else {
         isLoud = currentLevel > 55;
       }
@@ -835,9 +851,14 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
     // Populate alerts dynamically based on custom thresholds from Control Config
     const previousAlerts = [...this.alerts];
     const triggeredAlerts: any[] = [];
-    const config = this.controlPanelService.config;
+    const settings = this.settings;
+    const room = this.roomOverrides;
+    const airOn = settings.enabled('airQuality_enabled', room);
+    const limit = (key: string) => settings.number(key, room);
+    const reached = (value: number | null | undefined, max: number | null) =>
+      value !== null && value !== undefined && max !== null && value >= max;
 
-    const hasAQ = config.airQuality && config.airQuality.enabled && this.aqSensors.length > 0;
+    const hasAQ = airOn && this.aqSensors.length > 0;
 
     if (this.avgTemp !== null && !hasAQ) {
       const tempStatus = this.data.tempStatus;
@@ -865,67 +886,64 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
       }
     }
 
-    if (config.airQuality && config.airQuality.enabled) {
+    if (airOn) {
+      const co2Max = limit('co2Max');
+      const pm25Max = limit('pm25Max');
+      const pm10Max = limit('pm10Max');
+      const tvocMax = limit('tvocMax');
+      const tempMax = limit('tempMax');
+      const humMax = limit('humMax');
       for (const aq of this.aqSensors) {
-        if (aq.co2 !== null && aq.co2 >= config.airQuality.co2Max) {
+        if (reached(aq.co2, co2Max)) {
           triggeredAlerts.push({
             id: `co2-${aq.entityName}`,
             title: `CO₂`,
-            message: this.fmt(this.t.alertLevelHighT, { name: 'CO₂', value: `${aq.co2} ppm`, limit: `${config.airQuality.co2Max} ppm` }),
+            message: this.fmt(this.t.alertLevelHighT, { name: 'CO₂', value: `${aq.co2} ppm`, limit: `${co2Max} ppm` }),
             time: this.t.justNow || 'Just now',
             severity: 'warning'
           });
         }
-        if (aq.pm25 !== null && aq.pm25 >= config.airQuality.pm25Max) {
+        if (reached(aq.pm25, pm25Max)) {
           triggeredAlerts.push({
             id: `pm25-${aq.entityName}`,
             title: `PM2.5`,
-            message: this.fmt(this.t.alertLevelHighT, { name: 'PM2.5', value: `${aq.pm25} µg/m³`, limit: `${config.airQuality.pm25Max} µg/m³` }),
+            message: this.fmt(this.t.alertLevelHighT, { name: 'PM2.5', value: `${aq.pm25} µg/m³`, limit: `${pm25Max} µg/m³` }),
             time: this.t.justNow || 'Just now',
             severity: 'warning'
           });
         }
-        if (aq.pm10 !== null && aq.pm10 >= config.airQuality.pm10Max) {
+        if (reached(aq.pm10, pm10Max)) {
           triggeredAlerts.push({
             id: `pm10-${aq.entityName}`,
             title: `PM10`,
-            message: this.fmt(this.t.alertLevelHighT, { name: 'PM10', value: `${aq.pm10} µg/m³`, limit: `${config.airQuality.pm10Max} µg/m³` }),
+            message: this.fmt(this.t.alertLevelHighT, { name: 'PM10', value: `${aq.pm10} µg/m³`, limit: `${pm10Max} µg/m³` }),
             time: this.t.justNow || 'Just now',
             severity: 'warning'
           });
         }
-        if (aq.tvoc !== null && aq.tvoc >= config.airQuality.tvocMax) {
+        if (reached(aq.tvoc, tvocMax)) {
           triggeredAlerts.push({
             id: `tvoc-${aq.entityName}`,
             title: `TVOC`,
-            message: this.fmt(this.t.alertLevelHighT, { name: 'TVOC', value: `${aq.tvoc} ppb`, limit: `${config.airQuality.tvocMax} ppb` }),
+            message: this.fmt(this.t.alertLevelHighT, { name: 'TVOC', value: `${aq.tvoc}`, limit: `${tvocMax}` }),
             time: this.t.justNow || 'Just now',
             severity: 'warning'
           });
         }
-        if (aq.temperature !== null && aq.temperature >= config.airQuality.tempMax) {
+        if (reached(aq.temperature, tempMax)) {
           triggeredAlerts.push({
             id: `temp-aq-${aq.entityName}`,
             title: `${this.t.temperature}`,
-            message: this.fmt(this.t.alertIsHighT, { name: this.t.temperature, value: `${aq.temperature}°C`, limit: `${config.airQuality.tempMax}°C` }),
+            message: this.fmt(this.t.alertIsHighT, { name: this.t.temperature, value: `${aq.temperature}°C`, limit: `${tempMax}°C` }),
             time: this.t.justNow || 'Just now',
             severity: 'warning'
           });
         }
-        if (aq.humidity !== null && aq.humidity >= config.airQuality.humMax) {
+        if (reached(aq.humidity, humMax)) {
           triggeredAlerts.push({
             id: `hum-aq-${aq.entityName}`,
             title: `${this.t.humidity}`,
-            message: this.fmt(this.t.alertIsHighT, { name: this.t.humidity, value: `${aq.humidity}%`, limit: `${config.airQuality.humMax}%` }),
-            time: this.t.justNow || 'Just now',
-            severity: 'warning'
-          });
-        }
-        if (aq.pressure !== null && aq.pressure >= config.airQuality.pressMax) {
-          triggeredAlerts.push({
-            id: `press-aq-${aq.entityName}`,
-            title: this.t.lblPressure,
-            message: this.fmt(this.t.alertIsHighT, { name: this.t.lblPressure, value: `${aq.pressure} hPa`, limit: `${config.airQuality.pressMax} hPa` }),
+            message: this.fmt(this.t.alertIsHighT, { name: this.t.humidity, value: `${aq.humidity}%`, limit: `${humMax}%` }),
             time: this.t.justNow || 'Just now',
             severity: 'warning'
           });
@@ -933,40 +951,25 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
       }
     }
 
-    if (config.noise && config.noise.enabled) {
+    const noise = settings.noiseLimits(Date.now(), room);
+    if (noise.enabled) {
       for (const s of this.allSensors) {
-        if (s.type === 'noise') {
-          const laeq = s.laeq ?? 0;
-          const lai = s.lai ?? 0;
-          const laimax = s.laimax ?? 0;
-          
-          if (laeq >= config.noise.laeqMax) {
-            triggeredAlerts.push({
-              id: `noise-laeq-${s.entityName}`,
-              title: `${this.t.lblNoise} LAeq`,
-              message: this.fmt(this.t.alertNoiseT, { name: 'LAeq', value: `${Math.round(laeq)} dBA`, limit: `${config.noise.laeqMax} dBA` }),
-              time: this.t.justNow || 'Just now',
-              severity: 'warning'
-            });
-          }
-          if (lai >= config.noise.laiMax) {
-            triggeredAlerts.push({
-              id: `noise-lai-${s.entityName}`,
-              title: `${this.t.lblNoise} LA${s.weighting || 'I'}`,
-              message: this.fmt(this.t.alertNoiseT, { name: `LA${s.weighting || 'I'}`, value: `${Math.round(lai)} dBA`, limit: `${config.noise.laiMax} dBA` }),
-              time: this.t.justNow || 'Just now',
-              severity: 'warning'
-            });
-          }
-          if (laimax >= config.noise.laimaxMax) {
-            triggeredAlerts.push({
-              id: `noise-laimax-${s.entityName}`,
-              title: `${this.t.lblNoise} LA${s.weighting || 'I'}max`,
-              message: this.fmt(this.t.alertNoiseT, { name: `LA${s.weighting || 'I'}max`, value: `${Math.round(laimax)} dBA`, limit: `${config.noise.laimaxMax} dBA` }),
-              time: this.t.justNow || 'Just now',
-              severity: 'warning'
-            });
-          }
+        if (s.type !== 'noise') continue;
+        const w = s.weighting || 'I';
+        const checks: { id: string; name: string; value: number | null | undefined; max: number | null }[] = [
+          { id: 'laeq', name: 'LAeq', value: s.laeq, max: noise.laeq },
+          { id: 'lai', name: `LA${w}`, value: s.lai, max: noise.lai },
+          { id: 'laimax', name: `LA${w}max`, value: s.laimax, max: noise.laimax },
+        ];
+        for (const c of checks) {
+          if (!reached(c.value, c.max)) continue;
+          triggeredAlerts.push({
+            id: `noise-${c.id}-${s.entityName}`,
+            title: `${this.t.lblNoise} ${c.name}`,
+            message: this.fmt(this.t.alertNoiseT, { name: c.name, value: `${Math.round(c.value as number)} dBA`, limit: `${c.max} dBA` }),
+            time: this.t.justNow || 'Just now',
+            severity: 'warning'
+          });
         }
       }
     }
@@ -995,7 +998,7 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
       }
     }
 
-    if (config.window && config.window.enabled) {
+    if (settings.enabled('window_enabled', room)) {
       for (const s of this.allSensors) {
         if (s.type === 'window' && s.isOpen) {
           triggeredAlerts.push({
@@ -1011,13 +1014,14 @@ export class RoomDetailPanelComponent implements OnInit, OnChanges, OnDestroy {
 
     // Smart socket over-power / overload — WS523 has no built-in alarm telemetry,
     // so we compare its live power draw against the configured maximum.
-    if (config.socket && config.socket.enabled) {
+    const socketMax = limit('socket_powerMax');
+    if (settings.enabled('socket_enabled', room) && socketMax !== null) {
       for (const socket of this.smartSockets) {
-        if (socket.power !== null && socket.power !== undefined && socket.power >= config.socket.powerMax) {
+        if (reached(socket.power, socketMax)) {
           triggeredAlerts.push({
             id: `socket-power-${socket.entityName}`,
             title: socket.displayName || this.t.smartSocket || 'Smart Socket',
-            message: `${this.t.socketPowerHigh || 'Power draw high'}: ${Math.round(socket.power)} W (${this.t.alertMaxWord}: ${config.socket.powerMax} W)`,
+            message: `${this.t.socketPowerHigh || 'Power draw high'}: ${Math.round(socket.power)} W (${this.t.alertMaxWord}: ${socketMax} W)`,
             time: this.t.justNow || 'Just now',
             severity: 'warning'
           });

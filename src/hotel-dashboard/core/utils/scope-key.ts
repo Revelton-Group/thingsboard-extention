@@ -1,6 +1,6 @@
 /**
  * Short stable key for a widget's datasource set. Browser-stored state (topology
- * cache, control-panel config, alert archive) is keyed by it so one hotel never
+ * cache, alert archive) is keyed by it so one hotel never
  * reads another hotel's entries.
  */
 export function datasourceScopeKey(ctx: any): string {

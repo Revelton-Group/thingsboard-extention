@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { WidgetContext } from '@home/models/widget-component.models';
 import { TranslationService } from './translation.service';
-import { ControlPanelService } from '../../features/control-panel/services/control-panel.service';
+import { ControlSettingsService } from '../settings/control-settings.service';
 import { HOTEL_TIMEZONE } from '../models/dashboard.config';
 import { isBatteryExemptDevice } from '../utils/battery-exempt';
 
@@ -115,65 +115,48 @@ export class RoomDataService {
   };
 
   private lastSeenTimestamps: { [device: string]: number } = {};
+  private noiseMinute = 0;
 
   constructor(
     private translationService: TranslationService,
-    private controlPanelService: ControlPanelService
+    private settings: ControlSettingsService
   ) {
-    this.controlPanelService.config$.subscribe(config => {
-      if (config) {
-        // ── Air Quality ──
-        // THRESHOLDS.airQuality is compared against the computed AQI index
-        // (0–200 scale from calculateAirQuality), NOT raw CO₂ ppm. The
-        // configured co2Max/pm25Max/… already shift the AQI curve via the
-        // custom breakpoints in aggregateAll(), so status thresholds must
-        // stay on the AQI scale (AQI >100 = "Fair" boundary exceeded).
-        this.THRESHOLDS.airQuality = { warning: 100, danger: 150 };
+    this.settings.hotel$.subscribe(() => this.applyThresholds());
+  }
 
-        // ── Temperature ──
-        if (config.airQuality?.enabled) {
-          const tMin = config.airQuality.tempMin ?? 18;
-          const tMax = config.airQuality.tempMax ?? 28;
-          const tWarnGap = (config.airQuality as any).tempWarnGap ?? 3;
-          this.THRESHOLDS.temperature = {
-            warning: { min: tMin,            max: tMax - tWarnGap },
-            danger:  { min: tMin - tWarnGap, max: tMax }
-          };
-        } else {
-          this.THRESHOLDS.temperature = {
-            warning: { min: 16, max: 28 },
-            danger:  { min: 14, max: 32 }
-          };
-        }
+  /**
+   * THRESHOLDS.airQuality is compared against the computed AQI index (0-200
+   * scale from calculateAirQuality), not raw CO2 ppm. The configured limits
+   * already shift the AQI curve via the custom breakpoints in aggregateAll(),
+   * so the status thresholds stay on the AQI scale.
+   */
+  private applyThresholds(): void {
+    const s = this.settings;
+    this.THRESHOLDS.airQuality = { warning: 100, danger: 150 };
 
-        // ── Humidity ──
-        if (config.airQuality?.enabled) {
-          const hMin = config.airQuality.humMin ?? 30;
-          const hMax = config.airQuality.humMax ?? 65;
-          const hWarnGap = (config.airQuality as any).humWarnGap ?? 10;
-          this.THRESHOLDS.humidity = {
-            warning: { min: hMin,            max: hMax - hWarnGap },
-            danger:  { min: hMin - hWarnGap, max: hMax }
-          };
-        } else {
-          this.THRESHOLDS.humidity = {
-            warning: { min: 30, max: 65 },
-            danger:  { min: 20, max: 80 }
-          };
-        }
+    const air = s.enabled('airQuality_enabled');
+    const tMin = s.number('tempMin');
+    const tMax = s.number('tempMax');
+    this.THRESHOLDS.temperature = air && tMin !== null && tMax !== null
+      ? { warning: { min: tMin, max: tMax - 3 }, danger: { min: tMin - 3, max: tMax } }
+      : { warning: { min: 16, max: 28 }, danger: { min: 14, max: 32 } };
 
-        // ── Noise ──
-        if (config.noise?.enabled) {
-          const mainLimit = config.noise.laeqMax ?? config.noise.noiseMax ?? 60;
-          this.THRESHOLDS.noise = {
-            warning: Math.max(40, mainLimit - 10),
-            danger: mainLimit
-          };
-        } else {
-          this.THRESHOLDS.noise = { warning: 50, danger: 60 };
-        }
-      }
-    });
+    const hMin = s.number('humMin');
+    const hMax = s.number('humMax');
+    this.THRESHOLDS.humidity = air && hMin !== null && hMax !== null
+      ? { warning: { min: hMin, max: hMax - 10 }, danger: { min: hMin - 10, max: hMax } }
+      : { warning: { min: 30, max: 65 }, danger: { min: 20, max: 80 } };
+
+    this.applyNoiseThreshold();
+  }
+
+  /** Day and night have their own limit, so the noise threshold follows the hotel clock. */
+  private applyNoiseThreshold(): void {
+    this.noiseMinute = Math.floor(Date.now() / 60000);
+    const noise = this.settings.noiseLimits(Date.now());
+    this.THRESHOLDS.noise = noise.enabled && noise.laeq !== null
+      ? { warning: Math.max(40, noise.laeq - 10), danger: noise.laeq }
+      : { warning: 50, danger: 60 };
   }
 
   get t() {
@@ -182,6 +165,7 @@ export class RoomDataService {
 
   public updateFromTelemetry(ctx: WidgetContext, currentData: RoomData): RoomData {
     if (!ctx?.data) return currentData;
+    if (Math.floor(Date.now() / 60000) !== this.noiseMinute) this.applyNoiseThreshold();
 
     const newData = { ...currentData };
     if (!newData.plugDevices) newData.plugDevices = {};
@@ -1088,33 +1072,41 @@ export class RoomDataService {
     if (airKeys.length > 0) {
       let totalAqi = 0;
       let count = 0;
-      const config = this.controlPanelService.config;
+      const settings = this.settings;
       const customBreakpoints: Partial<AQBreakpoints> = {};
-      if (config?.airQuality?.enabled) {
-        const aq: any = config.airQuality;
+      if (settings.enabled('airQuality_enabled')) {
         const getBp = (max: number, warnGap: number) => ({
           good: Math.max(0, max - 2 * warnGap),
           fair: Math.max(0, max - warnGap),
           poor: max + warnGap,
           hazardous: max + 3 * warnGap
         });
-
-        customBreakpoints.co2 = getBp(aq.co2Max, aq.co2WarnGap ?? 200);
-        customBreakpoints.pm25 = getBp(aq.pm25Max, aq.pm25WarnGap ?? 10);
-        customBreakpoints.pm10 = getBp(aq.pm10Max, aq.pm10WarnGap ?? 40);
-        customBreakpoints.tvoc = getBp(aq.tvocMax ?? 10, aq.tvocWarnGap ?? 1);
-        customBreakpoints.temp = {
-          comfortMin: 18,
-          comfortMax: Math.max(18, config.airQuality.tempMax - 2),
-          warnMin: 14,
-          warnMax: config.airQuality.tempMax
-        };
-        customBreakpoints.humidity = {
-          comfortMin: 30,
-          comfortMax: Math.max(30, config.airQuality.humMax - 5),
-          warnMin: 20,
-          warnMax: config.airQuality.humMax
-        };
+        const co2 = settings.number('co2Max');
+        const pm25 = settings.number('pm25Max');
+        const pm10 = settings.number('pm10Max');
+        const tvoc = settings.number('tvocMax');
+        const tempMax = settings.number('tempMax');
+        const humMax = settings.number('humMax');
+        if (co2 !== null) customBreakpoints.co2 = getBp(co2, 200);
+        if (pm25 !== null) customBreakpoints.pm25 = getBp(pm25, 10);
+        if (pm10 !== null) customBreakpoints.pm10 = getBp(pm10, 40);
+        if (tvoc !== null) customBreakpoints.tvoc = getBp(tvoc, 1);
+        if (tempMax !== null) {
+          customBreakpoints.temp = {
+            comfortMin: 18,
+            comfortMax: Math.max(18, tempMax - 2),
+            warnMin: 14,
+            warnMax: tempMax
+          };
+        }
+        if (humMax !== null) {
+          customBreakpoints.humidity = {
+            comfortMin: 30,
+            comfortMax: Math.max(30, humMax - 5),
+            warnMin: 20,
+            warnMax: humMax
+          };
+        }
       }
 
       for (const k of airKeys) {

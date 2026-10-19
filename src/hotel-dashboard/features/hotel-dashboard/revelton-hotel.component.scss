@@ -203,40 +203,6 @@
                         }
                     }
                 }
-
-                .revelton-control-config-btn {
-                    display: flex;
-                    align-items: center;
-                    gap: 6px;
-                    background: var(--inner, #1e2733);
-                    border: 1px solid var(--border, #27313f);
-                    padding: 5px 12px;
-                    white-space: nowrap;
-                    border-radius: 20px;
-                    cursor: pointer;
-                    transition: all 0.2s;
-
-                    &:hover {
-                        background: var(--accent-soft, rgba(92,124,250,.14));
-                        border-color: var(--accent, #5c7cfa);
-
-                        .material-icons { color: var(--accent, #5c7cfa); }
-                        .config-name { color: var(--accent, #5c7cfa); }
-                    }
-
-                    .material-icons {
-                        font-size: 15px;
-                        color: var(--t2, #8b97a8);
-                        transition: color 0.2s;
-                    }
-
-                    .config-name {
-                        font-size: 13px;
-                        font-weight: 600;
-                        color: var(--tx, #e6ecf3);
-                        transition: color 0.2s;
-                    }
-                }
             }
         }
     }
@@ -1223,10 +1189,10 @@
 
 /* Header breakpoints follow the widget's own width (container "hdr"), not the browser window */
 
-/* ── ≤820px: drop the weather condition and button captions ── */
+/* ── ≤820px: drop the weather condition caption ── */
 @container hdr (max-width: 820px) {
     .weather-info .condition-text,
-    .revelton-control-config-btn .config-name {
+    .revelton-settings-btn .config-name {
         display: none;
     }
 }
@@ -1235,6 +1201,23 @@
 @container hdr (max-width: 1030px) {
     .revelton-hotel-container .hotel-dashboard {
         grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    /* Dropdowns open under the whole header: anchored to the card they would run off the
+       widget edge or be clipped by the scroll strip below 480px */
+    .revelton-hotel-container .hotel-dashboard > .kpi-card.active-dropdown {
+        position: static;
+        transform: none;
+    }
+
+    .revelton-hotel-container .hotel-dashboard .kpi-dropdown,
+    .revelton-hotel-container .hotel-dashboard .battery-dropdown,
+    .revelton-hotel-container .hotel-dashboard .mews-dropdown {
+        top: calc(100% + 6px);
+        left: 12px;
+        right: auto;
+        max-width: calc(100% - 24px);
+        z-index: 300;
     }
 }
 
@@ -1286,5 +1269,29 @@
     .hotel-dashboard > .kpi-card,
     .hotel-dashboard > .dash-card {
         flex: 0 0 85%;
+    }
+}
+.revelton-hotel-container .revelton-settings-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    border: 1px solid var(--border, #27313f);
+    border-radius: 20px;
+    background: var(--inner, #1e2733);
+    color: var(--t2, #8b97a8);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s, color 0.2s;
+
+    .material-icons { font-size: 15px; }
+
+    &:hover {
+        border-color: var(--accent, #5c7cfa);
+        background: var(--accent-soft, rgba(92, 124, 250, .14));
+        color: var(--accent, #5c7cfa);
     }
 }

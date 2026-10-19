@@ -5,7 +5,6 @@ export interface TranslationSet {
   // Common
   details: string;
   close: string;
-  done: string;
   room: string;
   rooms: string;
   lastSync: string;
@@ -51,7 +50,6 @@ export interface TranslationSet {
   thermostat: string;
   targetL: string;
   synced: string;
-  syncWaiting: string;
   wtSending: string;
   wtFailed: string;
   wtWriteFailed: string;
@@ -91,7 +89,6 @@ export interface TranslationSet {
   fair: string;
   poor: string;
   mode: string;
-  preset: string;
   auto: string;
   off: string;
   manual: string;
@@ -123,7 +120,6 @@ export interface TranslationSet {
   in: string;
   at: string;
   checkout: string;
-  controlConfig: string;
   alerts: string;
 
   // Weather
@@ -142,76 +138,17 @@ export interface TranslationSet {
   cpCritAlert: string;
   smartSockets: string;
 
-  cpCo2Limit: string;
-  cpPm25Limit: string;
-  cpPm10Limit: string;
-  cpTvocLimit: string;
-  cpTempMax: string;
-  cpHumMax: string;
-  cpPressMax: string;
-  cpAirGuardDesc: string;
-  cpClimateSection: string;
-  cpPuritySection: string;
-  cpCurrent: string;
-  cpLaeqName: string;
-  cpLaeqHint: string;
-  cpLaiName: string;
-  cpLaiHint: string;
-  cpLaimaxName: string;
-  cpLaimaxHint: string;
-  cpAddInterval: string;
-  cpPreheatingTemp: string;
-  cpPreheatingTempHint: string;
-  cpPreheatingMinutes: string;
-  cpPreheatingMinutesHint: string;
-  cpWindowAutoPause: string;
-  cpWindowAutoPauseHint: string;
-  cpWindowAlertT: string;
-  cpWindowAlertHint: string;
   smartSocket: string;
   socketPowerHigh: string;
-  cpSocketHint: string;
-  cpSocketOverloadT: string;
-  cpSocketOverloadHint: string;
-  cpSocketMaxPowerT: string;
-  cpSocketMaxPowerHint: string;
   cpOn: string;
   cpOff: string;
-  cpCurrentlyOpen: string;
-  cpNoOpenWindows: string;
-  cpSaveThresholds: string;
 
   // Control Panel — Design-aligned
   schedule: string;
-  scheduleHint: string;
-  maintenanceT: string;
-  maintenanceHint: string;
-  noiseThresholdHint: string;
-  minutesU: string;
-  appliesTo: string;
-  ofRooms: string;
-  roomsTargeted: string;
-  searchRooms: string;
-  alertC: string;
   dayPeriod: string;
   nightPeriod: string;
-  syncNow: string;
-  mewsSyncT: string;
-  mewsAutoSyncT: string;
-  mewsAutoSyncHint: string;
-  mewsSyncHint: string;
-  lastSyncT: string;
-  minAgo: string;
-  acousticNoise: string;
-  thermostatsT: string;
-  windowOpenAlert: string;
-  mewsB: string;
   normalC: string;
   warningC: string;
-  addTest: string;
-  comfortHint: string;
-  onlineLabel: string;
-  offlineLabel: string;
   errorT: string;
 
   histSyncing: string;
@@ -220,11 +157,6 @@ export interface TranslationSet {
   histQuiet: string;
   histWaterLeak: string;
   noDatasource: string;
-  cpAqWarnZoneTitle: string;
-  cpAqWarnZoneDesc: string;
-  cpPreheatingSettings: string;
-  cpWinterSeason: string;
-  sensorsAndControls: string;
   presence: string;
   alertsActive: string;
   alertsNone: string;
@@ -235,7 +167,6 @@ export interface TranslationSet {
   sevWarnings: string;
   alertsHint: string;
   presenceSensor: string;
-  humanPresenceRadar: string;
   dim: string;
   bright: string;
   noDevices: string;
@@ -261,15 +192,6 @@ export interface TranslationSet {
   chkWait: string;
   stLeak: string;
   stOk: string;
-  cpAllRooms: string;
-  cpExcludeRooms: string;
-  cpWarnZone: string;
-  cpScheduleOverlap: string;
-  cpRulesActivationPeriod: string;
-  cpSelectSeasonDates: string;
-  cpContinuousAvg: string;
-  cpImpulseLevel: string;
-  cpPeakMax: string;
   rangeCustom: string;
   rangeCustomTitle: string;
   rangeStart: string;
@@ -305,11 +227,185 @@ export interface TranslationSet {
   alertMaxWord: string;
   lblNoise: string;
   lblMotion: string;
-  cpErrSchedTimes: string;
-  cpErrMaintTimes: string;
-  cpErrNoiseTimes: string;
-  cpErrSeasonDates: string;
-  cpErrOverlap: string;
+
+  // Control settings
+  csTitle: string;
+  csHotel: string;
+  csGeneral: string;
+  csHeating: string;
+  csMews: string;
+  csAir: string;
+  csNoise: string;
+  csWindow: string;
+  csSocket: string;
+  csBattery: string;
+  csOffline: string;
+  csTelegram: string;
+  csSubGeneral: string;
+  csSubHeating: string;
+  csSubMews: string;
+  csSubAir: string;
+  csSubNoise: string;
+  csSubWindow: string;
+  csSubSocket: string;
+  csSubBattery: string;
+  csSubOffline: string;
+  csSubTelegram: string;
+  csRoomsOverride: string;
+  csSave: string;
+  csCancel: string;
+  csChanges: string;
+  csChangesHint: string;
+  csFixToSave: string;
+  csSaved: string;
+  csSaveFailed: string;
+  csNotReady: string;
+  csLoadFailed: string;
+  csNotSet: string;
+  csErr_range: string;
+  csErr_daily: string;
+  csErr_time: string;
+  csErr_type: string;
+  csErr_order: string;
+  csErr_unknown: string;
+  csAdvanced: string;
+  csHideAdvanced: string;
+  csAdvBoost: string;
+  csAdvPreheat: string;
+  csAdvAdjust: string;
+  csAdvSeason: string;
+  csAdvBoostDeltaHint: string;
+  csAdvTurnoverHint: string;
+  csAdvPreheatMaxHint: string;
+  csAdvAdjustMaxHint: string;
+  csAdvSeasonHint: string;
+  csAdvLookaheadHint: string;
+  csModeTitle: string;
+  csModeOff: string;
+  csModeSafe: string;
+  csModeLive: string;
+  csModeOffShort: string;
+  csModeSafeShort: string;
+  csModeLiveShort: string;
+  csModeOffHelp: string;
+  csTargetTemps: string;
+  csTargetTempsHint: string;
+  csComfortTemp: string;
+  csEcoTemp: string;
+  csBoostTemp: string;
+  csComfortHint: string;
+  csEcoHint: string;
+  csBoostHint: string;
+  csBulkTitle: string;
+  csBulkHint: string;
+  csBulkAuto: string;
+  csBulkManual: string;
+  csBulkSent: string;
+  csBulkFailed: string;
+  csHeatMode: string;
+  csReportLanguage: string;
+  csReportLanguageHint: string;
+  csTimezone: string;
+  csTimezoneHint: string;
+  csBoostDelta: string;
+  csBoostExit: string;
+  csBoostMax: string;
+  csTurnoverGap: string;
+  csRateWarm: string;
+  csRateMild: string;
+  csRateCold: string;
+  csPreheatMin: string;
+  csPreheatMax: string;
+  csAdjustMax: string;
+  csAdjustEvery: string;
+  csSensorStale: string;
+  csLookahead: string;
+  csLatitude: string;
+  csLongitude: string;
+  csSeasonTemp: string;
+  csSeasonStart: string;
+  csSeasonEnd: string;
+  csMewsInterval: string;
+  csMewsHint: string;
+  csNoBridge: string;
+  csEnabled: string;
+  csEnabledHint: string;
+  csTempMin: string;
+  csTempMax: string;
+  csHumMin: string;
+  csHumMax: string;
+  csTempRange: string;
+  csHumRange: string;
+  csCo2Max: string;
+  csTvocMax: string;
+  csPm25Max: string;
+  csPm10Max: string;
+  csTvocHint: string;
+  csTo: string;
+  csDayPeriod: string;
+  csDayPeriodHint: string;
+  csDayStart: string;
+  csDayEnd: string;
+  csDay: string;
+  csNight: string;
+  csLimitsDb: string;
+  csDayLaeq: string;
+  csDayLai: string;
+  csDayLaimax: string;
+  csNightLaeq: string;
+  csNightLai: string;
+  csNightLaimax: string;
+  csNoiseLegend: string;
+  csWindowMax: string;
+  csWindowHint: string;
+  csWindowNoLimit: string;
+  csPowerMax: string;
+  csPowerHint: string;
+  csBatteryMin: string;
+  csBatteryHint: string;
+  csOffDevice: string;
+  csOffNormal: string;
+  csOffAfter: string;
+  csOffAm308: string;
+  csOffWs302: string;
+  csOffWt101: string;
+  csOffWs523: string;
+  csOffVs370: string;
+  csOffWs301: string;
+  csOffWs303: string;
+  csOffRate10: string;
+  csOffRate8: string;
+  csOffRate12: string;
+  csOffRateDaily: string;
+  csOffNote: string;
+  csTgTypes: string;
+  csTgTiming: string;
+  csTgWater: string;
+  csTgNoise: string;
+  csTgTemp: string;
+  csTgHumidity: string;
+  csTgCo2: string;
+  csTgBattery: string;
+  csTgSocket: string;
+  csTgWindow: string;
+  csTgOffline: string;
+  csTgWaterHint: string;
+  csTgDelayHint: string;
+  csTgBatteryHint: string;
+  csTgWindowHint: string;
+  csTgOfflineHint: string;
+  csNoiseAfter: string;
+  csAirAfter: string;
+  csNoiseAfterHint: string;
+  csTgServerNote: string;
+  csRoomSettings: string;
+  csRoomHeating: string;
+  csRoomFollows: string;
+  csRoomOwn: string;
+  csRoomValue: string;
+  csBackToHotel: string;
+  csHotelValue: string;
+  csRoomLoadFailed: string;
 }
 
 @Injectable({
@@ -325,7 +421,6 @@ export class TranslationService {
     EN: {
       details: "Details",
       close: "Close",
-      done: "Done",
       room: "Room",
       rooms: "rooms",
       lastSync: "Last sync",
@@ -369,7 +464,6 @@ export class TranslationService {
       thermostat: "Thermostat",
       targetL: "Target",
       synced: "Confirmed",
-      syncWaiting: "Device:",
       wtSending: "Sending… ≤10 min",
       wtFailed: "Not delivered",
       wtWriteFailed: "Not saved",
@@ -408,7 +502,6 @@ export class TranslationService {
       fair: "Fair",
       poor: "Poor",
       mode: "Mode",
-      preset: "Preset",
       auto: "Auto",
       off: "Off",
       manual: "Manual",
@@ -440,7 +533,6 @@ export class TranslationService {
       in: "in",
       at: "at",
       checkout: "checkout",
-      controlConfig: "Control Settings",
 
       clear: "Clear",
       partlyCloudy: "Partly cloudy",
@@ -456,75 +548,16 @@ export class TranslationService {
       cpCritAlert: "CRITICAL ALERT",
       smartSockets: "Smart Sockets",
 
-      cpCo2Limit: "CO₂",
-      cpPm10Limit: "PM10",
-      cpTvocLimit: "TVOC",
-      cpAirGuardDesc: "AirGuard · alert limits per metric",
-      cpClimateSection: "CLIMATE COMFORT",
-      cpPuritySection: "AIR PURITY",
-      cpCurrent: "Current",
-      cpLaeqName: "LAEQ",
-      cpLaeqHint: "Equivalent continuous level — average sound energy over time; best gauge of ongoing comfort",
-      cpLaiName: "LAI",
-      cpLaiHint: "Instantaneous level — captures short peaks and transient events",
-      cpLaimaxName: "LAIMAX",
-      cpLaimaxHint: "Maximum level recorded — the loudest moment in the interval",
-      cpAddInterval: "Add Interval",
-      cpPreheatingTemp: "Preheating Temperature",
-      cpPreheatingTempHint: "Target temperature to preheat the room to before check-in",
-      cpPreheatingMinutes: "Preheating Time",
-      cpPreheatingMinutesHint: "How early to start heating the room before check-in (in winter season)",
-      cpWindowAutoPause: "Auto-pause Heating",
-      cpWindowAutoPauseHint: "Pause the valve automatically while a window is open in the room",
-      cpWindowAlertT: "Open-Window Alert",
-      cpWindowAlertHint: "Notify staff if a window stays open longer than this",
       smartSocket: "Smart Socket",
       socketPowerHigh: "Power draw high",
-      cpSocketHint: "Alert staff when a smart socket draws more power than expected (overload protection)",
-      cpSocketOverloadT: "Over-Power Alert",
-      cpSocketOverloadHint: "Raise an alert when a socket exceeds the maximum power draw",
-      cpSocketMaxPowerT: "Max Power",
-      cpSocketMaxPowerHint: "Trigger an over-power alert at or above this wattage",
       cpOn: "On",
       cpOff: "Off",
-      cpCurrentlyOpen: "Currently Open Windows",
-      cpNoOpenWindows: "All windows closed right now",
-      cpSaveThresholds: "Save",
-      cpPm25Limit: "PM2.5",
-      cpTempMax: "TEMP MAX",
-      cpHumMax: "HUMIDITY MAX",
-      cpPressMax: "PRESSURE MAX",
 
       schedule: "Schedule",
-      scheduleHint: "Define heating periods with target temperatures for each time block.",
-      maintenanceT: "Valve Maintenance",
-      maintenanceHint: "Periodically fully opens then closes the valve to prevent limescale build-up and keep it moving freely.",
-      noiseThresholdHint: "Noise thresholds per period — day and night limits.",
-      minutesU: "min",
-      appliesTo: "Applies to",
-      ofRooms: "of",
-      roomsTargeted: "rooms",
-      searchRooms: "Search rooms...",
-      alertC: "EXCEEDED",
       dayPeriod: "Day",
       nightPeriod: "Night",
-      syncNow: "Sync Now",
-      mewsSyncT: "Sync Interval",
-      mewsAutoSyncT: "Auto Sync",
-      mewsAutoSyncHint: "Reservation data is kept up to date automatically.",
-      mewsSyncHint: "How often reservation data is pulled from Mews PMS.",
-      lastSyncT: "Last Sync",
-      minAgo: "min ago",
-      acousticNoise: "Noise",
-      thermostatsT: "Thermostats",
-      windowOpenAlert: "Window",
-      mewsB: "Mews Bridge",
       normalC: "NORMAL",
       warningC: "WARNING",
-      addTest: "Add Test",
-      comfortHint: "Default setpoint applied on guest check-in.",
-      onlineLabel: "Online",
-      offlineLabel: "Offline",
       errorT: "Error",
 
       histSyncing: "Loading data...",
@@ -533,11 +566,6 @@ export class TranslationService {
       histQuiet: "Quiet",
       histWaterLeak: "Water Leak",
       noDatasource: "No data source",
-      cpAqWarnZoneTitle: "Thresholds & Warn Zone",
-      cpAqWarnZoneDesc: "MIN and MAX set the absolute allowed boundaries for the reading. The warning zone is defined as a gap below the absolute MAX limit. When readings cross into this zone, they will display an amber WARNING status.",
-      cpPreheatingSettings: "Preheating Settings",
-      cpWinterSeason: "Winter Season",
-      sensorsAndControls: "SENSORS & CONTROL PANEL",
       presence: "Presence",
       alertsActive: "Active Alerts",
       alertsNone: "No active alerts",
@@ -548,7 +576,6 @@ export class TranslationService {
       sevWarnings: "Warnings",
       alertsHint: "Tap an alert to highlight its device.",
       presenceSensor: "Presence Sensor",
-      humanPresenceRadar: "HUMAN PRESENCE RADAR",
       dim: "Dim",
       bright: "Bright",
       noDevices: "No devices linked to this room",
@@ -574,15 +601,6 @@ export class TranslationService {
       chkWait: "Wait",
       stLeak: "LEAK!",
       stOk: "OK",
-      cpAllRooms: "All rooms",
-      cpExcludeRooms: "Exclude rooms",
-      cpWarnZone: "WARN ZONE",
-      cpScheduleOverlap: "Schedule intervals overlap! Please adjust times so they do not conflict.",
-      cpRulesActivationPeriod: "Rules activation period",
-      cpSelectSeasonDates: "Select Season Dates",
-      cpContinuousAvg: "Continuous Average",
-      cpImpulseLevel: "Impulse Level",
-      cpPeakMax: "Peak Maximum",
       rangeCustom: "Custom",
       rangeCustomTitle: "Custom Range",
       rangeStart: "Start",
@@ -618,16 +636,188 @@ export class TranslationService {
       alertMaxWord: "Max",
       lblNoise: "Noise",
       lblMotion: "Motion",
-      cpErrSchedTimes: "Please enter valid times in 24-hour style HH:MM format (e.g., 08:00, 22:30).",
-      cpErrMaintTimes: "Please enter valid times in 24-hour style HH:MM format (e.g., 03:00) for valve maintenance.",
-      cpErrNoiseTimes: "Please enter valid times in 24-hour style HH:MM format (e.g., 07:00, 22:00) for acoustic noise periods.",
-      cpErrSeasonDates: "Please enter valid season dates in the calendar.",
-      cpErrOverlap: "Cannot save: schedule intervals overlap! Please adjust schedule times so they do not conflict.",
+      // Control settings
+      csTitle: "Control Settings",
+      csHotel: "Hotel",
+      csGeneral: "General",
+      csHeating: "Heating",
+      csMews: "Mews",
+      csAir: "Air quality",
+      csNoise: "Noise",
+      csWindow: "Windows",
+      csSocket: "Sockets",
+      csBattery: "Battery",
+      csOffline: "Offline",
+      csTelegram: "Telegram",
+      csSubGeneral: "Language of messages and the hotel clock.",
+      csSubHeating: "Automation mode and the three target temperatures. Rooms can override Comfort and Eco.",
+      csSubMews: "How often reservations are read from the PMS.",
+      csSubAir: "AM308 sensors. A breach raises an Air Purity Level alarm and returns to normal when the value is back inside the limit.",
+      csSubNoise: "WS302 sensors. Day and night have their own limits; the night period is everything outside the day period.",
+      csSubWindow: "WS301 sensors. Checked on every report of the room air sensor, roughly every 10 minutes.",
+      csSubSocket: "WS523 smart plugs.",
+      csSubBattery: "One limit for every battery powered device.",
+      csSubOffline: "How long a device may stay silent before it counts as offline. Devices report at different rates.",
+      csSubTelegram: "Which messages are sent. Alarms are always raised in ThingsBoard; these switches only silence Telegram.",
+      csRoomsOverride: "Rooms can override",
+      csSave: "Save",
+      csCancel: "Cancel",
+      csChanges: "unsaved changes",
+      csChangesHint: "written to the hotel asset, devices pick it up on their next report",
+      csFixToSave: "fix the highlighted values to save",
+      csSaved: "Saved",
+      csSaveFailed: "Could not save. Check the connection and try again.",
+      csNotReady: "The hotel asset is not resolved yet, so settings are read only.",
+      csLoadFailed: "Settings could not be loaded.",
+      csNotSet: "Not set",
+      csErr_range: "Value is out of the allowed range.",
+      csErr_daily: "At least 1500 min: this sensor reports once a day.",
+      csErr_time: "Use the format shown.",
+      csErr_type: "Enter a valid value.",
+      csErr_order: "Min must be below max.",
+      csErr_unknown: "Unknown setting.",
+      csAdvanced: "Advanced: boost, pre-heat, room adjustment, season",
+      csHideAdvanced: "Hide advanced",
+      csAdvBoost: "Boost",
+      csAdvPreheat: "Pre-heat",
+      csAdvAdjust: "Room adjustment",
+      csAdvSeason: "Heating season",
+      csAdvBoostDeltaHint: "Boost begins when the room is this far below Comfort.",
+      csAdvTurnoverHint: "After check-out.",
+      csAdvPreheatMaxHint: "Used when the room temperature is unknown.",
+      csAdvAdjustMaxHint: "0 turns adjustment off.",
+      csAdvSeasonHint: "Yesterday, today and tomorrow all below it.",
+      csAdvLookaheadHint: "Matches the thermostat report interval.",
+      csModeTitle: "Automation mode",
+      csModeOff: "Off",
+      csModeSafe: "Safe",
+      csModeLive: "Live",
+      csModeOffShort: "Automation stopped.",
+      csModeSafeShort: "Decisions are calculated and stored on the room, nothing is sent to thermostats.",
+      csModeLiveShort: "Fully active. Targets are sent to thermostats.",
+      csModeOffHelp: "Automation stopped. Thermostats keep their last target.",
+      csTargetTemps: "Target temperatures",
+      csTargetTempsHint: "Comfort and Eco can be set per room",
+      csComfortTemp: "Comfort",
+      csEcoTemp: "Eco",
+      csBoostTemp: "Boost",
+      csComfortHint: "Room is sold, until check-out",
+      csEcoHint: "Room is not sold tonight",
+      csBoostHint: "Quick warm-up target",
+      csBulkTitle: "All thermostats",
+      csBulkHint: "Each thermostat applies it on its next report, within about 10 minutes.",
+      csBulkAuto: "Set all to Auto",
+      csBulkManual: "Set all to Manual",
+      csBulkSent: "Sent, applies within 10 min",
+      csBulkFailed: "Not sent",
+      csHeatMode: "Automation mode",
+      csReportLanguage: "Message language",
+      csReportLanguageHint: "Telegram alarms, offline notices and the morning report.",
+      csTimezone: "Hotel time zone",
+      csTimezoneHint: "IANA name. Heating, day and night noise limits and the battery message hour use it.",
+      csBoostDelta: "Start when colder than Comfort by",
+      csBoostExit: "Stop when within",
+      csBoostMax: "Longest boost",
+      csTurnoverGap: "Keep Comfort if next guest arrives within",
+      csRateWarm: "Heating speed, outdoors 10 °C or more",
+      csRateMild: "Heating speed, outdoors 0 to 10 °C",
+      csRateCold: "Heating speed, below 0 °C or unknown",
+      csPreheatMin: "Shortest pre-heat",
+      csPreheatMax: "Longest pre-heat",
+      csAdjustMax: "Largest deviation from Comfort",
+      csAdjustEvery: "One 1 °C step at most every",
+      csSensorStale: "Use the thermostat sensor after air sensor silence of",
+      csLookahead: "Look ahead",
+      csLatitude: "Latitude",
+      csLongitude: "Longitude",
+      csSeasonTemp: "Season opens below an average of",
+      csSeasonStart: "Season start (MM-DD)",
+      csSeasonEnd: "Season end (MM-DD)",
+      csMewsInterval: "Read reservations every",
+      csMewsHint: "Applies at once. Written to the Mews bridge device.",
+      csNoBridge: "The Mews bridge was not found, so this value cannot be changed.",
+      csEnabled: "Check this section",
+      csEnabledHint: "Off means no limits of this section are checked.",
+      csTempMin: "Temperature, lower limit",
+      csTempMax: "Temperature, upper limit",
+      csHumMin: "Humidity, lower limit",
+      csHumMax: "Humidity, upper limit",
+      csTempRange: "Temperature",
+      csHumRange: "Humidity",
+      csCo2Max: "CO₂ up to",
+      csTvocMax: "TVOC up to",
+      csPm25Max: "PM2.5 up to",
+      csPm10Max: "PM10 up to",
+      csTvocHint: "The AM308 reports a level, starting at 1.",
+      csTo: "to",
+      csDayPeriod: "Day period",
+      csDayPeriodHint: "Night is the rest of the day.",
+      csDayStart: "Day starts",
+      csDayEnd: "Day ends",
+      csDay: "Day",
+      csNight: "Night",
+      csLimitsDb: "Limits in dB",
+      csDayLaeq: "Day, average (LAeq)",
+      csDayLai: "Day, impulse (LAI)",
+      csDayLaimax: "Day, peak (LAImax)",
+      csNightLaeq: "Night, average (LAeq)",
+      csNightLai: "Night, impulse (LAI)",
+      csNightLaimax: "Night, peak (LAImax)",
+      csNoiseLegend: "LAeq is the average level, LAI the impulse level, LAImax the loudest peak.",
+      csWindowMax: "Alarm when open longer than",
+      csWindowHint: "0 alarms the moment a window opens. The alarm may arrive up to 10 minutes after the limit.",
+      csWindowNoLimit: "No limit is set, so windows are not checked",
+      csPowerMax: "Overload above",
+      csPowerHint: "Raises a Socket Overload alarm.",
+      csBatteryMin: "Low battery at or below",
+      csBatteryHint: "One message per device per day, between 10:00 and 19:00 hotel time.",
+      csOffDevice: "Device",
+      csOffNormal: "Normal report",
+      csOffAfter: "Offline after",
+      csOffAm308: "Air sensor (AM308)",
+      csOffWs302: "Noise sensor (WS302)",
+      csOffWt101: "Thermostat (WT101)",
+      csOffWs523: "Socket (WS523)",
+      csOffVs370: "Motion sensor (VS370)",
+      csOffWs301: "Window sensor (WS301)",
+      csOffWs303: "Water sensor (WS303)",
+      csOffRate10: "every 10 min",
+      csOffRate8: "about 8 min",
+      csOffRate12: "about 12 min",
+      csOffRateDaily: "on change, else daily",
+      csOffNote: "Other models use offline_<model>_min and default to 1560 min. A message goes out after two failed checks and repeats every 6 hours.",
+      csTgTypes: "Message types",
+      csTgTiming: "Timing",
+      csTgWater: "Water leak",
+      csTgNoise: "Noise",
+      csTgTemp: "Temperature",
+      csTgHumidity: "Humidity",
+      csTgCo2: "CO₂, TVOC and dust",
+      csTgBattery: "Battery",
+      csTgSocket: "Socket overload",
+      csTgWindow: "Open window",
+      csTgOffline: "Device offline",
+      csTgWaterHint: "Immediately, and when it ends.",
+      csTgDelayHint: "After the delay below.",
+      csTgBatteryHint: "Once a day per device.",
+      csTgWindowHint: "When the limit passes, and when it closes.",
+      csTgOfflineHint: "Hotel wide. The morning report keeps its list.",
+      csNoiseAfter: "Send noise message after",
+      csAirAfter: "Send air message after",
+      csNoiseAfterHint: "Continuous noise for this long. Short noise is not reported.",
+      csTgServerNote: "The bot token and the group are set on the server, not here.",
+      csRoomSettings: "Room settings",
+      csRoomHeating: "Heating automation in this room",
+      csRoomFollows: "follows hotel",
+      csRoomOwn: "own",
+      csRoomValue: "Room value",
+      csBackToHotel: "Back to hotel value",
+      csHotelValue: "Hotel",
+      csRoomLoadFailed: "Room settings could not be loaded.",
     },
     RU: {
       details: "Детали",
       close: "Закрыть",
-      done: "Готово",
       room: "Комната",
       rooms: "комнат",
       lastSync: "Синхр.",
@@ -671,7 +861,6 @@ export class TranslationService {
       thermostat: "Термостат",
       targetL: "Цель",
       synced: "Подтверждено",
-      syncWaiting: "Устройство:",
       wtSending: "Отправка… ≤10 мин",
       wtFailed: "Не доставлено",
       wtWriteFailed: "Не сохранено",
@@ -710,7 +899,6 @@ export class TranslationService {
       fair: "Средне",
       poor: "Плохо",
       mode: "Режим",
-      preset: "Пресет",
       auto: "Авто",
       off: "Выкл",
       manual: "Ручной",
@@ -742,7 +930,6 @@ export class TranslationService {
       in: "через",
       at: "в",
       checkout: "выезд",
-      controlConfig: "Настройки управления",
 
       clear: "Ясно",
       partlyCloudy: "Переменная облачность",
@@ -758,75 +945,16 @@ export class TranslationService {
       cpCritAlert: "КРИТИЧЕСКАЯ ТРЕВОГА",
       smartSockets: "Умные розетки",
 
-      cpCo2Limit: "CO₂",
-      cpPm10Limit: "PM10",
-      cpTvocLimit: "TVOC",
-      cpAirGuardDesc: "AirGuard · лимиты оповещений по метрикам",
-      cpClimateSection: "КЛИМАТИЧЕСКИЙ КОМФОРТ",
-      cpPuritySection: "ЧИСТОТА ВОЗДУХА",
-      cpCurrent: "Текущее",
-      cpLaeqName: "LAEQ",
-      cpLaeqHint: "Эквивалентный непрерывный уровень — средняя звуковая энергия за время; лучший показатель комфорта",
-      cpLaiName: "LAI",
-      cpLaiHint: "Мгновенный уровень — фиксирует короткие пики и переходные события",
-      cpLaimaxName: "LAIMAX",
-      cpLaimaxHint: "Максимальный зафиксированный уровень — самый громкий момент в интервале",
-      cpAddInterval: "Добавить интервал",
-      cpPreheatingTemp: "Температура предпрогрева",
-      cpPreheatingTempHint: "Целевая температура для прогрева комнаты перед заездом гостя",
-      cpPreheatingMinutes: "Время предпрогрева",
-      cpPreheatingMinutesHint: "За сколько минут до заезда начать прогрев комнаты (в зимний период)",
-      cpWindowAutoPause: "Авто-пауза отопления",
-      cpWindowAutoPauseHint: "Автоматически приостанавливать клапан, пока окно открыто в комнате",
-      cpWindowAlertT: "Оповещение об открытом окне",
-      cpWindowAlertHint: "Уведомить персонал, если окно открыто дольше указанного",
       smartSocket: "Умная розетка",
       socketPowerHigh: "Высокое энергопотребление",
-      cpSocketHint: "Оповещать персонал, когда розетка потребляет больше мощности, чем ожидается (защита от перегрузки)",
-      cpSocketOverloadT: "Оповещение о перегрузке",
-      cpSocketOverloadHint: "Создавать оповещение, когда розетка превышает максимальную мощность",
-      cpSocketMaxPowerT: "Макс. мощность",
-      cpSocketMaxPowerHint: "Создавать оповещение о перегрузке при этой мощности или выше",
       cpOn: "Вкл",
       cpOff: "Выкл",
-      cpCurrentlyOpen: "Сейчас открытые окна",
-      cpNoOpenWindows: "Все окна сейчас закрыты",
-      cpSaveThresholds: "Сохранить",
-      cpPm25Limit: "PM2.5",
-      cpTempMax: "ТЕМП МАКС",
-      cpHumMax: "ВЛАЖН МАКС",
-      cpPressMax: "ДАВЛ МАКС",
 
       schedule: "Расписание",
-      scheduleHint: "Задайте периоды отопления с целевой температурой для каждого временного блока.",
-      maintenanceT: "Обслуживание клапанов",
-      maintenanceHint: "Периодически полностью открывает и закрывает клапан для предотвращения известкового налёта.",
-      noiseThresholdHint: "Пороги шума по периодам — дневные и ночные лимиты.",
-      minutesU: "мин",
-      appliesTo: "Применяется к",
-      ofRooms: "из",
-      roomsTargeted: "комнат",
-      searchRooms: "Поиск комнат...",
-      alertC: "ПРЕВЫШЕНИЕ",
       dayPeriod: "День",
       nightPeriod: "Ночь",
-      syncNow: "Синхронизировать",
-      mewsSyncT: "Интервал синхр.",
-      mewsAutoSyncT: "Авто-синхр.",
-      mewsAutoSyncHint: "Данные бронирования обновляются автоматически.",
-      mewsSyncHint: "Как часто данные бронирования загружаются из Mews PMS.",
-      lastSyncT: "Последняя синхр.",
-      minAgo: "мин. назад",
-      acousticNoise: "Шум",
-      thermostatsT: "Термостаты",
-      windowOpenAlert: "Окна",
-      mewsB: "Mews Bridge",
       normalC: "НОРМА",
       warningC: "ВНИМАНИЕ",
-      addTest: "Добавить тест",
-      comfortHint: "Уставка по умолчанию при заезде гостя.",
-      onlineLabel: "В сети",
-      offlineLabel: "Не в сети",
       errorT: "Ошибка",
 
       histSyncing: "Загрузка данных...",
@@ -835,11 +963,6 @@ export class TranslationService {
       histQuiet: "Тихо",
       histWaterLeak: "Утечка воды",
       noDatasource: "Источник данных не найден",
-      cpAqWarnZoneTitle: "Пороги и зона предупреждения",
-      cpAqWarnZoneDesc: "MIN и MAX задают абсолютные допустимые границы показания. Зона предупреждения — это отступ ниже абсолютного MAX. Когда показания входят в эту зону, отображается жёлтый статус «Предупреждение».",
-      cpPreheatingSettings: "Настройки предпрогрева",
-      cpWinterSeason: "Зимний сезон",
-      sensorsAndControls: "ДАТЧИКИ И УПРАВЛЕНИЕ",
       presence: "Присутствие",
       alertsActive: "Активные предупреждения",
       alertsNone: "Нет активных предупреждений",
@@ -850,7 +973,6 @@ export class TranslationService {
       sevWarnings: "Предупреждения",
       alertsHint: "Нажмите на предупреждение, чтобы выделить устройство.",
       presenceSensor: "Датчик присутствия",
-      humanPresenceRadar: "РАДАР ПРИСУТСТВИЯ",
       dim: "Тускло",
       bright: "Светло",
       noDevices: "К этой комнате не привязаны устройства",
@@ -876,15 +998,6 @@ export class TranslationService {
       chkWait: "Ждём",
       stLeak: "ПРОТЕЧКА!",
       stOk: "ОК",
-      cpAllRooms: "Все комнаты",
-      cpExcludeRooms: "Исключить комнаты",
-      cpWarnZone: "ЗОНА ПРЕДУПР.",
-      cpScheduleOverlap: "Интервалы расписания пересекаются! Измените время, чтобы они не конфликтовали.",
-      cpRulesActivationPeriod: "Период действия правил",
-      cpSelectSeasonDates: "Выберите даты сезона",
-      cpContinuousAvg: "Среднее за период",
-      cpImpulseLevel: "Импульсный уровень",
-      cpPeakMax: "Пиковый максимум",
       rangeCustom: "Период",
       rangeCustomTitle: "Произвольный период",
       rangeStart: "Начало",
@@ -920,11 +1033,184 @@ export class TranslationService {
       alertMaxWord: "макс.",
       lblNoise: "Шум",
       lblMotion: "Движение",
-      cpErrSchedTimes: "Введите корректное время в 24-часовом формате ЧЧ:ММ (например, 08:00, 22:30).",
-      cpErrMaintTimes: "Введите корректное время в формате ЧЧ:ММ (например, 03:00) для обслуживания клапанов.",
-      cpErrNoiseTimes: "Введите корректное время в формате ЧЧ:ММ (например, 07:00, 22:00) для периодов контроля шума.",
-      cpErrSeasonDates: "Укажите корректные даты сезона в календаре.",
-      cpErrOverlap: "Нельзя сохранить: интервалы расписания пересекаются! Измените время, чтобы они не конфликтовали.",
+      // Control settings
+      csTitle: "Настройки управления",
+      csHotel: "Отель",
+      csGeneral: "Общие",
+      csHeating: "Отопление",
+      csMews: "Mews",
+      csAir: "Качество воздуха",
+      csNoise: "Шум",
+      csWindow: "Окна",
+      csSocket: "Розетки",
+      csBattery: "Батарея",
+      csOffline: "Нет связи",
+      csTelegram: "Telegram",
+      csSubGeneral: "Язык сообщений и часы отеля.",
+      csSubHeating: "Режим автоматики и три целевые температуры. Номера могут переопределять Комфорт и Эко.",
+      csSubMews: "Как часто бронирования читаются из PMS.",
+      csSubAir: "Датчики AM308. Превышение создаёт тревогу качества воздуха; она закрывается, когда значение возвращается в норму.",
+      csSubNoise: "Датчики WS302. У дня и ночи свои лимиты; ночь это всё время вне дневного периода.",
+      csSubWindow: "Датчики WS301. Проверяется при каждом отчёте датчика воздуха номера, примерно раз в 10 минут.",
+      csSubSocket: "Умные розетки WS523.",
+      csSubBattery: "Один порог для всех устройств на батарее.",
+      csSubOffline: "Как долго устройство может молчать, прежде чем считаться недоступным. Устройства отчитываются с разной частотой.",
+      csSubTelegram: "Какие сообщения отправляются. Тревоги всегда создаются в ThingsBoard; переключатели лишь отключают Telegram.",
+      csRoomsOverride: "Номера могут переопределять",
+      csSave: "Сохранить",
+      csCancel: "Отмена",
+      csChanges: "несохранённых изменений",
+      csChangesHint: "записывается в актив отеля, устройства применят при следующем отчёте",
+      csFixToSave: "исправьте выделенные значения, чтобы сохранить",
+      csSaved: "Сохранено",
+      csSaveFailed: "Не удалось сохранить. Проверьте соединение и повторите.",
+      csNotReady: "Актив отеля ещё не определён, настройки доступны только для чтения.",
+      csLoadFailed: "Не удалось загрузить настройки.",
+      csNotSet: "Не задано",
+      csErr_range: "Значение вне допустимого диапазона.",
+      csErr_daily: "Не менее 1500 мин: этот датчик отчитывается раз в сутки.",
+      csErr_time: "Используйте показанный формат.",
+      csErr_type: "Введите корректное значение.",
+      csErr_order: "Минимум должен быть меньше максимума.",
+      csErr_unknown: "Неизвестная настройка.",
+      csAdvanced: "Дополнительно: буст, предпрогрев, корректировка, сезон",
+      csHideAdvanced: "Скрыть дополнительные",
+      csAdvBoost: "Буст",
+      csAdvPreheat: "Предпрогрев",
+      csAdvAdjust: "Корректировка по номеру",
+      csAdvSeason: "Сезон отопления",
+      csAdvBoostDeltaHint: "Буст начинается, когда в номере холоднее Комфорта на это значение.",
+      csAdvTurnoverHint: "После выезда.",
+      csAdvPreheatMaxHint: "Используется, если температура номера неизвестна.",
+      csAdvAdjustMaxHint: "0 отключает корректировку.",
+      csAdvSeasonHint: "Вчера, сегодня и завтра ниже этого значения.",
+      csAdvLookaheadHint: "Совпадает с интервалом отчёта термостата.",
+      csModeTitle: "Режим автоматики",
+      csModeOff: "Выкл",
+      csModeSafe: "Безопасный",
+      csModeLive: "Рабочий",
+      csModeOffShort: "Автоматика остановлена.",
+      csModeSafeShort: "Решения считаются и сохраняются в номере, термостатам ничего не отправляется.",
+      csModeLiveShort: "Полностью включена. Цели отправляются термостатам.",
+      csModeOffHelp: "Автоматика остановлена. Термостаты сохраняют последнюю цель.",
+      csTargetTemps: "Целевые температуры",
+      csTargetTempsHint: "Комфорт и Эко можно задать для номера",
+      csComfortTemp: "Комфорт",
+      csEcoTemp: "Эко",
+      csBoostTemp: "Буст",
+      csComfortHint: "Номер продан, до выезда",
+      csEcoHint: "Номер не продан на ночь",
+      csBoostHint: "Цель для быстрого прогрева",
+      csBulkTitle: "Все термостаты",
+      csBulkHint: "Каждый термостат применит при следующем отчёте, примерно за 10 минут.",
+      csBulkAuto: "Все в Авто",
+      csBulkManual: "Все в Ручной",
+      csBulkSent: "Отправлено, применится за 10 мин",
+      csBulkFailed: "Не отправлено",
+      csHeatMode: "Режим автоматики",
+      csReportLanguage: "Язык сообщений",
+      csReportLanguageHint: "Тревоги Telegram, уведомления о недоступности и утренний отчёт.",
+      csTimezone: "Часовой пояс отеля",
+      csTimezoneHint: "Название IANA. Используется для отопления, дневных и ночных лимитов шума и часа сообщения о батарее.",
+      csBoostDelta: "Старт, если холоднее Комфорта на",
+      csBoostExit: "Стоп, когда до Комфорта осталось",
+      csBoostMax: "Максимальная длительность буста",
+      csTurnoverGap: "Держать Комфорт, если следующий гость приедет в течение",
+      csRateWarm: "Скорость нагрева, на улице от 10 °C",
+      csRateMild: "Скорость нагрева, на улице от 0 до 10 °C",
+      csRateCold: "Скорость нагрева, ниже 0 °C или неизвестно",
+      csPreheatMin: "Минимальный предпрогрев",
+      csPreheatMax: "Максимальный предпрогрев",
+      csAdjustMax: "Макс. отклонение от Комфорта",
+      csAdjustEvery: "Шаг 1 °C не чаще, чем раз в",
+      csSensorStale: "Датчик термостата, если датчик воздуха молчит",
+      csLookahead: "Упреждение",
+      csLatitude: "Широта",
+      csLongitude: "Долгота",
+      csSeasonTemp: "Сезон открывается при средней ниже",
+      csSeasonStart: "Начало сезона (ММ-ДД)",
+      csSeasonEnd: "Конец сезона (ММ-ДД)",
+      csMewsInterval: "Читать бронирования каждые",
+      csMewsHint: "Применяется сразу. Записывается в устройство моста Mews.",
+      csNoBridge: "Мост Mews не найден, значение изменить нельзя.",
+      csEnabled: "Проверять",
+      csEnabledHint: "Выключено: лимиты этого раздела не проверяются.",
+      csTempMin: "Температура, нижний предел",
+      csTempMax: "Температура, верхний предел",
+      csHumMin: "Влажность, нижний предел",
+      csHumMax: "Влажность, верхний предел",
+      csTempRange: "Температура",
+      csHumRange: "Влажность",
+      csCo2Max: "CO₂ до",
+      csTvocMax: "TVOC до",
+      csPm25Max: "PM2.5 до",
+      csPm10Max: "PM10 до",
+      csTvocHint: "AM308 передаёт уровень, начиная с 1.",
+      csTo: "до",
+      csDayPeriod: "Дневной период",
+      csDayPeriodHint: "Ночь это остальное время суток.",
+      csDayStart: "День начинается",
+      csDayEnd: "День заканчивается",
+      csDay: "День",
+      csNight: "Ночь",
+      csLimitsDb: "Лимиты в дБ",
+      csDayLaeq: "День, средний (LAeq)",
+      csDayLai: "День, импульсный (LAI)",
+      csDayLaimax: "День, пиковый (LAImax)",
+      csNightLaeq: "Ночь, средний (LAeq)",
+      csNightLai: "Ночь, импульсный (LAI)",
+      csNightLaimax: "Ночь, пиковый (LAImax)",
+      csNoiseLegend: "LAeq средний уровень, LAI импульсный, LAImax максимальный пик.",
+      csWindowMax: "Тревога, если открыто дольше",
+      csWindowHint: "0 означает тревогу сразу при открытии. Тревога может прийти до 10 минут позже предела.",
+      csWindowNoLimit: "Лимит не задан, окна не проверяются",
+      csPowerMax: "Перегрузка выше",
+      csPowerHint: "Создаёт тревогу перегрузки розетки.",
+      csBatteryMin: "Низкий заряд при",
+      csBatteryHint: "Одно сообщение на устройство в сутки, с 10:00 до 19:00 по времени отеля.",
+      csOffDevice: "Устройство",
+      csOffNormal: "Обычный отчёт",
+      csOffAfter: "Недоступно через",
+      csOffAm308: "Датчик воздуха (AM308)",
+      csOffWs302: "Датчик шума (WS302)",
+      csOffWt101: "Термостат (WT101)",
+      csOffWs523: "Розетка (WS523)",
+      csOffVs370: "Датчик движения (VS370)",
+      csOffWs301: "Датчик окна (WS301)",
+      csOffWs303: "Датчик воды (WS303)",
+      csOffRate10: "каждые 10 мин",
+      csOffRate8: "около 8 мин",
+      csOffRate12: "около 12 мин",
+      csOffRateDaily: "при изменении, иначе раз в сутки",
+      csOffNote: "Другие модели используют offline_<модель>_min, по умолчанию 1560 мин. Сообщение уходит после двух неудачных проверок и повторяется каждые 6 часов.",
+      csTgTypes: "Типы сообщений",
+      csTgTiming: "Время отправки",
+      csTgWater: "Протечка",
+      csTgNoise: "Шум",
+      csTgTemp: "Температура",
+      csTgHumidity: "Влажность",
+      csTgCo2: "CO₂, TVOC и пыль",
+      csTgBattery: "Батарея",
+      csTgSocket: "Перегрузка розетки",
+      csTgWindow: "Открытое окно",
+      csTgOffline: "Устройство недоступно",
+      csTgWaterHint: "Сразу и по окончании.",
+      csTgDelayHint: "После задержки ниже.",
+      csTgBatteryHint: "Раз в сутки на устройство.",
+      csTgWindowHint: "Когда лимит пройден и когда окно закрыто.",
+      csTgOfflineHint: "Для всего отеля. Утренний отчёт сохраняет список.",
+      csNoiseAfter: "Отправлять сообщение о шуме через",
+      csAirAfter: "Отправлять сообщение о воздухе через",
+      csNoiseAfterHint: "Непрерывный шум такой длительности. Короткий шум не отправляется.",
+      csTgServerNote: "Токен бота и группа задаются на сервере, не здесь.",
+      csRoomSettings: "Настройки номера",
+      csRoomHeating: "Автоматика отопления в этом номере",
+      csRoomFollows: "как в отеле",
+      csRoomOwn: "своих",
+      csRoomValue: "Значение номера",
+      csBackToHotel: "Вернуть значение отеля",
+      csHotelValue: "Отель",
+      csRoomLoadFailed: "Настройки номера не загружены.",
     },
   };
 

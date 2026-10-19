@@ -20,16 +20,14 @@
                 <span>{{ guestName || t.vacant }}</span>
             </div>
 
-            <div class="stay" *ngIf="checkInDisplay || checkOutDisplay">
-                <div class="stay-top">
-                    <span class="stay-date">{{ checkInDisplay || '--' }}</span>
-                    <span class="stay-summary" *ngIf="statusSummary" [title]="statusSummary">{{ statusSummary }}</span>
-                    <span class="stay-date">{{ checkOutDisplay || '--' }}</span>
-                </div>
+            <div class="stay" *ngIf="checkInDisplay || checkOutDisplay" [class.is-over]="stayOver">
+                <span class="stay-date">{{ checkInDisplay || '--' }}</span>
                 <div class="stay-bar" *ngIf="stayPct !== null">
                     <div class="stay-fill" [style.width.%]="stayPct"></div>
                     <span class="stay-dot" [style.left.%]="stayPct"></span>
                 </div>
+                <span class="stay-sep" *ngIf="stayPct === null">→</span>
+                <span class="stay-date">{{ checkOutDisplay || '--' }}</span>
             </div>
 
             <button class="header-action-btn close-dialog-btn" (click)="closeDialog()" [title]="t.close" [attr.aria-label]="t.close">
@@ -307,6 +305,12 @@
                 [smartSockets]="smartSockets"
                 (socketToggled)="toggleSocket($event)">
             </tb-smart-sockets-panel>
+        </div>
+
+        <!-- ── Room settings: own values on top of the hotel defaults ── -->
+        <div class="room-overrides-container" style="order: 4; width: 100%;">
+            <tb-room-overrides [roomAssetId]="roomAssetId" [overrides]="roomOverrides"
+                               (overridesChange)="onOverridesChange($event)"></tb-room-overrides>
         </div>
 
         <!-- ── Historical Telemetry (collapsible) ── -->

@@ -108,10 +108,6 @@ export class CompactThermostatComponent {
     return false;
   }
 
-  get locationLabel(): string {
-    return (this.device?.data?.model || "WT101").toUpperCase();
-  }
-
   get deviceDisplayName(): string {
     return this.device?.name || "Thermostat";
   }
@@ -150,13 +146,6 @@ export class CompactThermostatComponent {
     if (m === "auto") return this.t.auto.toUpperCase();
     if (m === "off") return this.t.off.toUpperCase();
     return "";
-  }
-
-  getModeIcon(): string {
-    const m = this.systemMode;
-    if (m === "manual") return "tune";
-    if (m === "auto") return "autorenew";
-    return "power_settings_new";
   }
 
   getLinkQualityText(): string {

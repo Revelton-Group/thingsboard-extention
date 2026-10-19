@@ -8,7 +8,6 @@ import {
   ElementRef,
 } from "@angular/core";
 import { WidgetContext } from "@home/models/widget-component.models";
-import { MatDialog } from "@angular/material/dialog";
 import { RoomDataService } from "../../core/services/room-data.service";
 import {
   HotelStateService,
@@ -21,14 +20,14 @@ import { ThemeService } from "../../core/services/theme.service";
 import { Subscription } from "rxjs";
 import { filter } from "rxjs/operators";
 import { TranslationService } from "../../core/services/translation.service";
-import { ControlPanelService } from "../control-panel/services/control-panel.service";
+import { ControlSettingsService } from "../../core/settings/control-settings.service";
 import { HOTEL_TIMEZONE, HOTEL_LATITUDE, HOTEL_LONGITUDE } from "../../core/models/dashboard.config";
 
 @Component({
   selector: "tb-revelton-dashboard",
   templateUrl: "./revelton-hotel.component.html",
   styleUrls: ["./revelton-hotel.component.scss"],
-  providers: [ControlPanelService, RoomDataService, HotelStateService],
+  providers: [ControlSettingsService, RoomDataService, HotelStateService],
   standalone: false,
 })
 export class ReveltonDashboardComponent implements OnInit, OnDestroy {
@@ -81,6 +80,7 @@ export class ReveltonDashboardComponent implements OnInit, OnDestroy {
   showMewsList = false;
   showCustomPicker = false;
   selectedRoom: InlineRoom | null = null;
+  settingsOpen = false;
   selectedHistoricalRoom: InlineRoom | null = null;
   customStart = '';
   customEnd = '';
@@ -210,13 +210,12 @@ export class ReveltonDashboardComponent implements OnInit, OnDestroy {
 
   constructor(
     private cd: ChangeDetectorRef,
-    private dialog: MatDialog,
     private roomDataService: RoomDataService,
     private hotelState: HotelStateService,
     private themeService: ThemeService,
     private el: ElementRef,
     private translationService: TranslationService,
-    private controlPanelService: ControlPanelService
+    private settings: ControlSettingsService
   ) {}
 
   @HostListener("document:click")
@@ -240,10 +239,6 @@ export class ReveltonDashboardComponent implements OnInit, OnDestroy {
     this.showCheckOutsList = false;
     this.showMewsList = false;
     this.cd.detectChanges();
-  }
-
-  openControlPanel(): void {
-    this.controlPanelService.open();
   }
 
   ngOnInit(): void {
@@ -322,9 +317,8 @@ export class ReveltonDashboardComponent implements OnInit, OnDestroy {
     if (this.ctx) {
       this.ctx.$scope.reveltonHotelComponent = this;
 
-      // Provide widget context to ControlPanelService for ThingsBoard REST API access
-      this.controlPanelService.setCtx(this.ctx);
-      this.controlPanelService.setMewsBridgeIdProvider(() => this.hotelState.mewsBridgeId);
+      this.settings.setCtx(this.ctx);
+      this.settings.setBridgeIdProvider(() => this.hotelState.mewsBridgeId);
 
       // Trigger backend device discovery (relation-based)
       this.hotelState.discoverDevices(this.ctx);
@@ -335,8 +329,7 @@ export class ReveltonDashboardComponent implements OnInit, OnDestroy {
           .pipe(filter((hotel) => hotel !== undefined))
           .subscribe((hotel) => {
             this.hotelAsset = hotel ?? null;
-            this.controlPanelService.setHotelAssetId(this.hotelAsset?.id ?? null);
-            this.controlPanelService.loadFromThingsBoard();
+            this.settings.setHotelAssetId(this.hotelAsset?.id ?? null);
             this.updateSettings();
           })
       );
@@ -711,6 +704,20 @@ export class ReveltonDashboardComponent implements OnInit, OnDestroy {
 
     // Use inline display instead of dialog
     this.selectedRoom = room;
+    this.cd.detectChanges();
+  }
+
+  get hotelDisplayName(): string {
+    return `${this.hotelNameFirstPart} ${this.hotelNameLastPart}`.trim();
+  }
+
+  openSettings(): void {
+    this.settingsOpen = true;
+    this.cd.detectChanges();
+  }
+
+  closeSettings(): void {
+    this.settingsOpen = false;
     this.cd.detectChanges();
   }
 

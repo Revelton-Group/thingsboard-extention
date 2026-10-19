@@ -28,6 +28,9 @@ yarn serve
 
 # Lint TypeScript and HTML templates of both projects
 yarn lint
+
+# Check the pure Control Settings rules (no test runner in the project)
+node tools/check-control-settings.js
 ```
 
 ## Build Chain
@@ -82,7 +85,7 @@ All components are **NgModule-based** (not standalone) for ThingsBoard 4.3.1 com
 | Features | `features/hotel-dashboard/` | Main overview grid (`<tb-revelton-dashboard>`) |
 | Features | `features/room-view/` | Room cards and detail panels (`<tb-room-card>`) |
 | Features | `features/other-devices-panel/` | Non-room devices (lights, plugs, sensors in public areas) |
-| Features | `features/control-panel/` | Centralized device control (thermostat automation, window alerts, Mews sync, Telegram notifications, air quality/noise thresholds) |
+| Features | `features/control-settings/` | Control Settings page (`<tb-control-settings>`, header button) and the room dialog's `<tb-room-overrides>`; both are driven by `core/settings/` (schema, pure core, `ControlSettingsService`) |
 | Shared | `shared/components/` | `RoomCardViewComponent` (the card used by both the hotel grid and `<tb-room-card>`), thermostat cards (full and compact), compact env sensor, smart sockets panel, alerts panel, history chart. The room dialog's sensor cards are inline in `room-detail-panel.component.html`. |
 
 **2. Utility Dashboard** (`src/utility-dashboard/`) — EV charger monitoring (also Clean Architecture)
@@ -133,11 +136,12 @@ Components subscribe to BehaviorSubjects:
 - **Topology cache**: the discovered room→device→keys map is kept in `sessionStorage` (`revelton_topology_<datasource hash>`, version-stamped). It ages from the last completed discovery (`verifiedAt`), not from the last write; a reload within 5 minutes skips the reconcile.
 - **`find/keys` limit**: `entitiesQuery/find/keys` only looks at the first 100 entities of a list, so key lookups go through `postKeysUnion` in slices of 100 and merge (a single call silently drops keys that exist only on later devices).
 - **Noise sensor weighting**: a WS302 reports its instantaneous level and max as `data_LAI/LAImax`, `data_LAF/LAFmax` or `data_LAS/LASmax` depending on its configuration; they fill the same `lai`/`laimax` slots and `noiseDevices[name].weighting` holds the letter used for the labels. Barometric pressure outside 300–1100 hPa (a stuck sensor) is treated as no data, live and in history.
-- **Per-widget state**: `HotelStateService`, `RoomDataService`, `ControlPanelService` are provided on the root components (`ReveltonDashboardComponent`, `RoomCardComponent`) and torn down with them; dialogs get `viewContainerRef` so they resolve the same instances. If the widget's datasources change in place, the service resets itself (epoch guard drops late responses).
-- **Hotel identity**: the hotel asset is the ASSET that `Contains` the room assets (resolved once via the first room's relation; an alias named `Hotel` is only a fallback). Header name/address come from widget settings → hotel asset SERVER attributes `hotelName`/`hotelLocation` → asset name. The control-panel config JSON is read from / written to the hotel asset (older saves on the first room asset are still read as a fallback); flat thresholds still go to the room assets that the scope selects (an empty selection writes nothing). The Mews bridge id is the device `HotelStateService` classified as the bridge.
-- **Browser storage is scoped per hotel** (`datasourceScopeKey` in `core/utils/scope-key.ts`): control-panel config and the alert archive/acknowledgements include it; theme keys are per bundle.
+- **Per-widget state**: `HotelStateService`, `RoomDataService`, `ControlSettingsService` are provided on the root components (`ReveltonDashboardComponent`, `RoomCardComponent`) and torn down with them; dialogs get `viewContainerRef` so they resolve the same instances. If the widget's datasources change in place, the service resets itself (epoch guard drops late responses).
+- **Hotel identity**: the hotel asset is the ASSET that `Contains` the room assets (resolved once via the first room's relation; an alias named `Hotel` is only a fallback). Header name/address come from widget settings → hotel asset SERVER attributes `hotelName`/`hotelLocation` → asset name. Limits and heating settings are flat SERVER attributes on the hotel asset (Hotel = default); a room asset only holds its own overrides (see Control Settings below). The Mews bridge id is the device `HotelStateService` classified as the bridge.
+- **Browser storage is scoped per hotel** (`datasourceScopeKey` in `core/utils/scope-key.ts`): the alert archive/acknowledgements include it; theme keys are per bundle.
 - **Timezone and weather coordinates** are still the constants in `core/models/dashboard.config.ts` (Europe/Prague, Karlovy Vary) — correct for the current hotels, not configurable per hotel.
-- **Threshold system**: `RoomDataService` has configurable thresholds for temperature, humidity, air quality, and noise. Each metric maps to `normal / warning / danger` status driving visual indicators.
+- **Control Settings**: `core/settings/control-settings.schema.ts` lists every setting (key, scope, type, unit, range, default); `control-settings.core.ts` holds the pure rules (effective value, validation, write payloads, day/night); `ControlSettingsService` reads the hotel asset once and writes Hotel only. Room value wins when present and not empty, otherwise Hotel, otherwise the default (a limit with no value is not checked). Back to hotel value deletes the room key. Pure core is checked with `node tools/check-control-settings.js`.
+- **Threshold system**: `RoomDataService` derives its temperature, humidity, air quality and noise thresholds from `ControlSettingsService` (hotel values; the room dialog also applies the room's own overrides). Each metric maps to `normal / warning / danger` status driving visual indicators.
 - **Alias routing**: ThingsBoard datasource alias names determine routing: aliases containing "room" → room cards, aliases containing "other"/"public"/"office" → other devices panel.
 
 ### Mews PMS Integration
@@ -152,7 +156,7 @@ Reservation data (checkIn, checkOut, guestName, reservationState) arrives on per
 
 Reservation states handled: `confirmed`, `started` (checked in), `optional`, `processed` (checked out), `canceled`.
 
-The **Control Panel** has a dedicated Mews Sync section allowing staff to configure the sync interval (5/15/30/60 minutes) via `ControlPanelService`.
+The Mews sync interval (`syncIntervalMinutes`, SHARED attribute on the bridge device) is set on the Control Settings page (Mews section).
 
 ### Translation / i18n
 
@@ -218,7 +222,7 @@ In the ThingsBoard widget editor:
 
 - [UPDATING.md](UPDATING.md) — Migration steps for upgrading to newer ThingsBoard/Angular versions
 - [gateway-export.json](gateway-export.json) — Pre-configured MQTT mappings for ThingsBoard IoT Gateway (Zigbee2MQTT: TRVs, sensors)
-- [thingsboard/](thingsboard/) — Telegram alert rule chain exports + [SETUP_GUIDE.md](thingsboard/SETUP_GUIDE.md). The Control Panel saves thresholds as flat server attributes on room assets (`co2Max`, `laeqMax`, `telegram_botToken`, etc.); this TB rule chain compares incoming telemetry against them and dispatches Telegram alerts
+- [thingsboard/](thingsboard/) — Telegram alert rule chain exports + [SETUP_GUIDE.md](thingsboard/SETUP_GUIDE.md). Thresholds are flat server attributes (`co2Max`, `tempMax`, `noise_day_laeq`, etc.) on the hotel asset with optional room overrides; this TB rule chain compares incoming telemetry against them and dispatches Telegram alerts
 
 ### File Registration Checklist
 

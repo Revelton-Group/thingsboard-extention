@@ -91,6 +91,7 @@
         left: 64px;
         top: 16px;
         width: 280px;
+        max-width: calc(100% - 72px);
         background: var(--card, #ffffff);
         border: 2px solid var(--border, #e2e8f0);
         border-radius: 12px;
@@ -275,11 +276,13 @@
 tb-compact-thermostat {
     flex: 0 0 220px;
     width: 220px;
+    max-width: 100%;
 }
 
 tb-compact-env-sensor {
     flex: 0 0 220px;
     width: 220px;
+    max-width: 100%;
 }
 
 /* ══════════════════════════════════════════════════════
@@ -292,6 +295,7 @@ tb-compact-env-sensor {
 .device-row {
     flex: 0 1 auto;
     width: 200px;
+    max-width: 100%;
     display: flex;
     align-items: center;
     gap: 10px;
