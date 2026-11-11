@@ -309,7 +309,7 @@ export class UtilityStateService implements OnDestroy {
       }
       socket.usedCurrentA = this.getNum(latest(`connector_${n}_used_current_a`));
     } else if (state === 'fault') {
-      socket.statusLabel = `⚠ ${statusText || 'Fault'}`;
+      socket.statusLabel = statusText || 'Fault';
       const errorCode = latest(`connector_${n}_error_code`);
       socket.subLabel = errorCode && errorCode !== 'NoError'
         ? `${errorCode} — reboot from the console`
@@ -345,7 +345,7 @@ export class UtilityStateService implements OnDestroy {
       socket.sessionKwh = this.getNum(latest(`${prefix}_energy`));
     } else if (state === 'fault') {
       const faultCode = latest(`${prefix}_fault_code`);
-      socket.statusLabel = `⚠ ${faultCode || 'Fault'}`;
+      socket.statusLabel = String(faultCode || 'Fault');
       socket.subLabel = 'Check the connector, then reboot from the console';
     } else if (state === 'ready') {
       socket.subLabel = 'Available';

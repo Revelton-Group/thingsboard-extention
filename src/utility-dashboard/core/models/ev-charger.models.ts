@@ -23,7 +23,7 @@ export interface SocketViewModel {
   name: string;               // 'Socket A'
   typeLabel: string;          // 'Type 2'
   state: SocketState;
-  statusLabel: string;        // 'Ready' | 'Charging' | '⚠ Cable Error' | 'Offline'
+  statusLabel: string;        // 'Ready' | 'Charging' | 'Cable Error' | 'Offline'
   subLabel?: string;          // 'Available · limit 32 A' | fault hint | offline note
   sessionKw?: number | null;
   sessionKwh?: number | null;

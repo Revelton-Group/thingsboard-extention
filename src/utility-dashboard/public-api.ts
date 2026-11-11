@@ -11,6 +11,7 @@ export * from "./revelton-tb-extension-utility-dashboard.component";
 
 // Feature Panels
 export * from "./features/ev-charger-panel/ev-charger-panel.component";
+export * from "./features/electricity-panel/electricity-panel.component";
 
 // Shared Components
 export * from "./shared/components/charger-status-card/charger-status-card.component";
@@ -23,6 +24,8 @@ export * from "./shared/services/theme.service";
 export * from "./shared/models/telemetry.models";
 export * from "./shared/models/theme.constants";
 export * from "./domain/services/utility-state.service";
+export * from "./domain/services/electricity.service";
+export * from "./domain/electricity/electricity.core";
 export * from "./domain/processors/ev-charger.processor";
 export * from "./core/models";
 export * from "./core/interfaces";

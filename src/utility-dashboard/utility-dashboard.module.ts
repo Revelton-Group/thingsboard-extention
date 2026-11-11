@@ -18,10 +18,12 @@ import { EvStationHistoryModalComponent } from "./shared/components/ev-station-h
 
 // Feature Panels
 import { EvChargerPanelComponent } from "./features/ev-charger-panel/ev-charger-panel.component";
+import { ElectricityPanelComponent } from "./features/electricity-panel/electricity-panel.component";
 
 const UTILITY_COMPONENTS = [
   ReveltonUtilityDashboardComponent,
   EvChargerPanelComponent,
+  ElectricityPanelComponent,
   ChargerStatusCardComponent,
   UtilityHeaderComponent,
   EvStationHistoryModalComponent,

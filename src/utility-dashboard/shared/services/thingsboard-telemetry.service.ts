@@ -36,9 +36,9 @@ export class ThingsBoardTelemetryService {
    * Fetches all "Contains" device relations for a given room/asset entity.
    * Returns deduplicated list of discovered devices.
    */
-  getDeviceRelations(entityId: EntityId): Observable<DiscoveredDevice[]> {
+  getDeviceRelations(entityId: EntityId, passErrors = false): Observable<DiscoveredDevice[]> {
     const url = `/api/relations/info?fromId=${entityId.id}&fromType=${entityId.entityType}`;
-    return (this.httpClient.get(url, { ignoreErrors: true, ignoreLoading: true } as any) as Observable<any[]>).pipe(
+    const relations$ = (this.httpClient.get(url, { ignoreErrors: true, ignoreLoading: true } as any) as Observable<any[]>).pipe(
       map((relations: any[]) => {
         const uniqueMap = new Map<string, DiscoveredDevice>();
         for (const r of (relations || [])) {
@@ -48,10 +48,12 @@ export class ThingsBoardTelemetryService {
         }
         return Array.from(uniqueMap.values());
       }),
+    );
+    return passErrors ? relations$ : relations$.pipe(
       catchError(err => {
         console.error('[TelemetryService] getDeviceRelations failed:', err);
         return of([]);
-      })
+      }),
     );
   }
 
@@ -108,6 +110,20 @@ export class ThingsBoardTelemetryService {
         console.error(`[TelemetryService] getTimeseries failed:`, err);
         return of({});
       })
+    );
+  }
+
+  /** Runs an entity data query. Errors are passed on to the caller. */
+  findEntities(query: unknown): Observable<any> {
+    return this.httpClient.post('/api/entitiesQuery/find', query, { ignoreErrors: true, ignoreLoading: true } as any);
+  }
+
+  /** Raw points of several keys in `[startTs, endTs)`, oldest first. Errors are passed on, so a failed request is not mistaken for an empty range. */
+  getRawTimeseries(deviceId: string, keys: string[], startTs: number, endTs: number, limit: number): Observable<TelemetryMap> {
+    const url = `/api/plugins/telemetry/DEVICE/${deviceId}/values/timeseries`
+      + `?keys=${keys.join(',')}&startTs=${startTs}&endTs=${endTs}&agg=NONE&limit=${limit}&orderBy=ASC`;
+    return (this.httpClient.get(url, { ignoreErrors: true, ignoreLoading: true } as any) as Observable<TelemetryMap>).pipe(
+      map(res => res || {}),
     );
   }
 

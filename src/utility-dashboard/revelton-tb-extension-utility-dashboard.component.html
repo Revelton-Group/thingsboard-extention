@@ -2,11 +2,15 @@
 
   <!-- Header -->
   <revelton-utility-header
-    [propertyName]="vm.propertyName">
+    [propertyName]="vm.propertyName"
+    [views]="views"
+    [view]="view"
+    [live]="view === 'ev'"
+    (viewChange)="selectView($event)">
   </revelton-utility-header>
 
   <!-- Loading Overlay -->
-  <div class="loading-overlay" *ngIf="vm.isLoading">
+  <div class="loading-overlay" *ngIf="vm.isLoading && view === 'ev'">
     <div class="modern-loader">
       <mat-icon>autorenew</mat-icon>
     </div>
@@ -14,8 +18,11 @@
   </div>
 
   <!-- Main Content -->
-  <div class="dashboard-content" [class.is-loading]="vm.isLoading">
+  <div class="dashboard-content" [class.is-loading]="vm.isLoading && view === 'ev'">
+    <revelton-electricity-panel *ngIf="view === 'electricity'"></revelton-electricity-panel>
+
     <revelton-ev-charger-panel
+      *ngIf="view === 'ev'"
       [chargers]="vm.chargers"
       [activeSockets]="vm.activeSockets"
       [totalSockets]="vm.totalSockets"

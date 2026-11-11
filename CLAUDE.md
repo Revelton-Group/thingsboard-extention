@@ -31,6 +31,9 @@ yarn lint
 
 # Check the pure Control Settings rules (no test runner in the project)
 node tools/check-control-settings.js
+
+# Check the pure electricity (ČEZ meter) calculations of the utility dashboard
+node tools/check-electricity.js
 ```
 
 ## Build Chain
@@ -88,7 +91,7 @@ All components are **NgModule-based** (not standalone) for ThingsBoard 4.3.1 com
 | Features | `features/control-settings/` | Control Settings page (`<tb-control-settings>`, header button) and the room dialog's `<tb-room-overrides>`; both are driven by `core/settings/` (schema, pure core, `ControlSettingsService`) |
 | Shared | `shared/components/` | `RoomCardViewComponent` (the card used by both the hotel grid and `<tb-room-card>`), thermostat cards (full and compact), compact env sensor, smart sockets panel, alerts panel, history chart. The room dialog's sensor cards are inline in `room-detail-panel.component.html`. |
 
-**2. Utility Dashboard** (`src/utility-dashboard/`) — EV charger monitoring (also Clean Architecture)
+**2. Utility Dashboard** (`src/utility-dashboard/`) — EV charger monitoring and ČEZ electricity meters (also Clean Architecture)
 
 | Layer | Path | Purpose |
 |-------|------|---------|
@@ -96,8 +99,12 @@ All components are **NgModule-based** (not standalone) for ThingsBoard 4.3.1 com
 | Models | `core/models/` | `EVChargerModels` — charger status, power, energy, session duration |
 | Domain services | `domain/services/` | `UtilityStateService` — BehaviorSubject-based state for charger data |
 | Domain processors | `domain/processors/` | `EVChargerProcessor` — implements `IUtilityProcessor` for EV charger telemetry |
+| Domain electricity | `domain/electricity/electricity.core.ts`, `domain/services/electricity.service.ts` | Pure calculations for the Electricity view, and the service that finds the ČEZ meters and loads their data |
 | Features | `features/ev-charger-panel/` | Charger grid panel |
-| Shared | `shared/components/` | `ChargerStatusCardComponent`, `EVStationHistoryModalComponent`, `UtilityHeaderComponent` |
+| Features | `features/electricity-panel/` | Electricity view (`<revelton-electricity-panel>`): consumption history of the ČEZ meters |
+| Shared | `shared/components/` | `ChargerStatusCardComponent`, `EVStationHistoryModalComponent`, `UtilityHeaderComponent` (holds the view dropdown: EV chargers / Electricity) |
+
+**Electricity view**: shown in the header dropdown only when the widget has devices with the profile `CEZ Meter` (among its DEVICE datasources or the `Contains` children of the first datasource). Meters are grouped by their `hotel` attribute. Keys: `daily_energy_kwh` (all consumption figures), `power_kw` and `status` (15-minute values, loaded per calendar month and kept in memory; `status` other than 32 is an outage). Data arrives once a day, so every period ends at the latest day with data, and a day without a daily total is a gap, not zero. Days are Prague calendar days (`METER_TIMEZONE`). The view is English only, like the rest of this bundle.
 
 ### Data Flow
 

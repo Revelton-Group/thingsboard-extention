@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, Input, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, HostListener, Input, OnInit, OnDestroy, Output, ChangeDetectorRef } from '@angular/core';
 import { Subscription, interval } from 'rxjs';
 import { ThemeService } from '../../services/theme.service';
 
@@ -16,10 +16,31 @@ import { ThemeService } from '../../services/theme.service';
           <span class="logo-title">Revelton</span>
           <span class="slash">/</span>
           <span class="logo-subtitle">Infrastructure Monitor</span>
+
+          <div class="view-menu" *ngIf="views.length > 1">
+            <button class="view-btn" type="button" aria-haspopup="menu"
+                    [attr.aria-expanded]="menuOpen"
+                    (click)="toggleMenu($event)">
+              <mat-icon>{{ currentView?.icon }}</mat-icon>
+              {{ currentView?.label }}
+              <mat-icon>expand_more</mat-icon>
+            </button>
+            <div class="view-list" role="menu" *ngIf="menuOpen">
+              <button type="button" role="menuitemradio"
+                      *ngFor="let v of views"
+                      [class.on]="v.id === view"
+                      [attr.aria-checked]="v.id === view"
+                      (click)="pickView(v.id)">
+                <mat-icon>{{ v.icon }}</mat-icon>
+                <span>{{ v.label }}</span>
+                <mat-icon class="check" *ngIf="v.id === view">check</mat-icon>
+              </button>
+            </div>
+          </div>
         </div>
 
         <div class="top-right">
-          <div class="live-indicator">
+          <div class="live-indicator" *ngIf="live">
             <span class="dot"></span>
             LIVE
           </div>
@@ -31,7 +52,6 @@ import { ThemeService } from '../../services/theme.service';
             <mat-icon>{{ isDark ? 'light_mode' : 'dark_mode' }}</mat-icon>
           </button>
 
-          <mat-icon class="wifi-icon">wifi</mat-icon>
           <div class="clock-display">
             {{ currentTime | date:'HH:mm:ss' }} <span class="clock-separator">|</span> {{ currentTime | date:'dd MMM yyyy' }}
           </div>
@@ -96,6 +116,83 @@ import { ThemeService } from '../../services/theme.service';
       color: var(--muted);
     }
 
+    .view-menu {
+      position: relative;
+      margin-left: 6px;
+    }
+
+    .view-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      height: 30px;
+      padding: 0 8px 0 10px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: transparent;
+      color: var(--ink);
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: border-color 0.2s ease, background 0.2s ease;
+    }
+    .view-btn:hover {
+      border-color: var(--baseline);
+      background: var(--accent-wash);
+    }
+    .view-btn:focus-visible,
+    .view-list button:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+    .view-btn mat-icon,
+    .view-list mat-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+    }
+    .view-btn mat-icon:first-child,
+    .view-list mat-icon:first-child {
+      color: var(--accent);
+    }
+
+    .view-list {
+      position: absolute;
+      top: 36px;
+      left: 0;
+      z-index: 50;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 200px;
+      padding: 6px;
+      background: var(--surface);
+      border: 1px solid var(--baseline);
+      border-radius: 10px;
+      box-shadow: var(--shadow);
+    }
+    .view-list button {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      height: 36px;
+      padding: 0 10px;
+      border: 0;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--ink);
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 500;
+      text-align: left;
+      cursor: pointer;
+    }
+    .view-list button:hover { background: var(--accent-wash); }
+    .view-list button.on { font-weight: 700; }
+    .view-list span { flex: 1; }
+    .view-list .check { color: var(--muted); }
+
     .top-right {
       display: flex;
       align-items: center;
@@ -151,13 +248,6 @@ import { ThemeService } from '../../services/theme.service';
       height: 16px;
     }
 
-    .wifi-icon {
-      font-size: 16px;
-      width: 16px;
-      height: 16px;
-      color: var(--muted);
-    }
-
     .clock-display {
       display: flex;
       align-items: center;
@@ -171,6 +261,12 @@ import { ThemeService } from '../../services/theme.service';
 })
 export class UtilityHeaderComponent implements OnInit, OnDestroy {
   @Input() propertyName = '';
+  @Input() views: { id: string; label: string; icon: string }[] = [];
+  @Input() view = '';
+  @Input() live = true;
+  @Output() viewChange = new EventEmitter<string>();
+
+  menuOpen = false;
 
   currentTime = new Date();
   isDark = true;
@@ -194,6 +290,26 @@ export class UtilityHeaderComponent implements OnInit, OnDestroy {
       this.isDark = mode === 'dark';
       this.cdr.markForCheck();
     });
+  }
+
+  get currentView(): { id: string; label: string; icon: string } | undefined {
+    return this.views.find(v => v.id === this.view);
+  }
+
+  toggleMenu(event: Event): void {
+    event.stopPropagation();
+    this.menuOpen = !this.menuOpen;
+  }
+
+  pickView(id: string): void {
+    this.menuOpen = false;
+    if (id !== this.view) this.viewChange.emit(id);
+  }
+
+  @HostListener('document:click')
+  @HostListener('document:keydown.escape')
+  closeMenu(): void {
+    this.menuOpen = false;
   }
 
   toggleTheme(event: Event): void {

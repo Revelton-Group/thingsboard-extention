@@ -1,0 +1,288 @@
+<div class="el-page">
+  <header class="el-head">
+    <div class="el-title">
+      <h1>Electricity consumption</h1>
+      <p>Hotel electricity meters, 15-minute data from ČEZ Distribuce</p>
+    </div>
+  </header>
+
+  <div class="el-state" *ngIf="state.status === 'loading'">Loading meter data…</div>
+  <div class="el-state" *ngIf="state.status === 'error'">
+    <span>The meter data could not be loaded.</span>
+    <button type="button" class="el-btn" (click)="retry()">Try again</button>
+  </div>
+  <div class="el-state" *ngIf="empty">The meters have not reported any data yet.</div>
+
+  <ng-container *ngIf="view as v">
+    <section class="el-filters" aria-label="Filters">
+      <div class="el-hotels" *ngIf="v.hotels.options.length > 1">
+        <button type="button" class="el-hotels-btn" (click)="hotelsOpen = !hotelsOpen" aria-haspopup="true" [attr.aria-expanded]="hotelsOpen">
+          <mat-icon>apartment</mat-icon>
+          <span class="el-hotels-text"><small>Hotels</small><b>{{ v.hotels.label }}</b></span>
+          <span class="el-dots"><i *ngFor="let color of v.hotels.dots; trackBy: trackIndex" [style.background]="color"></i></span>
+          <mat-icon>expand_more</mat-icon>
+        </button>
+        <div class="el-hotels-pop" *ngIf="hotelsOpen">
+          <div class="el-hotels-top">
+            <span>Show hotels</span>
+            <button type="button" class="el-link" (click)="allHotels()">Select all</button>
+          </div>
+          <div class="el-option" *ngFor="let o of v.hotels.options; trackBy: trackIndex">
+            <label>
+              <input type="checkbox" [checked]="o.on" (change)="toggleHotel(o.hotel, $event)">
+              <i [style.background]="o.color"></i>
+              <span>{{ o.hotel }}</span>
+              <small>{{ o.detail }}</small>
+            </label>
+            <button type="button" class="el-only" (click)="onlyHotel(o.hotel)" [attr.aria-label]="'Show only ' + o.hotel">Only</button>
+          </div>
+          <div class="el-hotels-foot">
+            <button type="button" class="el-btn primary" (click)="hotelsOpen = false">Done</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="el-seg" role="group" aria-label="Time range">
+        <button type="button" *ngFor="let p of periods; trackBy: trackIndex" [class.on]="range.period === p.id"
+                [attr.aria-pressed]="range.period === p.id" (click)="pickPeriod(p.id)">{{ p.label }}</button>
+      </div>
+
+      <div class="el-custom" *ngIf="v.range.custom">
+        <label>From <input type="date" [value]="v.range.from" [min]="v.range.min" [max]="v.range.max" (change)="setCustom('from', $event)"></label>
+        <label>to <input type="date" [value]="v.range.to" [min]="v.range.min" [max]="v.range.max" (change)="setCustom('to', $event)"></label>
+      </div>
+
+      <div class="el-step">
+        <button type="button" class="el-arrow" *ngIf="v.range.stepping" [disabled]="!v.range.canPrev" (click)="step(-1)" aria-label="Earlier period"><mat-icon>chevron_left</mat-icon></button>
+        <span class="el-period"><mat-icon>calendar_today</mat-icon>{{ v.periodLabel }}</span>
+        <button type="button" class="el-arrow" *ngIf="v.range.stepping" [disabled]="!v.range.canNext" (click)="step(1)" aria-label="Later period"><mat-icon>chevron_right</mat-icon></button>
+      </div>
+    </section>
+
+    <div class="el-note" *ngIf="!detailReady || state.failed">
+      <span>{{ detailNote }}</span>
+      <button type="button" class="el-link" *ngIf="state.failed" (click)="retry()">Try again</button>
+    </div>
+
+    <section class="el-kpis" aria-label="Key figures">
+      <div class="el-card el-kpi" *ngFor="let k of v.kpis; trackBy: trackIndex">
+        <div class="el-kpi-label">{{ k.label }}</div>
+        <div class="el-kpi-value"><b>{{ k.value }}</b><span>{{ k.unit }}</span></div>
+        <div class="el-kpi-sub">{{ k.sub }}</div>
+      </div>
+    </section>
+
+    <div class="el-row">
+      <section class="el-card el-wide">
+        <div class="el-card-head">
+          <h2>{{ v.bars.title }}</h2>
+          <small>{{ v.bars.hint }}</small>
+        </div>
+        <div class="el-chart">
+          <div class="el-y bars"><span *ngFor="let t of v.bars.ticks; trackBy: trackIndex" [style.bottom.%]="t.bottom">{{ t.label }}</span></div>
+          <div class="el-chart-main">
+            <div class="el-plot bars">
+              <i class="el-gridline" *ngFor="let t of v.bars.ticks; trackBy: trackIndex" [style.bottom.%]="t.bottom"></i>
+              <ng-container *ngFor="let h of v.bars.hits; trackBy: trackIndex">
+                <i class="el-gap" *ngIf="h.empty" [style.left.%]="h.left" [style.width.%]="h.width"></i>
+              </ng-container>
+              <i class="el-bar" *ngFor="let s of v.bars.segments; trackBy: trackIndex" [class.top]="s.top" [class.dim]="s.dim"
+                 [style.left.%]="s.left" [style.width.%]="s.width" [style.bottom.%]="s.bottom" [style.height.%]="s.height" [style.background]="s.color"></i>
+              <button type="button" class="el-hit" *ngFor="let h of v.bars.hits; trackBy: trackIndex" [title]="h.tip" [attr.aria-label]="h.aria"
+                      [style.left.%]="h.left" [style.width.%]="h.width" (click)="pickBar(h)"></button>
+            </div>
+            <div class="el-x-even"><span *ngFor="let l of v.bars.labels; trackBy: trackIndex">{{ l }}</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="el-card el-narrow" *ngIf="v.hotels.options.length > 1">
+        <div class="el-card-head">
+          <h2>Share by hotel</h2>
+          <small>kWh in the period</small>
+        </div>
+        <div class="el-shares">
+          <div class="el-share" *ngFor="let s of v.shares; trackBy: trackIndex">
+            <div class="el-share-top">
+              <span class="el-name"><i [style.background]="s.color"></i>{{ s.hotel }}</span>
+              <span class="el-num"><b>{{ s.kwh }}</b> <small>kWh · {{ s.share }}</small></span>
+            </div>
+            <div class="el-track"><i [style.width.%]="s.width" [style.background]="s.color"></i></div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <section class="el-card">
+      <div class="el-card-head center">
+        <div>
+          <h2>Load curve</h2>
+          <small>{{ v.curve.sub }}</small>
+        </div>
+        <div class="el-actions">
+          <button type="button" class="el-btn" *ngIf="v.curve.focused" (click)="clearFocus()">Back to the whole period</button>
+          <div class="el-toggle" *ngIf="v.many">
+            <button type="button" [class.on]="mode === 'hotel'" [attr.aria-pressed]="mode === 'hotel'" (click)="setMode('hotel')">Each hotel</button>
+            <button type="button" [class.on]="mode === 'total'" [attr.aria-pressed]="mode === 'total'" (click)="setMode('total')">Hotels together</button>
+          </div>
+        </div>
+      </div>
+      <div class="el-legend">
+        <span *ngFor="let l of v.curve.lines; trackBy: trackIndex"><i class="line" [style.background]="l.color"></i>{{ l.name }}</span>
+        <span><i class="outage"></i>Power outage reported by the meter</span>
+      </div>
+      <div class="el-chart" *ngIf="detailReady && v.curve.hasData; else noCurve">
+        <div class="el-y curve"><span *ngFor="let t of v.curve.ticks; trackBy: trackIndex" [style.bottom.%]="t.bottom">{{ t.label }}</span></div>
+        <div class="el-chart-main">
+          <div class="el-plot curve">
+            <i class="el-gridline" *ngFor="let t of v.curve.ticks; trackBy: trackIndex" [style.bottom.%]="t.bottom"></i>
+            <i class="el-band" *ngFor="let b of v.curve.bands; trackBy: trackIndex" [style.left.%]="b.left" [style.width.%]="b.width"></i>
+            <svg aria-hidden="true" viewBox="0 0 1000 300" preserveAspectRatio="none">
+              <path *ngFor="let l of v.curve.lines; trackBy: trackIndex" [attr.d]="l.d" [style.stroke]="l.color"></path>
+            </svg>
+            <i class="el-cursor" *ngIf="tip as tp" [style.left.%]="tp.left"></i>
+            <div class="el-hover" role="img" aria-label="Load curve in kilowatts. Move the pointer over the chart to read the values."
+                 (mousemove)="onCurveMove($event)" (mouseleave)="hover = null"></div>
+            <div class="el-tip" *ngIf="tip as tp" [style.left.%]="tp.left" [style.transform]="'translateX(' + tp.shift + ')'">
+              <b>{{ tp.title }}</b>
+              <div *ngFor="let r of tp.rows; trackBy: trackIndex"><span><i [style.background]="r.color"></i>{{ r.name }}</span><b>{{ r.value }}</b></div>
+              <em *ngIf="tp.flag">{{ tp.flag }}</em>
+            </div>
+          </div>
+          <div class="el-x"><span *ngFor="let x of v.curve.xTicks; trackBy: trackIndex" [style.left.%]="x.left" [style.transform]="'translateX(' + x.shift + ')'">{{ x.label }}</span></div>
+        </div>
+      </div>
+      <ng-template #noCurve><div class="el-blank curve">{{ detailReady ? 'No 15-minute data in this period.' : detailNote }}</div></ng-template>
+    </section>
+
+    <div class="el-row">
+      <section class="el-card el-wide">
+        <div class="el-card-head">
+          <h2>When the power is used</h2>
+          <small>{{ v.heat.sub }}</small>
+        </div>
+        <ng-container *ngIf="detailReady; else noHeat">
+          <div class="el-chart">
+            <div class="el-heat-hours"><span *ngFor="let h of hours; trackBy: trackIndex">{{ h }}</span></div>
+            <div class="el-chart-main">
+              <div class="el-heat" [style.grid-template-columns]="'repeat(' + v.heat.columns + ', minmax(0, 1fr))'">
+                <i *ngFor="let c of v.heat.cells; trackBy: trackIndex" [title]="c.tip" [class.nodata]="!c.bg" [style.background]="c.bg"></i>
+              </div>
+              <div class="el-x-even"><span *ngFor="let l of v.heat.labels; trackBy: trackIndex">{{ l }}</span></div>
+            </div>
+          </div>
+          <div class="el-ramp">
+            <span>0 kW</span>
+            <span class="el-ramp-steps"><i *ngFor="let color of ramp; trackBy: trackIndex" [style.background]="color"></i></span>
+            <span>{{ v.heat.maxLabel }}</span>
+            <span class="el-ramp-gap"><i class="nodata"></i>No data</span>
+          </div>
+        </ng-container>
+        <ng-template #noHeat><div class="el-blank heat">{{ detailNote }}</div></ng-template>
+      </section>
+
+      <section class="el-card el-narrow">
+        <div class="el-card-head column">
+          <h2>Typical day</h2>
+          <small>Average kW by hour of day</small>
+        </div>
+        <div class="el-legend">
+          <span><i class="solid"></i>Monday to Friday</span>
+          <span><i class="dashed"></i>Saturday and Sunday</span>
+        </div>
+        <div class="el-chart" *ngIf="detailReady; else noTypical">
+          <div class="el-y typical"><span *ngFor="let t of v.typical.ticks; trackBy: trackIndex" [style.bottom.%]="t.bottom">{{ t.label }}</span></div>
+          <div class="el-chart-main">
+            <div class="el-plot typical">
+              <i class="el-gridline" *ngFor="let t of v.typical.ticks; trackBy: trackIndex" [style.bottom.%]="t.bottom"></i>
+              <svg role="img" aria-label="Average power by hour of day, weekdays and weekends" viewBox="0 0 1000 300" preserveAspectRatio="none">
+                <path class="weekend" [attr.d]="v.typical.weekend"></path>
+                <path class="weekday" [attr.d]="v.typical.weekday"></path>
+              </svg>
+            </div>
+            <div class="el-x"><span *ngFor="let x of typicalTicks; trackBy: trackIndex" [style.left.%]="x.left" [style.transform]="'translateX(' + x.shift + ')'">{{ x.label }}</span></div>
+          </div>
+        </div>
+        <ng-template #noTypical><div class="el-blank typical">{{ detailNote }}</div></ng-template>
+        <dl class="el-facts" *ngIf="detailReady">
+          <div><dt>Busiest hour on weekdays</dt><dd>{{ v.typical.weekdayPeak }}</dd></div>
+          <div><dt>Busiest hour on weekends</dt><dd>{{ v.typical.weekendPeak }}</dd></div>
+          <div><dt>Quietest hour (base load)</dt><dd>{{ v.typical.base }}</dd></div>
+        </dl>
+      </section>
+    </div>
+
+    <section class="el-card">
+      <div class="el-card-head">
+        <h2>Meters</h2>
+        <small>{{ v.periodLabel }}</small>
+      </div>
+      <div class="el-scroll">
+        <table class="el-table meters">
+          <thead>
+            <tr>
+              <th>Hotel</th><th>Meter no.</th><th class="r">Consumption (kWh)</th><th class="r">Share</th><th class="r">Per day (kWh)</th>
+              <th class="r">Peak (kW)</th><th>Peak time</th><th class="r">Load factor</th><th class="r">Night share</th><th class="r">Data received</th><th class="r">Outages</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let r of v.rows; trackBy: trackIndex">
+              <td><span class="el-name"><i [style.background]="r.color"></i>{{ r.hotel }}</span></td>
+              <td class="soft">{{ r.serial }}</td><td class="r strong">{{ r.kwh }}</td><td class="r">{{ r.share }}</td><td class="r">{{ r.perDay }}</td>
+              <td class="r">{{ r.peak }}</td><td class="soft">{{ r.peakAt }}</td><td class="r">{{ r.loadFactor }}</td><td class="r">{{ r.night }}</td>
+              <td class="r">{{ r.received }}</td><td class="r">{{ r.outages }}</td>
+            </tr>
+          </tbody>
+          <tfoot *ngIf="v.rows.length > 1">
+            <tr>
+              <td>{{ v.total.hotel }}</td><td></td><td class="r">{{ v.total.kwh }}</td><td class="r">{{ v.total.share }}</td><td class="r">{{ v.total.perDay }}</td>
+              <td class="r">{{ v.total.peak }}</td><td class="soft">{{ v.total.peakAt }}</td><td class="r">{{ v.total.loadFactor }}</td><td class="r">{{ v.total.night }}</td>
+              <td class="r">{{ v.total.received }}</td><td class="r">{{ v.total.outages }}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </section>
+
+    <div class="el-row">
+      <section class="el-card el-half">
+        <div class="el-card-head">
+          <h2>Monthly totals</h2>
+          <small>kWh, latest months on record</small>
+        </div>
+        <div class="el-scroll">
+          <div class="el-months" [style.grid-template-columns]="v.months.columns">
+            <div *ngFor="let c of v.months.cells; trackBy: trackIndex" [class]="c.kind">{{ c.text }}<small *ngIf="c.sub">{{ c.sub }}</small></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="el-card el-half">
+        <div class="el-card-head">
+          <h2>Power outages</h2>
+          <small>{{ v.quality }}</small>
+        </div>
+        <div class="el-blank" *ngIf="!detailReady">{{ detailNote }}</div>
+        <div class="el-blank" *ngIf="detailReady && !v.events.length">No outage was reported by the selected meters in this period.</div>
+        <div class="el-scroll" *ngIf="detailReady && v.events.length">
+          <table class="el-table">
+            <thead><tr><th>When</th><th>Hotel</th><th class="r">Duration</th><th class="r">Lowest (kW)</th><th class="r">Meter status</th></tr></thead>
+            <tbody>
+              <tr *ngFor="let e of v.events; trackBy: trackIndex">
+                <td>{{ e.when }}</td>
+                <td><span class="el-name"><i [style.background]="e.color"></i>{{ e.hotel }}</span></td>
+                <td class="r">{{ e.duration }}</td><td class="r">{{ e.low }}</td><td class="r">{{ e.codes }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <small class="el-foot-note">Status 16 means the supply was interrupted during the interval. Status 8 appears with 0 kW between two such intervals.</small>
+      </section>
+    </div>
+
+    <footer class="el-footer">
+      <span>Source: ČEZ Distribuce measured-data portal. A day's values arrive once, on the following day.</span>
+      <span>All times are Prague local time.</span>
+    </footer>
+  </ng-container>
+</div>
