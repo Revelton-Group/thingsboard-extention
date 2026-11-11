@@ -228,6 +228,57 @@ export interface TranslationSet {
   lblNoise: string;
   lblMotion: string;
 
+  // Utilities
+  utTitle: string;
+  utMainMeters: string;
+  utReporting: string;
+  utOf: string;
+  utTodayVsUsual: string;
+  utUsual: string;
+  utAbove: string;
+  utHigh: string;
+  utBelow: string;
+  utNoBaseline: string;
+  utNow: string;
+  utToday: string;
+  utPerRoom: string;
+  utNight: string;
+  utOfTotal: string;
+  utPeak: string;
+  utAll: string;
+  utOnline: string;
+  utNoData: string;
+  utMinAgo: string;
+  utHourAgo: string;
+  utDayAgo: string;
+  utNeverReported: string;
+  utLastReading: string;
+  utVsPrevious: string;
+  utPeriod1: string;
+  utPeriod7: string;
+  utPeriod30: string;
+  utPeriodLong1: string;
+  utPeriodLong7: string;
+  utPeriodLong30: string;
+  utLoadFailed: string;
+  utNoMeters: string;
+  utNoReadings: string;
+  utRangeLimit: string;
+  utLeakTitle: string;
+  utLeakDetail: string;
+  utHighTitle: string;
+  utHighDetail: string;
+  utOfflineTitle: string;
+  utTypeElectricity: string;
+  utTypeWater: string;
+  utTypeHotWater: string;
+  utTypeHeating: string;
+  utTypeGas: string;
+  utUnitKwh: string;
+  utUnitKw: string;
+  utUnitM3: string;
+  utUnitM3h: string;
+
   // Control settings
   csTitle: string;
   csHotel: string;
@@ -637,6 +688,55 @@ export class TranslationService {
       lblNoise: "Noise",
       lblMotion: "Motion",
       // Control settings
+      utTitle: "Utilities",
+      utMainMeters: "main meters",
+      utReporting: " online",
+      utOf: "/",
+      utTodayVsUsual: "Today compared with a usual day at this time",
+      utUsual: "As usual",
+      utAbove: "Above usual",
+      utHigh: "Much higher",
+      utBelow: "Below usual",
+      utNoBaseline: "No baseline yet",
+      utNow: "Now",
+      utToday: "Today",
+      utPerRoom: "Per occupied room, day",
+      utNight: "Night use, 00 to 05",
+      utOfTotal: "of total",
+      utPeak: "Peak",
+      utAll: "All",
+      utOnline: "Online",
+      utNoData: "No data",
+      utMinAgo: " min ago",
+      utHourAgo: " h ago",
+      utDayAgo: " d ago",
+      utNeverReported: "No readings yet",
+      utLastReading: "Last reading",
+      utVsPrevious: "% vs previous",
+      utPeriod1: "24 h",
+      utPeriod7: "7 days",
+      utPeriod30: "30 days",
+      utPeriodLong1: "last 24 hours",
+      utPeriodLong7: "last 7 days",
+      utPeriodLong30: "last 30 days",
+      utLoadFailed: "Could not load meter data",
+      utNoMeters: "No main meters found. Check the -util- device profiles.",
+      utNoReadings: "No readings in this period",
+      utRangeLimit: "Up to {n} days, within the last year",
+      utLeakTitle: "night flow did not drop.",
+      utLeakDetail: "It kept running 01:00 to 05:00, possible leak",
+      utHighTitle: "well above the usual level.",
+      utHighDetail: "{n}% of a usual day at this time",
+      utOfflineTitle: "not reporting.",
+      utTypeElectricity: "Electricity",
+      utTypeWater: "Water",
+      utTypeHotWater: "Hot water",
+      utTypeHeating: "Heating",
+      utTypeGas: "Gas",
+      utUnitKwh: "kWh",
+      utUnitKw: "kW",
+      utUnitM3: "m³",
+      utUnitM3h: "m³/h",
       csTitle: "Control Settings",
       csHotel: "Hotel",
       csGeneral: "General",
@@ -1034,6 +1134,55 @@ export class TranslationService {
       lblNoise: "Шум",
       lblMotion: "Движение",
       // Control settings
+      utTitle: "Ресурсы",
+      utMainMeters: "главные счётчики",
+      utReporting: " в сети",
+      utOf: "/",
+      utTodayVsUsual: "Сегодня по сравнению с обычным днём в это же время",
+      utUsual: "Как обычно",
+      utAbove: "Выше обычного",
+      utHigh: "Намного выше",
+      utBelow: "Ниже обычного",
+      utNoBaseline: "Пока нет базы сравнения",
+      utNow: "Сейчас",
+      utToday: "Сегодня",
+      utPerRoom: "На занятый номер, в день",
+      utNight: "Ночью, 00–05",
+      utOfTotal: "от всего",
+      utPeak: "Пик",
+      utAll: "Все",
+      utOnline: "В сети",
+      utNoData: "Нет данных",
+      utMinAgo: " мин назад",
+      utHourAgo: " ч назад",
+      utDayAgo: " дн назад",
+      utNeverReported: "Показаний ещё нет",
+      utLastReading: "Последнее значение",
+      utVsPrevious: "% к прошлому периоду",
+      utPeriod1: "24 ч",
+      utPeriod7: "7 дней",
+      utPeriod30: "30 дней",
+      utPeriodLong1: "последние 24 часа",
+      utPeriodLong7: "последние 7 дней",
+      utPeriodLong30: "последние 30 дней",
+      utLoadFailed: "Не удалось загрузить данные счётчиков",
+      utNoMeters: "Главные счётчики не найдены. Проверьте профили устройств -util-.",
+      utNoReadings: "За этот период нет показаний",
+      utRangeLimit: "До {n} дней, в пределах последнего года",
+      utLeakTitle: "ночной расход не упал.",
+      utLeakDetail: "Вода шла с 01:00 до 05:00, возможна утечка",
+      utHighTitle: "намного выше обычного.",
+      utHighDetail: "{n}% от обычного дня в это же время",
+      utOfflineTitle: "не передаёт данные.",
+      utTypeElectricity: "Электричество",
+      utTypeWater: "Вода",
+      utTypeHotWater: "Горячая вода",
+      utTypeHeating: "Отопление",
+      utTypeGas: "Газ",
+      utUnitKwh: "кВт·ч",
+      utUnitKw: "кВт",
+      utUnitM3: "м³",
+      utUnitM3h: "м³/ч",
       csTitle: "Настройки управления",
       csHotel: "Отель",
       csGeneral: "Общие",

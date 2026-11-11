@@ -35,5 +35,8 @@ export * from "./core/settings/control-settings.schema";
 export * from "./core/settings/control-settings.core";
 export * from "./features/control-settings/control-settings.component";
 export * from "./features/control-settings/room-overrides.component";
+export * from "./features/utilities/utilities-panel.component";
+export * from "./core/utilities/utilities.core";
+export * from "./core/utilities/utilities.service";
 export * from "./core/models/room-card.models";
 export * from "./core/models/theme.constants";

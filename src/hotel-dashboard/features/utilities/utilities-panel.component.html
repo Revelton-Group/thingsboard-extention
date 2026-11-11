@@ -1,0 +1,122 @@
+<div class="ut-scrim" *ngIf="open" (click)="onScrim($event)">
+  <div class="ut-pop" role="dialog" aria-modal="true" [attr.aria-label]="t.utTitle">
+    <header class="ut-head">
+      <span class="ut-head-icon"><i class="material-icons">speed</i></span>
+      <div class="ut-head-text">
+        <h2>{{ t.utTitle }}</h2>
+        <small>{{ hotelName }}<ng-container *ngIf="hotelName">, </ng-container>{{ t.utMainMeters }}</small>
+      </div>
+      <span class="ut-spacer"></span>
+      <span class="ut-pill" *ngIf="meterCount > 0" [class.warn]="!allReporting">
+        <i class="material-icons">{{ allReporting ? 'check' : 'wifi_off' }}</i>
+        <ng-container *ngIf="!allReporting">{{ liveCount }}{{ t.utOf }}</ng-container>{{ meterCount }}{{ t.utReporting }}
+      </span>
+      <div class="ut-range">
+        <div class="ut-seg">
+          <button type="button" *ngFor="let p of periods" [class.on]="!range && period === p" [attr.aria-pressed]="!range && period === p" (click)="pickPeriod(p)">{{ periodShort(p) }}</button>
+          <button type="button" [class.on]="!!range" [attr.aria-pressed]="!!range" [attr.aria-expanded]="rangeOpen"
+            [disabled]="state.status !== 'ready' || !cards.length" (click)="toggleRange()">{{ t.rangeCustom }}</button>
+        </div>
+        <div class="ut-range-pop" *ngIf="rangeOpen">
+          <b>{{ t.rangeCustomTitle }}</b>
+          <label>{{ t.rangeStart }}<input type="date" [(ngModel)]="rangeStart" [min]="rangeMin" [max]="rangeMax"></label>
+          <label>{{ t.rangeEnd }}<input type="date" [(ngModel)]="rangeEnd" [min]="rangeMin" [max]="rangeMax"></label>
+          <small [class.warn]="!rangeValid">{{ rangeHint }}</small>
+          <button type="button" class="ut-apply" [disabled]="!rangeValid" (click)="applyRange()">{{ t.rangeApply }}</button>
+        </div>
+      </div>
+      <button type="button" class="ut-x" (click)="close()" [title]="t.close" [attr.aria-label]="t.close"><i class="material-icons">close</i></button>
+    </header>
+
+    <div class="ut-body">
+      <div class="ut-state" *ngIf="state.status === 'loading'">{{ t.loading }}</div>
+
+      <div class="ut-state" *ngIf="state.status === 'error'">
+        <span>{{ t.utLoadFailed }}</span>
+        <button type="button" class="ut-retry" (click)="retry()">{{ t.retryConnection }}</button>
+      </div>
+
+      <div class="ut-state" *ngIf="state.status === 'ready' && !cards.length">{{ t.utNoMeters }}</div>
+
+      <ng-container *ngIf="state.status === 'ready' && cards.length">
+        <button type="button" class="ut-attn" *ngFor="let a of attention; trackBy: trackIndex" [class.alert]="a.alert" (click)="pickType(a.typeId)">
+          <i class="material-icons ut-attn-icon">{{ a.icon }}</i>
+          <span class="ut-attn-text"><b>{{ a.title }}</b> <span>{{ a.detail }}</span></span>
+          <i class="material-icons ut-attn-go">chevron_right</i>
+        </button>
+
+        <section class="ut-today">
+          <span class="ut-caption">{{ t.utTodayVsUsual }}</span>
+          <div class="ut-cards">
+            <button type="button" class="ut-card" *ngFor="let c of cards; trackBy: trackType" [class.on]="c.on" [attr.aria-pressed]="c.on" (click)="pickType(c.typeId)">
+              <span class="ut-ring" [style.background]="'conic-gradient(' + c.ringColor + ' ' + c.ringPct + '%, var(--ring-track, var(--border)) 0)'">
+                <span class="ut-ring-in">{{ c.pct === null ? '—' : c.pct + '%' }}</span>
+              </span>
+              <span class="ut-card-text">
+                <span class="ut-card-name"><i class="material-icons">{{ c.icon }}</i>{{ c.name }}<small [title]="c.meters">{{ c.meters }}</small></span>
+                <span class="ut-card-value"><b>{{ c.reading }}</b> <small>{{ c.unit }}</small></span>
+                <span class="ut-card-foot">
+                  <span class="ut-card-today">{{ t.utToday }} <b>{{ c.today }}</b> <small>{{ c.unit }}</small></span>
+                  <span class="ut-card-status"><span class="ut-dot" [style.background]="c.statusColor"></span>{{ c.status }}</span>
+                </span>
+              </span>
+            </button>
+          </div>
+        </section>
+
+        <section class="ut-chart">
+          <div class="ut-chart-head">
+            <div>
+              <h3>{{ selectedName }}, {{ periodLong }}</h3>
+              <div class="ut-total"><b>{{ totalText }}</b> <small>{{ selectedUnit }}</small></div>
+              <div class="ut-delta"><ng-container *ngIf="deltaText"><i class="material-icons">{{ deltaUp ? 'arrow_upward' : 'arrow_downward' }}</i>{{ deltaText }}</ng-container></div>
+            </div>
+            <div class="ut-seg" *ngIf="meterTabs.length">
+              <button type="button" *ngFor="let m of meterTabs; trackBy: trackId" [class.on]="meterId === m.id" [attr.aria-pressed]="meterId === m.id" (click)="pickMeter(m.id)">{{ m.label }}</button>
+            </div>
+          </div>
+
+          <div class="ut-plot" *ngIf="hasSeries && !rangeLoading; else noSeries">
+            <div class="ut-y"><span *ngFor="let y of yLabels; trackBy: trackIndex">{{ y }}</span></div>
+            <div class="ut-plot-main">
+              <div class="ut-area">
+                <div class="ut-grid top"></div>
+                <div class="ut-grid mid"></div>
+                <div class="ut-grid bottom"></div>
+                <div class="ut-bars">
+                  <button type="button" class="ut-bar" *ngFor="let b of bars; let i = index; trackBy: trackIndex"
+                    [attr.aria-label]="b.label + ': ' + b.value + ' ' + selectedUnit"
+                    (mouseenter)="hover = i" (mouseleave)="hover = null" (focus)="hover = i" (blur)="hover = null">
+                    <span [style.height.%]="b.h" [class.dim]="hover !== null && hover !== i"></span>
+                  </button>
+                </div>
+                <div class="ut-tip" *ngIf="tip as tp" [style.left.%]="tipLeft">
+                  <div>{{ tp.label }}</div>
+                  <div><b>{{ tp.value }}</b> {{ selectedUnit }}</div>
+                </div>
+              </div>
+              <div class="ut-ticks"><span *ngFor="let b of bars; trackBy: trackIndex">{{ b.tick }}</span></div>
+            </div>
+          </div>
+          <ng-template #noSeries><div class="ut-state small">{{ rangeLoading ? t.loading : t.utNoReadings }}</div></ng-template>
+
+          <div class="ut-stats">
+            <div class="ut-stat" *ngFor="let s of stats; trackBy: trackIndex">
+              <div class="ut-stat-label">{{ s.label }}</div>
+              <div class="ut-stat-value"><b>{{ s.value }}</b> <small>{{ s.unit }}</small></div>
+            </div>
+          </div>
+        </section>
+
+        <div class="ut-meters">
+          <div class="ut-meter" *ngFor="let m of meterLines; trackBy: trackId">
+            <span class="ut-meter-name" [class.off]="m.offline"><i class="material-icons">{{ m.offline ? 'wifi_off' : 'check' }}</i><span class="ut-meter-id">{{ m.name }}<small *ngIf="m.model">{{ m.model }}</small></span></span>
+            <span>{{ m.status }}</span>
+            <span class="ut-num">{{ m.reading }}</span>
+            <span>{{ m.seen }}</span>
+          </div>
+        </div>
+      </ng-container>
+    </div>
+  </div>
+</div>

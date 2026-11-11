@@ -21,13 +21,14 @@ import { Subscription } from "rxjs";
 import { filter } from "rxjs/operators";
 import { TranslationService } from "../../core/services/translation.service";
 import { ControlSettingsService } from "../../core/settings/control-settings.service";
+import { UtilitiesService } from "../../core/utilities/utilities.service";
 import { HOTEL_TIMEZONE, HOTEL_LATITUDE, HOTEL_LONGITUDE } from "../../core/models/dashboard.config";
 
 @Component({
   selector: "tb-revelton-dashboard",
   templateUrl: "./revelton-hotel.component.html",
   styleUrls: ["./revelton-hotel.component.scss"],
-  providers: [ControlSettingsService, RoomDataService, HotelStateService],
+  providers: [ControlSettingsService, RoomDataService, HotelStateService, UtilitiesService],
   standalone: false,
 })
 export class ReveltonDashboardComponent implements OnInit, OnDestroy {
@@ -81,6 +82,9 @@ export class ReveltonDashboardComponent implements OnInit, OnDestroy {
   showCustomPicker = false;
   selectedRoom: InlineRoom | null = null;
   settingsOpen = false;
+  utilitiesOpen = false;
+  hasUtilities = false;
+  utilityIssues = 0;
   selectedHistoricalRoom: InlineRoom | null = null;
   customStart = '';
   customEnd = '';
@@ -215,7 +219,8 @@ export class ReveltonDashboardComponent implements OnInit, OnDestroy {
     private themeService: ThemeService,
     private el: ElementRef,
     private translationService: TranslationService,
-    private settings: ControlSettingsService
+    private settings: ControlSettingsService,
+    private utilities: UtilitiesService
   ) {}
 
   @HostListener("document:click")
@@ -281,6 +286,12 @@ export class ReveltonDashboardComponent implements OnInit, OnDestroy {
       this.hotelState.selectedHistoricalRoom$.subscribe((room) => {
         this.selectedHistoricalRoom = room;
         this.refreshHistoricalArrays();
+        this.cd.detectChanges();
+      }),
+      this.utilities.state$.subscribe((state) => {
+        this.hasUtilities = state.status !== "none";
+        this.utilityIssues = state.issueCount;
+        if (!this.hasUtilities) this.utilitiesOpen = false;
         this.cd.detectChanges();
       })
     );
@@ -460,6 +471,7 @@ export class ReveltonDashboardComponent implements OnInit, OnDestroy {
     if (this.ctx && this.ctx.data) {
       // Delegate all data parsing + stat calculation to the service
       const rooms = this.hotelState.processDataUpdate(this.ctx);
+      this.utilities.update(this.ctx);
 
       // Sync dialog instances (view-level concern)
       setTimeout(() => {
@@ -718,6 +730,16 @@ export class ReveltonDashboardComponent implements OnInit, OnDestroy {
 
   closeSettings(): void {
     this.settingsOpen = false;
+    this.cd.detectChanges();
+  }
+
+  openUtilities(): void {
+    this.utilitiesOpen = true;
+    this.cd.detectChanges();
+  }
+
+  closeUtilities(): void {
+    this.utilitiesOpen = false;
     this.cd.detectChanges();
   }
 

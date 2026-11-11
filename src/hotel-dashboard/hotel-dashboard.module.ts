@@ -9,6 +9,7 @@ import {
 } from "@home/components/public-api";
 import { ControlSettingsComponent } from "./features/control-settings/control-settings.component";
 import { RoomOverridesComponent } from "./features/control-settings/room-overrides.component";
+import { UtilitiesPanelComponent } from "./features/utilities/utilities-panel.component";
 import { HistoricalChartComponent } from "./shared/components/historical-chart/historical-chart.component";
 
 import { RoomCardComponent } from "./features/room-view/room-card.component";
@@ -42,6 +43,7 @@ const HOTEL_COMPONENTS = [
   HistoricalChartComponent,
   ControlSettingsComponent,
   RoomOverridesComponent,
+  UtilitiesPanelComponent,
 ];
 
 @NgModule({

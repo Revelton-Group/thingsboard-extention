@@ -1,3 +1,5 @@
+import { isUtilitiesAlias } from "../utilities/utilities.core";
+
 /**
  * Short stable key for a widget's datasource set. Browser-stored state (topology
  * cache, alert archive) is keyed by it so one hotel never
@@ -5,6 +7,7 @@
  */
 export function datasourceScopeKey(ctx: any): string {
   const ids: string[] = (ctx?.datasources || [])
+    .filter((ds: any) => !isUtilitiesAlias(ds.aliasName))
     .map((ds: any) =>
       typeof ds.entityId === "string" ? ds.entityId : ds.entityId?.id
     )

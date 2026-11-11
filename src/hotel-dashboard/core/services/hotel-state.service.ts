@@ -4,6 +4,7 @@ import { debounceTime, timeout } from "rxjs/operators";
 import { RoomDataService, RoomData } from "./room-data.service";
 import { HOTEL_TIMEZONE } from "../models/dashboard.config";
 import { datasourceScopeKey } from "../utils/scope-key";
+import { isUtilitiesAlias, utilityDeviceIds } from "../utilities/utilities.core";
 import { isBatteryExemptDevice, isMewsOrSimulationDevice } from "../utils/battery-exempt";
 
 /* ───────────────────────────────────────────────────────────
@@ -555,7 +556,7 @@ export class HotelStateService implements OnDestroy {
     // This is critical for discovering child devices of assets like "JLT-Office".
     if (ctx.datasources) {
       ctx.datasources.forEach((ds: any) => {
-        if (!ds || !ds.entityName) return;
+        if (!ds || !ds.entityName || isUtilitiesAlias(ds.aliasName)) return;
         const entityName = ds.entityName;
         const aliasName = (ds.aliasName || "").toLowerCase();
         const isRoomAlias = aliasName.includes("room") || aliasName.includes("guest");
@@ -637,7 +638,7 @@ export class HotelStateService implements OnDestroy {
     }
 
     ctx.data.forEach((item: any) => {
-      if (item.datasource && item.datasource.entityName) {
+      if (item.datasource && item.datasource.entityName && !isUtilitiesAlias(item.datasource.aliasName)) {
         const entityName = item.datasource.entityName;
 
         // Filter out the Mews Bridge device so it's not treated as a room
@@ -1577,7 +1578,7 @@ export class HotelStateService implements OnDestroy {
 
     if (ctx.datasources) {
       for (const ds of ctx.datasources) {
-        if (ds.entityId) {
+        if (ds.entityId && !isUtilitiesAlias(ds.aliasName)) {
           const id =
             typeof ds.entityId === "string"
               ? ds.entityId
@@ -1795,8 +1796,9 @@ export class HotelStateService implements OnDestroy {
         return;
       }
 
+      const utilityMeterIds = new Set(utilityDeviceIds(ctx.datasources));
       const deviceRelations = relations.filter(
-        (r) => r.to?.entityType === "DEVICE" && r.type === "Contains"
+        (r) => r.to?.entityType === "DEVICE" && r.type === "Contains" && !utilityMeterIds.has(r.to.id)
       );
 
       log(
