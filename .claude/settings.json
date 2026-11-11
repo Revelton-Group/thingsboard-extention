@@ -11,12 +11,6 @@
       "Bash(grep -n \"_firstDataProcessed\\\\|_doProcessDataUpdate\\\\|_rooms\\\\$.next\\\\|roomsUpdated\" \"/home/nurlansarkhanov/Desktop/code/Revelton/thingsboard-extention/src/app/components/revelton-tb-extension-dashboard/core/services/hotel-state.service.ts\")",
       "Bash(grep -n \"_rooms\\\\$.next\" \"/home/nurlansarkhanov/Desktop/code/Revelton/thingsboard-extention/src/app/components/revelton-tb-extension-dashboard/core/services/hotel-state.service.ts\")",
       "Bash(grep -n \"rooms\\\\$.*next\\\\|_rooms.*next\\\\|\\\\.next.*rooms\" \"/home/nurlansarkhanov/Desktop/code/Revelton/thingsboard-extention/src/app/components/revelton-tb-extension-dashboard/core/services/hotel-state.service.ts\")",
-      "Bash(curl -s -X POST \"http://localhost:8080/api/auth/login\" -H \"Content-Type: application/json\" -d '{\"username\":\"iot-admin@thingboard.org\",\"password\":\"***REMOVED***\"}')",
-      "Bash(curl -s -X POST \"http://localhost:9090/api/auth/login\" -H \"Content-Type: application/json\" -d '{\"username\":\"iot-admin@thingboard.org\",\"password\":\"***REMOVED***\"}')",
-      "Bash(curl -s --max-time 10 -X POST \"https://thingsboard.cloud/api/auth/login\" -H \"Content-Type: application/json\" -d '{\"username\":\"iot-admin@thingboard.org\",\"password\":\"***REMOVED***\"}')",
-      "Bash(curl -s --max-time 10 -X POST \"https://demo.thingsboard.io/api/auth/login\" -H \"Content-Type: application/json\" -d '{\"username\":\"iot-admin@thingboard.org\",\"password\":\"***REMOVED***\"}')",
-      "Bash(curl -s --max-time 10 -X POST \"https://app.thingsboard.io/api/auth/login\" -H \"Content-Type: application/json\" -d '{\"username\":\"iot-admin@thingboard.org\",\"password\":\"***REMOVED***\"}')",
-      "Bash(curl -s --max-time 10 -X POST \"http://192.168.1.1:8080/api/auth/login\" -H \"Content-Type: application/json\" -d '{\"username\":\"iot-admin@thingboard.org\",\"password\":\"***REMOVED***\"}')",
       "Read(//home/nurlansarkhanov/Desktop/revelton-jaltska-edge-ui/**)",
       "Bash(grep -n -i \"room.*detail\\\\|room-detail\\\\|roomDetail\\\\|detail.*panel\\\\|right.*panel\\\\|slide.*panel\\\\|side.*panel\" \"/home/nurlansarkhanov/Desktop/revelton-jaltska-edge-ui/Hotel IoT Dashboard \\(standalone\\).html\" | head -40)",
       "Bash(wc -l \"/home/nurlansarkhanov/Desktop/revelton-jaltska-edge-ui/Hotel IoT Dashboard \\(standalone\\).html\")",
@@ -60,7 +54,11 @@
       "Bash(graphify explain *)",
       "Bash(grep -n \"THRESHOLDS\\\\|config\\\\$\\\\|controlPanelService\\\\|calcStatus\\\\|customBreakpoints\\\\|co2Max\\\\|humMax\\\\|tempMax\\\\|noiseMax\\\\|laeqMax\" src/app/components/revelton-tb-extension-dashboard/core/services/room-data.service.ts)",
       "Bash(grep -A 30 \"room-historical-data.component.ts$\")",
-      "Bash(awk '/room-detail-panel.component.ts$/{f=1;next} /^\\\\/home/{f=0} f')"
+      "Bash(awk '/room-detail-panel.component.ts$/{f=1;next} /^\\\\/home/{f=0} f')",
+      "Accept edits on",
+      "Bash(yarn -s lint)",
+      "Bash(yarn -s build:hotel:dev)",
+      "Bash(shasum -a 256 target/generated-resources/hotel-dashboard-widgets-1.2.6.js)"
     ]
   },
   "hooks": {
@@ -70,7 +68,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/home/nurlansarkhanov/.local/bin/graphify hook-guard search"
+            "command": "/Users/nurlansarkhanov/.local/bin/graphify hook-guard search"
           }
         ]
       },
@@ -79,7 +77,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/home/nurlansarkhanov/.local/bin/graphify hook-guard read"
+            "command": "/Users/nurlansarkhanov/.local/bin/graphify hook-guard read"
           }
         ]
       }
